@@ -1,99 +1,80 @@
-# Four nations, distinct datasets
+# Keep four national datasets in one collection
 
-A four-nation collection can preserve separate source-native datasets for
-England, Wales, Scotland and Northern Ireland. A common
-[dataset contract](../concepts/dataset-contract.md) makes their tables and
-metadata accessible through the same API while retaining their original meanings.
+A research project may need data from England, Wales, Scotland and Northern
+Ireland. SSDU can save supported selections from these sources in one
+**collection**, while keeping each dataset's original description and meaning.
 
-The teaching workflow uses **synthetic responses, not published statistics**.
-Its purpose is to demonstrate retained acquisition, durable jobs, verified
-transfer and offline replay. Check the generated
-[source coverage reference](../reference/sources.md) for current implemented
-support and validation limits before choosing real data.
+This example uses **invented teaching responses, not official statistics**.
+It shows how to save work, recover an interrupted download and transfer the
+collection for use offline. It does not produce a comparable indicator for the
+four nations. If this is your first example, start with the
+[guided tutorial](../start/research-tutorial.md).
 
-## Keep the four sources distinct
+## What goes into the collection?
 
-| Teaching case | Source boundary |
+| Area | Teaching example and support limit |
 |---|---|
-| England | Invented observations in the English deprivation File 7 shape, retaining release and geography vintage. |
-| Wales | A native StatsWales dataset, retaining its dimensions, units and notes. |
-| Scotland | An invented linked-data cube; file/ZIP routes and slice-attached components are unsupported. |
-| Northern Ireland | A NISRA portal JSON-stat cube; the flexible census builder is outside this scope. |
+| England | An invented table in the English deprivation File 7 format, with its release and geographical boundaries recorded. |
+| Wales | Invented StatsWales data, with the source's categories, units and notes. |
+| Scotland | An invented linked-data table. File/ZIP downloads and components attached to slices are outside current support. |
+| Northern Ireland | An invented NISRA portal JSON-stat table. The flexible census builder is outside current support. |
 
-Each case needs its own dataset identifier and native selectors. Preserve those
-requests, source references and release evidence rather than assuming matching
-column names identify equivalent statistics. The Scottish and NISRA teaching
-scopes do not establish conformance across their entire portals.
+Each dataset has its own identifier and selection codes. Matching column names
+alone do not mean that figures measure the same thing. Check the
+[source coverage matrix](../reference/sources.md) for supported formats before
+choosing real data.
 
-## Run the teaching workflow
+## Run the example
 
-[Install SSDU](../start/install.md), then run from the repository root:
+[Install SSDU](../start/install.md), then run from the `ssdu` project folder:
 
 ```sh
-uv run --frozen --offline --extra dev python examples/four_nations.py --output-dir data/four-nation-example
+uv run --frozen --offline python examples/four_nations.py --output-dir data/four-nation-example
 ```
 
-Choose a directory that does not exist. The example refuses to overwrite an
-existing path. Keep its helper, fixture manifests and collection specification
-with the checkout; source-only installation needs no retained provider capture.
+Choose a folder that does not exist; the script will not overwrite an existing
+run. It uses the helper and teaching files included with the project.
 
-The {download}`collection specification <../_downloads/four-nations.yaml>` uses
-provider IDs `deprivation`, `statswales`, `scotland` and `nisra`. Its dataset IDs
-and selectors demonstrate four distinct native interfaces. The Scottish series
-and NISRA table identifiers are invented teaching identifiers, not live requests.
-Inspect real provider metadata before choosing a published selection.
+The script:
 
-The {download}`complete script <../_downloads/four_nations.py>` runs this sequence:
+1. Describes four selections and plans the work needed to save them.
+2. Starts a retrieval job and deliberately interrupts it part-way through.
+3. Resumes the job, reusing work already saved.
+4. Saves the finished collection and exports it to a bundle.
+5. Opens the bundle in a fresh store and checks the same results offline.
 
-1. Prepare four explicit requests and a collection specification.
-2. Plan and queue a durable retrieval job with bounded acquisition budgets.
-3. Exercise an interruption and recovery, checking reuse of retained work.
-4. Inspect each dataset's observations, source table, metadata and diagnostics.
-5. Lock and export the collection, then import its bundle into a fresh store.
-6. Reopen the datasets and replay the lock with networking blocked, comparing
-   contracts, tables and pinned results across transfer.
+Look for `verified` and `fresh_store_verified` set to `true`, and `job_status`
+set to `succeeded`. The interruption and recovery happen within the script;
+you do not need to stop it or rerun it yourself.
 
-The deliberate interruption occurs after two retained fixture responses. England's
-entry has completed; a new worker resumes persisted job state and reuses the two
-response checkpoints. Recovery is part of this script, so rerunning the command
-against the same output directory is not the recovery mechanism.
+The {download}`collection description <../_downloads/four-nations.yaml>` shows
+the four selections. The Scottish and NISRA identifiers are invented for
+teaching and must not be used as live requests. You can also download the
+{download}`complete Python script <../_downloads/four_nations.py>`.
 
-Success reports `verified` and `fresh_store_verified` as `true`, `job_status` as
-`succeeded`, and `worker_restarted` as `true`. `retained_responses_reused` is `2`
-and `completed_entries_reused` contains `england`. All cached request counts are
-zero. A separate destination process checks source bytes, normalized tables,
-Intake reads and collection-query results, with `network_attempts` and
-`source_store_attempts` both zero. `job_requests` counts in-memory fixture HTTP
-attempts, not provider network traffic. Live request-pacing settings remain intact.
+## What happens after an interruption?
 
-## Cache and resume deliberately
+SSDU saves completed work and checkpoints as a job runs. A resumed job can reuse
+that verified work, subject to its remaining request, byte and retry limits.
+Any unfinished download may still need an internet connection. A cached response
+does not check whether the provider has since issued new data; refreshing is a
+separate choice.
 
-Verified cache hits reuse the retained response selection. They do not check the
-provider for a newer release. Durable jobs retain completed entries and request
-checkpoints so recovery can reuse verified work; unfinished acquisition may still
-need provider requests. Retry remains subject to the job's remaining request,
-byte and attempt budgets.
+Offline reads require the needed files to be present. They cannot finish a
+missing download. The `uv --offline` option controls package downloads
+separately; read [working offline](../concepts/offline.md) for the distinction.
 
-An application offline policy requires retained inputs. It cannot complete a
-missing selection by downloading it. `uv --offline` separately governs dependency
-downloads and does not block Python networking. See
-[offline operation](../concepts/offline.md) for these boundaries.
+## Keep the meanings with the figures
 
-## Verify transfer and interpretation
+An exported bundle carries the saved data and their descriptions. A collection
+lock alone only records which saved data and selections to use. The receiving
+computer also needs SSDU and its dependencies installed.
 
-A collection bundle carries retained snapshots and pinned metadata; a lock file
-alone does not carry all replay inputs. Verify identities and query results after
-import into a fresh store. Keep the installed code and dependencies available:
-the bundle is data and evidence, not a Python runtime.
+Before comparing national figures, check populations, definitions, units,
+observation periods, release dates and geographical boundaries. A deprivation
+rank and a poverty rate remain different measures even when both have a numeric
+`value` column. Missing information remains unknown.
 
-Contract version `1.0.0` provides an observation profile; it does not harmonise
-methodology. Check population, measure definitions, units, observation periods,
-release dates and geography vintages independently. Missing coverage or units
-remain unknown. In particular, a deprivation score or rank must not be treated
-as a directly comparable measure from another nation's dataset merely because
-both expose numeric values.
-
-Use the retained [provenance](../concepts/provenance.md) and source caveats when
-citing or combining results. Synthetic fixture success establishes the exercised
-software path, not current live availability, all-portal conformance or analytical
-suitability.
+Use the saved [source information](../concepts/provenance.md) when citing results.
+The example demonstrates a workflow with invented inputs; it does not establish
+that every source table is currently available or suitable for an analysis.

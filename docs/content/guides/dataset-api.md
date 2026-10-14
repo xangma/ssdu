@@ -1,8 +1,10 @@
 # Inspect and query a retained dataset
 
-The dataset API exposes one retained snapshot through Python, CLI, REST and MCP.
-Choose a snapshot, inspect its description, select a table and query it with
-bounded filters and pagination. These operations read retained evidence without
+Use this guide when you want to inspect a saved dataset or select rows from it.
+The same operations are available in Python, the command line, REST and MCP.
+For a first Python lesson, follow the [guided tutorial](../start/research-tutorial.md).
+
+Choose a saved snapshot, inspect its description, then select rows and columns. These operations read retained evidence without
 acquiring or migrating data. A historical snapshot without a contract requires
 explicit [migration](../concepts/dataset-contract.md#open-historical-snapshots).
 
@@ -121,8 +123,7 @@ at runtime. It checks Python, actual CLI, REST and actual MCP results, then
 transfers a collection bundle and repeats the reads in a fresh offline process.
 Original input and store paths are moved aside, and access to them and networking
 is denied during replay. A successful run reports `verified` and
-`fresh_store_verified` as `true`, 90 `api_parity_comparisons`, and
-`provider_network_requests` and `network_attempts` as `0` in `result.json`.
+`fresh_store_verified` as `true` in `result.json`.
 These are teaching data, not published statistics; see the
 [provider examples](dataset-examples.md) for interpretation.
 

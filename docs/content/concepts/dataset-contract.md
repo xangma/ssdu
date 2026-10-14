@@ -1,4 +1,12 @@
-# Dataset contract
+# How SSDU describes a dataset
+
+A table needs context: what one row represents, what its columns mean, and whether
+a blank value means missing, withheld or something else. SSDU keeps that context
+with the saved table in a **dataset contract**, a description that software can
+read as well as people.
+
+This page explains the technical structure. For a practical introduction, follow
+the [guided tutorial](../start/research-tutorial.md).
 
 `Dataset` gives retained tables a machine-readable description of their structure
 and meaning. Supported provider data uses the `observations` profile in contract

@@ -10,6 +10,12 @@
       "review": "Author-owned deterministic CI configuration; no captured data or secrets."
     },
     {
+      "path": ".github/workflows/docs.yml",
+      "kind": "configuration",
+      "sha256": "2617b8c2492083d0defd6dcdbbc89b19f460bd2b9f32ee8018e8f0da69a59b3f",
+      "review": "Author-owned GitHub Actions workflow; publishes only the audited, allowlisted manual after offline synthetic examples and acceptance checks."
+    },
+    {
       "path": ".gitignore",
       "kind": "configuration",
       "sha256": "bf05872fa985f1fac0718dfc7a30726de3061e3fc306ba8b120d7a89b5cb5ae9",
@@ -30,13 +36,13 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "159915cae3a07164b8465b6641339f45ce8f53ad8b9cba1dab964839414b8a2e",
+      "sha256": "1393896b8346e60d0046c0c975aaa54197a38d6c6b0244f3528d98b14b6b4618",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
       "path": "docs/README.md",
       "kind": "documentation",
-      "sha256": "9618cbfa878d50866253a972b7d968f5c3886c0bd85d2b960b3c5a7684e8a176",
+      "sha256": "f8077709c2412c45ac79112b39abd3523e41a64fe9b218e0b3d339dff4cf7e0c",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -54,73 +60,73 @@
     {
       "path": "docs/content/concepts/dataset-contract.md",
       "kind": "documentation",
-      "sha256": "e69ad78724524e1ec3a571fcc030558d9b657d598543675a63e9e5c149742087",
+      "sha256": "885866e4860d398a47094205192c8113be1e829162f48a2691026fc9e78be853",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/concepts/offline.md",
       "kind": "documentation",
-      "sha256": "fec24b73a24668120a23a1ce2b29d79b1d7a903bab5414cc37c11c3b959a0610",
+      "sha256": "a3026fa91c0babf75fc7b28a2a5656c85f894855a437150e75995dfee000c902",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/concepts/provenance.md",
       "kind": "documentation",
-      "sha256": "a0455708e0e2916d17224b70c8d8bf8f2e1a0c284a3c28b91a781082337128c3",
+      "sha256": "92968ca77e66c43b5765fdc0dd00f5352b63b3b63dd3af1feb8406f46e83609f",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/guides/dataset-api.md",
       "kind": "documentation",
-      "sha256": "6706aa56e53d7095a8f6c0e2397fc04580e4a81b2dc4fc3c0682380b99afa1cc",
+      "sha256": "6b66bacfd575de2da3d781275944c7404a01de7b10d4138c22f2d9d1da57f4b0",
       "review": "Curated user guide to the records and observations contracts, bounded shared APIs and invented offline transfer example; no captured data."
     },
     {
       "path": "docs/content/guides/dataset-examples.md",
       "kind": "documentation",
-      "sha256": "71b36f8b68fbfb48f0d645faa215c0066c56fc3420f681b3a04d1471cd099190",
+      "sha256": "ef251c5b17824d7443520f6517365f52967a92d52b62e2765f6badfb536614ec",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/guides/four-nations.md",
       "kind": "documentation",
-      "sha256": "34198a8a3201b0e3b0381e817196340a48a51fe13d13eaaa29e3c9f9f6b42573",
+      "sha256": "d5085ead5b2c274799e4398b2dad9d2f6ca47b9822b551ce212387a66430f583",
       "review": "Curated author-owned guide to invented four-nation fixtures, retained acquisition, recovery and offline transfer. No captured provider payload."
     },
     {
       "path": "docs/content/guides/interfaces.md",
       "kind": "documentation",
-      "sha256": "f8d5e952f86f39709c8ab2b205e0b1258b0a8b02124455b66b05273fc16fb697",
+      "sha256": "23208a94ed8bff9bcf030be480e59be0fa4327bd7e9b276519d1ffd33400d072",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "feb46bf7fc3b518fed235c44b020e10726fa84e708b01b2ce5df9978318607e3",
+      "sha256": "461e708f60cff3046c6e94b18933eaa20bbc3f8f57049ce6ea4118b141d95ffc",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/research/index.md",
       "kind": "documentation",
-      "sha256": "d8e9e58ef7b5a847df9109bab3b5a9ec046c636b86fabf152e68eea3e9707d47",
+      "sha256": "c73e6c4c441a084a8b894de6a4adc49bb6997357c8caa4cee5450758e6526ab8",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/start/install.md",
       "kind": "documentation",
-      "sha256": "a8e782712468348f5cde50652c1a23e87b39b5c547aafe513d3bf2b2d1d998a7",
+      "sha256": "4df84e59edde23da2e67d31380fea61e563ac94a5b672929ddd27a90bcbf3a80",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/start/quickstart.md",
       "kind": "documentation",
-      "sha256": "78c76112420c481796b31026872d0b3c5206c7dc95807d98835b0ce28a14b7a2",
+      "sha256": "740df08733034be69f2746ebfee3983a02642e9273d3ebd65fbff5d3fdbd8630",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "1685d03f4524c9a99ebd6137dddfaec9aa98c537f1f2b319ebe7d784cc7c3bfa",
+      "sha256": "f4358c955e50f36136e4b0834180700494ac80f4871bed3ca95fbab286d0584a",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -258,19 +264,25 @@
     {
       "path": "examples/notebooks/deprivation.ipynb",
       "kind": "notebook",
-      "sha256": "eee491f40a8da44c43af665434669bfd614aafd0bb7c70ed2687be4df77e43da",
+      "sha256": "67a33c0b48abc4b5c1f5cf3c6ea2aa82ecfb818247c419a37941fc0cc7eee541",
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
     },
     {
       "path": "examples/notebooks/nomis.ipynb",
       "kind": "notebook",
-      "sha256": "ee4d1c0e4b17165700d002941b5473055aa1e6c8b5296d5c438959234f0fa0bb",
+      "sha256": "cae6bcecf5f7155f14e8839b20341a5048249ef1eb1df7d5d3849f82a4241f6d",
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
+    },
+    {
+      "path": "examples/notebooks/research_tutorial.ipynb",
+      "kind": "notebook",
+      "sha256": "bdc796478ac3216f27182920ad6451460a5c3987105c7e944ae7b2971e85ac44",
+      "review": "Author-owned guided researcher tutorial; six independently invented community-centre counts for fictional areas, explicit missing-value meanings and synthetic citation. No outputs, attachments or captured provider data."
     },
     {
       "path": "examples/notebooks/statswales.ipynb",
       "kind": "notebook",
-      "sha256": "23cdfea6856ae5e3624d0e104d8203863ea0478ed810c9341537a0d07487606c",
+      "sha256": "e8d07eb9e884eca042f9fbbbbcc07aab3979ce9b161b31dc15af8386a1682480",
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
     },
     {
@@ -294,7 +306,7 @@
     {
       "path": "pyproject.toml",
       "kind": "configuration",
-      "sha256": "299727a78febcd507ac841d0c97dccaafcc61d85164d406f46a8c66ce6425e3d",
+      "sha256": "9d275e76c09ab7db4f53b4f3a2575d46a8dc783e38a39d9b6eb23dc44ce4d19d",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -864,7 +876,7 @@
     {
       "path": "tests/test_dataset_examples.py",
       "kind": "source",
-      "sha256": "168e7edcdaee29b9230e13ba0bae335763dccb27898d849ebf9ec48334615e93",
+      "sha256": "72f8192974bccc2ac7e85b867e2faa33417720960d1c091d353317d996dc7e5b",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1170,7 +1182,7 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "09b7207497e17583516e850cb1288810dbca36441f3afb775f30f63a97bbca5a",
+      "sha256": "45c27ecfd90532f1867c09b4c50e9931f07aaa7585c2308aa527c95b28ac1ec3",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
@@ -1182,7 +1194,7 @@
     {
       "path": "tools/docs_notebooks.py",
       "kind": "source",
-      "sha256": "4e45284ae8a27abdc34908d86a81d693711176fa8e3713818fcf2b81a8b13f27",
+      "sha256": "49055b85e9bcc7fb44b04a5497550bc0984938ff65457fb09ffe3b213b153804",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
@@ -1194,7 +1206,7 @@
     {
       "path": "uv.lock",
       "kind": "configuration",
-      "sha256": "54e47f0c1919c9429b1de84caf52596782be0905abeb3910bd9cb9e9d6a5b858",
+      "sha256": "babd536bd9114acc42f0ca888920993bee082c8359568f0ba501a34f614c7243",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     }
   ],

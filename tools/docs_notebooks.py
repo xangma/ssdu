@@ -146,9 +146,7 @@ def render(root, page, source):
     )
     rendered.insert(
         1,
-        f"\n{{download}}`Download source notebook <{download}>`\n\n"
-        "Outputs below were checked against the approved source with provider networking blocked. "
-        "Snapshot identifiers can differ between runs. Only text outputs are rendered.\n",
+        f"\n{{download}}`Download this notebook <{download}>`\n",
     )
     return "\n".join(rendered)
 

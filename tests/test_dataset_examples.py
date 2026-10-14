@@ -83,12 +83,14 @@ _ssdu_rate_settings = {key: os.environ.get(key) for key in (
 _ssdu_network_guard = no_network()
 _ssdu_network_attempts = _ssdu_network_guard.__enter__()
 """))
-nb.cells.append(nbformat.v4.new_code_cell("""
+checks = """
 assert _ssdu_network_attempts == []
-assert cached.snapshot_id == reopened.snapshot_id == dataset.snapshot_id
 assert {key: os.environ.get(key) for key in _ssdu_rate_settings} == _ssdu_rate_settings
 print("SSDU_NOTEBOOK_VERIFIED")
-"""))
+"""
+if nb.metadata.ssdu.get("provider") in {"nomis", "statswales", "deprivation"}:
+    checks += "assert cached.snapshot_id == reopened.snapshot_id == dataset.snapshot_id\n"
+nb.cells.append(nbformat.v4.new_code_cell(checks))
 client = NotebookClient(nb, km=manager, timeout=45, allow_errors=False,
                         resources={"metadata": {"path": str(workdir)}})
 client.execute(cwd=str(workdir), env=os.environ.copy())
@@ -97,12 +99,12 @@ assert "SSDU_NOTEBOOK_VERIFIED" in "".join(
     output.get("text", "") for cell in nb.cells if cell.cell_type == "code"
     for output in cell.get("outputs", [])
 )
-print(json.dumps({"verified": True, "provider": nb.metadata.ssdu.provider,
+print(json.dumps({"verified": True, "provider": nb.metadata.ssdu.get("provider", "local"),
                   "network_attempts": 0}))
 '''
 
 
-@pytest.mark.parametrize("provider", ["nomis", "statswales", "deprivation"])
+@pytest.mark.parametrize("provider", ["nomis", "statswales", "deprivation", "research_tutorial"])
 def test_notebook_executes_from_clean_directory_with_network_blocked(provider, tmp_path):
     result = subprocess.run(
         [
@@ -122,7 +124,46 @@ def test_notebook_executes_from_clean_directory_with_network_blocked(provider, t
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout) == {
         "verified": True,
-        "provider": provider,
+        "provider": provider if provider != "research_tutorial" else "local",
         "network_attempts": 0,
     }
     assert (tmp_path / "executed.ipynb").is_file()
+    if provider == "research_tutorial":
+        # A later session must reopen the saved table without the input CSV or kernel state.
+        (tmp_path / "data/ssdu-tutorial/community-centres.csv").unlink()
+        replay = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                """
+import json
+from pathlib import Path
+from examples.dataset_contract import no_network
+with no_network() as attempts:
+    from ssdu import Store
+    saved = Path('data/ssdu-tutorial')
+    dataset = Store(saved / 'saved-data').open_dataset(
+        (saved / 'snapshot-id.txt').read_text().strip()
+    )
+    rows = dataset.to_arrow().to_pylist()
+    assert len(rows) == 6
+    assert next(r for r in rows if r['area'] == 'Meadow Ward' and r['year'] == 2023)[
+        'community_centres'
+    ] is None
+    assert next(r for r in rows if r['area'] == 'Meadow Ward' and r['year'] == 2024)[
+        'community_centres'
+    ] == 0
+    assert 'invented' in dataset.contract['source']['citation']
+assert attempts == []
+print(json.dumps({'reopened': True, 'network_attempts': 0}))
+""",
+            ],
+            check=False,
+            cwd=tmp_path,
+            env=environment(),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert replay.returncode == 0, replay.stdout + replay.stderr
+        assert json.loads(replay.stdout) == {"reopened": True, "network_attempts": 0}

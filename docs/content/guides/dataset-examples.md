@@ -1,75 +1,71 @@
-# Provider dataset examples
+# Learn how different sources represent data
 
-Learn the [dataset contract](../concepts/dataset-contract.md) through three
-executed notebooks. Each uses **synthetic teaching responses, not published
-statistics**. The fixtures exercise SSDU's real adapters, request accounting,
-caching, normalization and retained replay without contacting providers.
+Sources can describe similar-looking figures in different ways. These examples
+show how SSDU presents their tables through one Python interface while keeping
+important differences visible: missing values, units, dates and area codes.
 
-| Example | What to inspect |
+Each notebook uses **invented teaching responses, not official statistics**.
+You can read the displayed results without installing anything. To learn the
+basic workflow first, follow the [guided tutorial](../start/research-tutorial.md).
+
+## Choose an example
+
+| Example | What you will learn |
 |---|---|
-| [Nomis](../examples/nomis.md) | String geography codes, numeric interpretation, source status and raw value tokens. |
-| [StatsWales](../examples/statswales.md) | Dimension codes, padded values, suppression, notes and unknown units. |
-| [English deprivation](../examples/deprivation.md) | Separate measures, geography vintages and reshaping source records into observations. |
+| [Nomis](../examples/nomis.md) | Keep area codes intact, and distinguish zero from a withheld or missing value. |
+| [StatsWales](../examples/statswales.md) | Select by area and year, and retain notes and missing-value meanings. |
+| [English deprivation](../examples/deprivation.md) | Read several measures from one source table without confusing a rank, score or count. |
 
-The same `Store`, `Request` and `Dataset` API appears in each example. Consult
-the generated [source coverage reference](../reference/sources.md) before choosing
-published data: a successful fixture is not certification of every provider table.
-The [four-nation workflow](four-nations.md) adds NISRA and Scottish selections,
-durable job recovery and fresh-process verification after collection transfer.
-Use the [common dataset interface](dataset-api.md) to inspect and query provider
-observations alongside typed CSV/Parquet records through Python, CLI, REST and MCP.
+The same `Store`, `Request` and `Dataset` objects appear in each example. A
+`Request` describes the selection; the `Store` saves it; the `Dataset` gives
+access to its tables and description. The
+[dataset structure](../concepts/dataset-contract.md) explains these tables in more
+detail.
 
-## Run the combined example
+The [four-nation example](four-nations.md) adds separate Scottish and Northern
+Irish datasets to a collection. It shows how to keep sources together, rather
+than treating them as comparable national indicators.
 
-[Install SSDU](../start/install.md), then install the example and documentation
-dependencies from the repository root:
+## Run a provider notebook yourself
 
-```sh
-uv sync --frozen --python 3.13 --group docs --extra dev
-```
-
-Run all three providers through the checked fixture transport:
+After [installation](../start/install.md), open a notebook from the `ssdu` project
+folder. For Nomis, run:
 
 ```sh
-uv run --frozen --offline --extra dev python examples/dataset_contract.py --output-dir data/dataset-contract-example
+uv run --frozen --offline --extra notebook jupyter lab examples/notebooks/nomis.ipynb
 ```
 
-The example verifies each contract, cached reads and explicit offline reads. It
-then locks a collection, exports/imports it into a fresh store, and compares the
-reopened observation tables, metadata and collection replay. Socket connections
-are blocked during the workflow.
+Use the same command with `statswales.ipynb` or `deprivation.ipynb` for the other
+examples. Run cells in order with **Shift+Enter**. Keep the notebooks inside the
+project: they use the included example helper and invented response files.
 
-Expect `verified` and `fresh_store_equal` to be `true`, with
-`provider_network_requests` and `network_attempts` both `0`. The fixture
-observation counts are three for Nomis, three for StatsWales and fifteen for
-deprivation. Each fixture contains three source rows; deprivation expands each
-row into five measures. These are tutorial rows; they do not describe live source coverage.
-Fixture HTTP attempts are handled in memory and are distinct from network
-requests.
+## Save and transfer all three examples
 
-## Execute the notebooks
-
-The downloadable source notebooks accompany the rendered examples. Run their
-cells in the locked environment before rebuilding the manual:
-
-Keep the notebooks with this checkout's `examples/dataset_contract.py` helper and
-`examples/fixtures/dataset-contract/` fixtures; their imports and synthetic
-transport use those repository files.
+To try the combined workflow, run:
 
 ```sh
-uv run --frozen --offline --group docs --extra dev python tools/docs_notebooks.py execute
-uv run --frozen --offline --group docs python tools/docs.py build
+uv run --frozen --offline python examples/dataset_contract.py --output-dir data/dataset-contract-example
 ```
 
-The execution helper supplies repository imports and runs notebooks in fresh
-directories. Sphinx renders the checked outputs without running notebook code;
-reading the local HTML requires no kernel or provider connection.
+Choose an output folder that does not exist. The script saves all three
+datasets, groups them into a collection and transfers it to a fresh store. It
+then reopens the tables without network access. Look for `verified` and
+`fresh_store_equal` set to `true` in the result.
 
-To retrieve published observations, inspect the provider's native metadata and
-selectors, then use a normal client rather than the fixture client. Fetching a
-missing selection or requesting a refresh uses provider networking. Do not
-transfer fixture-specific pacing to live use. The fixture client uses a private
-limiter; live clients keep their configured provider pacing. Keep source release,
-units, missing-value meanings and geography
-vintages with the result, and use [offline operation](../concepts/offline.md) for
-subsequent retained replay.
+## Before choosing real data
+
+Check the [source coverage matrix](../reference/sources.md): these examples cover
+specific formats, rather than every table from each provider. The teaching
+requests and invented responses are not a ready-made research dataset.
+
+For a live selection, first inspect the provider's dataset description and
+available area, date and measure codes. A normal SSDU client downloads the
+selection when it is not already cached; the notebooks use a special teaching
+client so no real provider is contacted. Do not treat their invented values as
+live results.
+
+Keep the source release, units, missing-value meanings and geographical
+boundaries with your result. Subsequent reads can use the saved copy; see
+[working offline](../concepts/offline.md). The
+[dataset API guide](dataset-api.md) covers inspection and selection in Python
+and other interfaces.

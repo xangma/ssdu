@@ -1,75 +1,83 @@
 # SSDU
 
-SSDU retains UK social-sciences data and local CSV/Parquet tables as immutable
-snapshots. Named collections pin queries and interpretation, then transfer their
-retained inputs for verified replay. Python, REST and MCP expose local data and
-metadata; provider acquisition is explicit.
+SSDU helps you bring together UK social-science data for research and policy
+work. Use one Python interface to download supported datasets or import your own
+tables, keep track of where the data came from, and save the version used in an
+analysis so you can reproduce it later.
 
-## Start offline
+**[Read the manual](https://xangma.github.io/ssdu/)** ·
+**[Try the guided tutorial](https://xangma.github.io/ssdu/start/research-tutorial.html)** ·
+**[Check supported sources](https://xangma.github.io/ssdu/reference/sources.html)**
 
-From this checkout, install the locked environment and run a synthetic example:
+## What can I do with it?
 
-```sh
-uv sync --frozen --python 3.13
-uv run --frozen --offline python examples/documentation_quickstart.py --output data/quickstart
-```
+- Download a supported dataset, then reuse the saved copy without downloading it
+  again. SSDU caches requests and respects configured provider rate limits.
+- Import local CSV or Parquet tables and describe their columns, units and source.
+- Inspect and select data through a common interface, while keeping each source's
+  definitions and missing-value meanings.
+- Save the data and selection behind an analysis, or transfer them to another
+  machine for use offline.
+- Search descriptions already held in your local catalogue. SSDU also provides
+  interfaces for applications and AI tools through REST and MCP.
 
-Use an absent or empty output directory. The example imports two invented rows,
-locks a query, exports a bundle, removes the original CSV and replays in a fresh
-store with networking blocked. Success reports `"status": "passed"` and the row
-`{"code": "002", "value": 7}`. These are tutorial observations, not official data.
+SSDU is a Python package with command-line tools. You will need some Python or
+terminal experience; it does not currently provide a point-and-click data portal.
+The tutorial explains each step and uses a notebook, where you can run short
+pieces of Python one at a time.
 
-## Read the manual locally
+## Start with a small research task
 
-```sh
-uv sync --frozen --python 3.13 --group docs --extra dev
-uv run --frozen --offline --group docs --extra dev python tools/docs_notebooks.py execute
-uv run --frozen --offline --group docs python tools/docs.py build
-python -m http.server 8008 --bind 127.0.0.1 --directory data/documentation-build/html
-```
+The [guided tutorial](https://xangma.github.io/ssdu/start/research-tutorial.html)
+asks: **which areas had at least three community centres in 2024?** You will
+inspect an invented table, select rows and reopen the same saved data. The
+fictional areas make it safe to explore without confusing the results with
+official statistics.
 
-Open <http://127.0.0.1:8008/>. The Sphinx/MyST/Furo manual includes an offline
-quickstart, provenance guidance and generated CLI, Python, schema, REST and MCP
-references. It also explains the standardized `Dataset` contract, renders three
-executed provider examples using synthetic responses, and generates source
-coverage from the implementation's support matrix. Its build uses the explicit
-[publication allowlist](docs/publication.json).
-The [four-nation teaching workflow](docs/content/guides/four-nations.md) exercises
-scoped NISRA and Scottish datasets alongside English and Welsh examples, with
-durable recovery and verified offline transfer. The generated family reference
-states the validated shapes; collection membership does not establish comparable
-measures across nations.
-
-The [dataset API guide](docs/content/guides/dataset-api.md) covers provider
-observations and typed local CSV/Parquet records through Python, CLI, REST and MCP.
-Run its synthetic transfer example with a new output directory:
+All tutorial values are invented and clearly labelled. You do not need a provider
+account or a real dataset download. Follow the
+[installation guide](https://xangma.github.io/ssdu/start/install.html), or, if Git
+and [uv](https://docs.astral.sh/uv/getting-started/installation/) are already
+installed, run:
 
 ```sh
-uv run --frozen --offline python examples/dataset_api.py --output-dir data/dataset-api-example
+git clone https://github.com/xangma/ssdu.git
+cd ssdu
+uv sync --frozen --python 3.13 --extra notebook
+uv run --frozen --offline --extra notebook jupyter lab examples/notebooks/research_tutorial.ipynb
 ```
 
-A successful run checks 90 cross-interface comparisons and fresh-process offline
-bundle replay. See the guide for expected receipt fields and value interpretation.
+The first installation needs an internet connection. The tutorial itself uses
+local, synthetic data.
 
-Notebook preparation requires the checkout's notebooks, `examples/dataset_contract.py`
-helper and `examples/fixtures/dataset-contract/` fixtures. It runs in fresh local
-directories with provider networking blocked. Re-run preparation after notebook,
-fixture, implementation or lock changes. Sphinx checks the saved outputs without
-starting kernels.
+## Which sources are supported?
 
-After notebook preparation, run publication acceptance with:
+SSDU has adapters for selected datasets and formats from **Nomis, StatsWales,
+English deprivation statistics, NISRA and Scottish linked data**, as well as
+local CSV and Parquet files. Support is scoped: this does not mean every table
+from each organisation is available. The
+[source coverage matrix](https://xangma.github.io/ssdu/reference/sources.html)
+explains the supported selections, limits and planned sources.
 
-```sh
-uv run --frozen --offline --group docs python tools/docs_acceptance.py
-```
+A common interface helps you work with different sources; it does not make their
+statistics directly comparable. Check definitions, units, dates and geographical
+boundaries before combining results. Local catalogue search covers descriptions
+you have retained, rather than every UK dataset. Semantic and hybrid search are
+currently [research work](https://xangma.github.io/ssdu/research/index.html).
 
-The manual has no public deployment. [Documentation maintenance](docs/README.md)
-describes staging and checks. Provider datasets, raw metadata and code lists,
-research corpora, snapshots and bundles stay in private local working files and
-are excluded from source publication. The curated
-[research page](docs/content/research/index.md) explains the experimental
-discovery work and its pending human validation.
+## Go further
 
-SSDU's software and documentation use the [MIT licence](LICENSE).
-Upstream provider material retains its source terms. The
-[publication policy](PUBLICATION.md) defines the source-only distribution.
+- [Work with provider examples](https://xangma.github.io/ssdu/guides/dataset-examples.html)
+  using invented responses in the same formats as supported sources.
+- [Inspect and query datasets](https://xangma.github.io/ssdu/guides/dataset-api.html)
+  through Python, the command line or an application.
+- [Understand sources and interpretation](https://xangma.github.io/ssdu/concepts/provenance.html)
+  before citing or combining results.
+
+The software and documentation use the [MIT licence](LICENSE). Real datasets
+retain their providers' terms. This repository publishes code and invented
+teaching data; it does not distribute provider datasets.
+
+For contributors, [documentation maintenance](docs/README.md) explains local
+builds and checks, and the [publication policy](PUBLICATION.md) explains the
+source-only release.

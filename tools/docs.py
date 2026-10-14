@@ -281,7 +281,27 @@ def references(manifest):
     files["reference/mcp.md"] = text
     coverage = get_source_coverage()
     files["_downloads/source-coverage.json"] = json_text(coverage)
-    text = "# Source coverage\n\nGenerated from SSDU's declared support matrix.\n\n"
+    text = (
+        "# Supported data sources\n\n"
+        "Use this page to check whether SSDU can read the data you need. "
+        "Available sources support the formats and selections described below; "
+        "support does not extend to every table held by each publisher.\n\n"
+        "| Source | Available in SSDU? |\n|---|---|\n"
+    )
+    for source in sorted(coverage["sources"], key=lambda source: source["status"] == "planned"):
+        availability = (
+            "Yes, within the limits below" if source["status"] == "implemented" else "Planned"
+        )
+        text += f"| {source['name']} | {availability} |\n"
+    text += (
+        "\nStart with the [guided tutorial](../start/research-tutorial.md) to learn the "
+        "common workflow. The [provider examples](../guides/dataset-examples.md) explain "
+        "how different sources represent values. Planned integrations have no promised "
+        "delivery date.\n\n"
+        "## Detailed support\n\n"
+        "The following reference is generated from the implementation's support matrix. "
+        "It separates finding descriptions, downloading data, and converting tables.\n\n"
+    )
     versions = ", ".join(f"`{version}`" for version in coverage["supported_contract_versions"])
     text += (
         f"Coverage schema: `{coverage['schema_version']}`. "

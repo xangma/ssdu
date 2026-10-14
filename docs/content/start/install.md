@@ -1,52 +1,82 @@
-# Install
+# Install SSDU and open the tutorial
 
-Use a repository checkout and `uv`. Run these commands from the repository root.
-They use the repository's dependency lock rather than resolving a new environment.
+These instructions install SSDU on your computer and open the guided tutorial
+in JupyterLab. JupyterLab displays a **notebook**: a document containing
+explanations and short pieces of Python that you run one at a time.
+
+The first installation needs an internet connection and may take a few minutes.
+The tutorial uses invented data stored on your computer; it does not need a
+provider account or download official statistics.
+
+## 1. Prepare your computer
+
+Install these two tools if you do not already have them:
+
+- [Git](https://git-scm.com/downloads) copies the SSDU project onto your computer.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) installs Python and
+  the packages SSDU needs.
+
+Open **Terminal** on macOS or Linux, or **PowerShell** on Windows. This is where
+you enter the commands below. Copy each line, press Enter and wait for it to
+finish before running the next.
+
+## 2. Download and install SSDU
+
+Choose a folder where you keep projects, then run:
 
 ```sh
-uv sync --frozen --python 3.13
+git clone https://github.com/xangma/ssdu.git
+cd ssdu
+uv sync --frozen --python 3.13 --extra notebook
+```
+
+The first command creates a folder called `ssdu`. The second moves your terminal
+into it. The third installs the agreed package versions, including JupyterLab;
+`uv` can also download Python 3.13 if needed. Keep this terminal open.
+
+Already have a copy of the project? Open a terminal in its `ssdu` folder and run
+only the `uv sync` command.
+
+## 3. Open the notebook
+
+From that same folder, run:
+
+```sh
+uv run --frozen --offline --extra notebook jupyter lab examples/notebooks/research_tutorial.ipynb
+```
+
+JupyterLab should open in your browser. If it does not, copy the local address
+printed in the terminal into your browser. Keep any access token in that address
+private. The notebook is called `research_tutorial.ipynb`; open it from the file
+list if it is not already visible.
+
+Read the first explanation, click the first code cell, then press
+**Shift+Enter** to run it and move to the next cell. Continue in order. A number
+beside a cell shows that it has run; an asterisk means it is still running. You
+can change a selection and rerun a cell to explore the example.
+
+The [guided tutorial](research-tutorial.md) also shows the steps and expected
+results here in the manual.
+
+## Stop and return later
+
+Save the notebook with **Ctrl+S** (or **Cmd+S** on macOS). To stop JupyterLab,
+return to the terminal, press **Ctrl+C** and follow its shutdown prompt. To come
+back, open a terminal in the `ssdu` folder and repeat the notebook command above.
+
+The `--offline` in that command stops `uv` downloading packages. It does not
+prevent all Python code from accessing the internet. This tutorial uses local
+data; see [working offline](../concepts/offline.md) before using other workflows.
+
+## Other ways to use SSDU
+
+For command-line help, run:
+
+```sh
 uv run --frozen --offline ssdu --help
 ```
 
-The first command may download Python and dependencies. Once installed, the help
-command should print the CLI's commands without contacting a data provider.
-
 The package is named `ssdu-retrieval` and supports Python 3.11 or later. These
-instructions use Python 3.13 so the same environment can build the documentation;
-the documentation dependency group requires Python 3.12 or later. Repository
-installation does not imply that a public package release is available.
-
-## Build and read the manual locally
-
-Install the documentation and validation dependencies once:
-
-```sh
-uv sync --frozen --python 3.13 --group docs --extra dev
-```
-
-Then build with dependency networking disabled and serve the result locally:
-
-```sh
-uv run --frozen --offline --group docs --extra dev python tools/docs_notebooks.py execute
-uv run --frozen --offline --group docs python tools/docs.py build
-python -m http.server 8008 --bind 127.0.0.1 --directory data/documentation-build/html
-```
-
-Open `http://127.0.0.1:8008/`. Stop the local server with `Ctrl+C`. This serves
-files on your machine; it does not publish the manual to a hosting service.
-
-The build uses an explicit publication allowlist: selected reader pages,
-generated references and approved downloads. Research evidence, maintainer
-records and working outputs remain outside that published source tree.
-
-Notebook preparation executes only approved synthetic examples in fresh local
-directories, with provider networking blocked. Re-run it after changing notebook
-sources, fixtures, implementation or the dependency lock. The HTML build checks
-the saved execution receipts and renders text outputs without starting kernels.
-
-## Next
-
-Run the [offline quickstart](quickstart.md). Read the
-[offline policy](../concepts/offline.md) before fetching provider data: `uv`'s
-`--offline` option governs dependency downloads, while SSDU's applicable
-`--offline` options govern provider requests.
+instructions use Python 3.13 and the repository's locked dependencies. They do
+not depend on a public package-index release. Application developers can continue
+with the [interface guide](../guides/interfaces.md).

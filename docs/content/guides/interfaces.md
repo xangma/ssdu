@@ -1,8 +1,11 @@
 # Connect to retained data
 
-SSDU's Python, CLI, REST and MCP interfaces share local snapshots and catalogue
-metadata. Start with a populated store, such as one produced by the
-[quickstart](../start/quickstart.md). An empty store can return an empty catalogue;
+This guide is for readers connecting SSDU to scripts, applications or AI tools.
+You can use Python, the command line (CLI), a web API (REST), or an AI-tool
+connection (MCP). All read the same saved datasets and local catalogue.
+
+Start with data already saved in a store, such as one produced by the
+[offline transfer example](../start/quickstart.md). An empty store can return an empty catalogue;
 it does not cause a provider harvest.
 
 ## Python and CLI
@@ -77,6 +80,3 @@ Queries use validated columns, filters, sorting and pagination rather than
 arbitrary SQL. The [schema reference](../reference/schemas.md) describes typed
 limits; the transport references document additional request/response bounds.
 Missing or unverifiable snapshots produce errors.
-
-Package and transport versions are reported separately: package `0.3.0`, REST/MCP
-`0.2.0`. These labels should not be treated as a single release number.

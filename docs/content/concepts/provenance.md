@@ -1,72 +1,83 @@
-# Provenance and interpretation
+# Where the data came from
 
-SSDU records the bytes and metadata behind retained data. A snapshot contains
-source bytes, a normalised Parquet table, metadata and a hashed manifest. The
-manifest identifies the request, provider, dataset, release information,
-attribution, capture time and file hashes.
+Before using a figure, you need to know its source, what it measures and which
+version you have. SSDU saves this source information, also called **provenance**,
+alongside the data. A **snapshot** is that saved data and description together.
 
-For local imports, the source identity is a SHA-256 URN for the exact input bytes.
-You supply the dataset description, column meanings, types, citation and rights.
-CSV columns default to text unless explicit types are given; Parquet retains
-supported native types. Importing a file does not verify the truth of its metadata.
+This helps you explain an analysis and return to the same inputs later. It does
+not replace reading the source's definitions and quality notes.
 
-## What a collection lock pins
+## Check whether the data fit your question
 
-A lock binds each entry's snapshot, metadata version, query and expected result
-hash. Replay verifies the retained snapshot and pinned interpretation, runs the
-query, and rejects a changed result. Export/import preserves those identities.
+Before combining or interpreting results, check:
 
-Dataset identity, snapshot identity and collection identity answer different
-questions. A dataset can have several releases or captures; a collection can
-select a particular capture and query. Capture time is separate from provider
-release date and the period described by the observations.
+- **Source and selection:** which dataset, release and rows did you use?
+- **Meaning:** what is measured, for which population and in what units?
+- **Dates:** which period do the observations describe?
+- **Places:** which area codes and boundaries apply? Boundary changes can make
+  apparently matching areas difficult to compare.
+- **Missing values:** is a blank unknown, unavailable or deliberately withheld?
+- **Terms:** what attribution, access and sharing conditions apply?
 
-Use the [Python reference](../reference/python.md) for verification and replay,
-or the [REST](../reference/rest.md) and [MCP](../reference/mcp.md) provenance reads.
-`Store.read_intake()` verifies a snapshot before reading through Intake. Reading
-an Intake catalogue directly does not add SSDU's verification step.
+For example, an English deprivation release can use different area boundaries
+from another release. Its publication year is not necessarily the year described
+by every indicator. Country-level poverty data cannot answer a local-area
+question unless suitable local observations are also available. Claimant count,
+unemployment, income poverty and area deprivation are different measures.
 
-## Check analytical fit
+Missing information remains **unknown**. A promising catalogue title or a paper
+that used a dataset does not establish that it suits your question. Likewise,
+an empty search in a saved catalogue does not prove that no source exists.
 
-Before combining or interpreting data, check:
+## Distinguish three dates
 
-- The original source, release and exact selection, including suppressed or
-  missing observations.
-- Measure definitions, units, population and reference periods.
-- Geography codes and vintages; boundary changes can prevent direct joins.
-- Access conditions, attribution and licence for both source data and transfer.
-- What is known, what is explicitly incompatible, and what remains unknown.
+A dataset may describe observations from one period, be released by its provider
+later and be downloaded by you later still. Keep the **observation period**,
+**release date** and **download time** distinct. SSDU's saved-copy identifier
+lets you refer to the particular copy used in your work.
 
-For example, English deprivation releases can use different LSOA and local
-authority vintages. An index release year is not a single observation year for
-all its indicators. Welsh country-level poverty data do not establish Portsmouth
-coverage. Claimant count, unemployment, income poverty and area deprivation are
-different measures.
+For your own CSV or Parquet imports, you provide the title, column meanings,
+units, citation and rights. SSDU checks the declared structure, but cannot verify
+that your description is true. CSV columns default to text unless you declare
+types; Parquet retains supported native types.
 
-A missing coverage field means **unknown**. A relevant catalogue record or a
-publication's use of a dataset does not prove suitability for a new question.
-An empty result in a retained catalogue does not prove that no source exists.
+## Keep the data behind an analysis
 
-## Software licence and source terms
+A collection can save the snapshots and selections used together. Its **lock**
+records exactly which saved copies, descriptions and query results to use.
+An exported **bundle** also carries the files needed to reopen them elsewhere.
+
+When SSDU replays a collection, it verifies the saved data and checks that the
+result matches. This protects against unnoticed changes to the retained copy;
+it does not establish that a measure is statistically valid or comparable with
+another source. Keep the source's caveats with any result you cite.
+
+## Cite and share responsibly
 
 SSDU's software and documentation use the
 {download}`MIT licence <../_downloads/LICENSE.txt>` from the repository's `LICENSE` file.
-Provider datasets, metadata and code lists have their own source terms; the
-software licence does not replace them. Check each source's access, attribution
-and redistribution conditions before acquiring or transferring its material.
+Provider datasets, metadata and code lists retain their own terms. Check those
+terms before downloading or sharing a collection, and keep the required source
+attribution with your work.
 
-Source publication excludes provider data and raw metadata, research corpora,
-snapshots and collection bundles. Real acquisition and research evidence stays
-in private local working files. Published tutorials use independently invented
-examples, clearly labelled as synthetic; their rows are not official statistics.
+The published tutorials use invented examples, clearly labelled as synthetic.
+Their rows are not official statistics.
 
-## Integrity and scientific evidence
+## How verification works
 
-Hash verification establishes that retained bytes match their recorded identity.
-It does not establish statistical validity, current provider availability,
-historical publication vintage or permission to redistribute. Keep the source's
-quality and comparability caveats with any result you cite.
+For readers who need the technical detail: a snapshot retains source bytes, a
+normalised Parquet table, metadata and a manifest listing file hashes. A hash is
+an identifier calculated from file contents; SSDU uses it to detect changes.
+For local imports, the source identity is based on the exact input bytes.
 
-Research relevance labels and suitability judgments have their own provenance
-and versions. The latest overlay is agent-adjudicated, and human validation
-remains pending. See [discovery research](../research/index.md).
+A collection lock binds the snapshot, metadata version, query and expected result
+hash. Export and import preserve those identities. Verification establishes
+that the retained bytes match their recorded identity, rather than proving
+current provider availability, a historical publication date or permission to
+redistribute.
+
+Use the [Python reference](../reference/python.md),
+[REST reference](../reference/rest.md) or [MCP reference](../reference/mcp.md) to
+inspect source and verification details programmatically. `Store.read_intake()`
+verifies a snapshot before reading through Intake; opening an Intake catalogue
+directly does not add that SSDU verification step.

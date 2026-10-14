@@ -41,7 +41,8 @@
     "_downloads/LICENSE.txt": "LICENSE",
     "_downloads/four_nations.py": "examples/four_nations.py",
     "_downloads/four-nations.yaml": "examples/collections/four-nations.yaml",
-    "_downloads/dataset_api.py": "examples/dataset_api.py"
+    "_downloads/dataset_api.py": "examples/dataset_api.py",
+    "_downloads/research_tutorial.ipynb": "examples/notebooks/research_tutorial.ipynb"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -92,7 +93,8 @@
   "notebooks": {
     "examples/nomis.md": "examples/notebooks/nomis.ipynb",
     "examples/statswales.md": "examples/notebooks/statswales.ipynb",
-    "examples/deprivation.md": "examples/notebooks/deprivation.ipynb"
+    "examples/deprivation.md": "examples/notebooks/deprivation.ipynb",
+    "start/research-tutorial.md": "examples/notebooks/research_tutorial.ipynb"
   },
   "four_nation_example": "examples/four_nations.py",
   "dataset_api_example": "examples/dataset_api.py"

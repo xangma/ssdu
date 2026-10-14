@@ -1,46 +1,54 @@
-# SSDU
+# SSDU: UK social-science data in one place
 
-SSDU helps you discover, retain and reuse UK social-sciences data. It combines
-local CSV/Parquet imports, adapters for Nomis, StatsWales, English deprivation,
-NISRA portal JSON-stat cubes and scoped Scottish linked-data cubes,
-a metadata registry, immutable snapshots and portable collection locks.
+SSDU helps you download supported UK social-science datasets, import your own
+tables and keep a reliable copy of the data used in an analysis. You can return
+to that copy later or share a saved collection with a colleague, subject to the
+source's terms.
 
-Use it to preserve the data and interpretation behind an analysis, transfer a
-collection to another machine, or expose retained data through Python, REST or
-MCP. Researchers and policy teams can inspect source evidence before selecting
-data; other readers can explore catalogue descriptions without acquiring values.
+You work in Python or through the command line. There is no point-and-click data
+portal yet. If you have used a little Python, the guided tutorial will take you
+through a small task one step at a time.
 
-Start with the [offline quickstart](start/quickstart.md). It creates a small
-synthetic table and transfers a locked query between fresh stores. No provider
-account, dataset download or existing cache is required.
+## Start here
 
-## Choose your next step
+1. [Read the guided tutorial](start/research-tutorial.md): inspect an invented
+   community-centre table, select areas with at least three centres in 2024 and
+   reopen your saved data. You can read its results without installing anything.
+2. [Install SSDU](start/install.md) to try the notebook on your computer.
+3. [Check supported sources](reference/sources.md) before choosing a real dataset.
 
-- [Install SSDU](start/install.md) from the repository's locked environment.
-- [Understand offline operation](concepts/offline.md) and explicit acquisition.
-- [Inspect provenance](concepts/provenance.md) before comparing or citing results.
-- [Use the dataset contract](concepts/dataset-contract.md) for observations and typed local records.
-- [Inspect and query retained datasets](guides/dataset-api.md) through a common interface.
-- [Run provider examples](guides/dataset-examples.md) with synthetic offline responses.
-- [Transfer four distinct national datasets](guides/four-nations.md) with resumable jobs.
-- [Connect an interface](guides/interfaces.md) to retained metadata and snapshots.
-- Check [source coverage](reference/sources.md) for implemented support and limits.
-- Inspect [family conformance](reference/conformance.md) for validated shapes.
-- Consult the generated [CLI](reference/cli.md), [Python](reference/python.md),
-  [schemas](reference/schemas.md), [REST](reference/rest.md) and [MCP](reference/mcp.md)
-  references for supported arguments and contracts.
+The tutorial uses invented values, so you can learn without a provider account
+or downloading official data.
 
-## Scope and interpretation
+## When you are ready
 
-The registry describes what SSDU has retained. Its coverage can be incomplete or
-stale, and a catalogue match does not establish that observations are available
-or suitable for your question. Check measure definitions, release, observation
-period, geography, access conditions and missing information.
+- **Try different sources:** the [provider examples](guides/dataset-examples.md)
+  explain how Nomis, StatsWales and English deprivation tables are represented.
+- **Work with your own table:** the [dataset API guide](guides/dataset-api.md)
+  covers local CSV and Parquet imports, inspection and selection.
+- **Move a saved analysis:** the [offline transfer example](start/quickstart.md)
+  demonstrates a complete collection transfer.
+- **Check what the figures mean:** read about
+  [sources and interpretation](concepts/provenance.md), including dates, units
+  and geographical boundaries.
 
-[Discovery research](research/index.md) compares experimental ranking methods
-on frozen evidence. Those benchmarks are separate from the production registry
-and API search. Their latest label overlay is agent-adjudicated; human validation
-remains pending.
+For application developers, the [interface guide](guides/interfaces.md) links to
+Python, command-line, REST and MCP references. The
+[dataset structure](concepts/dataset-contract.md) describes the common table and
+metadata format in detail.
+
+## What is covered?
+
+SSDU supports selected datasets and formats from Nomis, StatsWales, English
+deprivation statistics, NISRA and Scottish linked data, plus local CSV and
+Parquet tables. The [coverage matrix](reference/sources.md) describes the exact
+support and limits; the [four-nation example](guides/four-nations.md) shows how
+separate national datasets can be saved in one collection.
+
+A common format does not make measures comparable. Check definitions, dates,
+units and geographical boundaries before combining data. Search currently uses
+catalogue descriptions saved locally, which may be incomplete or out of date.
+[Discovery research](research/index.md) explores other search methods separately.
 
 ```{toctree}
 :maxdepth: 2
@@ -48,6 +56,7 @@ remains pending.
 :hidden:
 
 start/install
+start/research-tutorial
 start/quickstart
 ```
 
@@ -56,10 +65,10 @@ start/quickstart
 :caption: Guides
 :hidden:
 
-guides/interfaces
-guides/dataset-api
 guides/dataset-examples
+guides/dataset-api
 guides/four-nations
+guides/interfaces
 ```
 
 ```{toctree}

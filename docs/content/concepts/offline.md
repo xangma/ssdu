@@ -1,6 +1,10 @@
-# Offline operation
+# Work with saved data offline
 
-SSDU separates retained reads from acquisition. Local imports, snapshot replay,
+Once data have been downloaded or imported, you can reuse the saved copy without
+contacting the provider. This helps you continue work without a connection and
+return to the exact data behind an earlier result.
+
+SSDU separates reading saved data from downloading new data. Local imports, snapshot replay,
 collection transfer and the default REST/MCP read interfaces operate on local
 files. They do not fetch missing provider data as a side effect.
 
@@ -26,8 +30,9 @@ downloaded. `--offline` and `--refresh` cannot be combined.
 
 Consult the [CLI reference](../reference/cli.md) for each command's flags.
 `demo --offline` needs a previously retained demo; it is not a first-run tutorial.
-Use the [synthetic quickstart](../start/quickstart.md) to start without provider
-inputs.
+Start with the [guided tutorial](../start/research-tutorial.md) to learn using
+invented local data, or try the [transfer example](../start/quickstart.md) to move
+a saved collection.
 
 ## Three different boundaries
 

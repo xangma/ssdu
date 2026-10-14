@@ -1,0 +1,73 @@
+name: Build and publish the manual
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Check and build the manual
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pinned environment manager
+        run: python -m pip install uv==0.12.1
+      - name: Install the locked documentation environment
+        run: uv sync --frozen --python 3.13 --group docs --extra dev
+      - name: Verify reviewed source publication boundaries
+        run: |
+          uv run --frozen --offline --group docs --extra dev python tools/publication.py audit
+          git ls-files -z > "$RUNNER_TEMP/ssdu-docs-tracked-paths"
+          .venv/bin/python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path("publication.json").read_text())
+          approved = {"publication.json", *(item["path"] for item in manifest["files"])}
+          tracked = set((Path(os.environ["RUNNER_TEMP"]) / "ssdu-docs-tracked-paths")
+                        .read_bytes().decode().rstrip("\0").split("\0"))
+          assert tracked == approved, {"unreviewed": sorted(tracked - approved),
+                                       "missing": sorted(approved - tracked)}
+          PY
+      - name: Execute approved synthetic notebooks without provider access
+        run: uv run --frozen --offline --group docs --extra dev python tools/docs_notebooks.py execute
+      - name: Build the allowlisted manual and verify examples and links
+        run: uv run --frozen --offline --group docs --extra dev python tools/docs_acceptance.py
+      - name: Verify publication sources remain unchanged
+        run: uv run --frozen --offline --group docs --extra dev python tools/publication.py audit
+      - name: Upload the checked HTML site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: data/documentation-build/html
+
+  deploy:
+    name: Publish to GitHub Pages
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Publish the checked site
+        id: deployment
+        uses: actions/deploy-pages@v4
