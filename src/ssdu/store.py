@@ -39,6 +39,14 @@ def checksum(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _normalization_paths(provider):
+    if provider == "local":
+        from ssdu.records import implementation_paths
+
+        return implementation_paths()
+    return get_provider(provider).normalization_paths()
+
+
 def _write_json(path, value):
     path.write_bytes(canonical(value) + b"\n")
 
@@ -289,6 +297,13 @@ class Store:
             return self.open_dataset(manifest["product_id"])
         return self.migrate_dataset(manifest["product_id"])
 
+    def import_dataset(self, path, spec):
+        """Import a local CSV or Parquet file and return its standardized Dataset."""
+        from ssdu.local_import import import_local
+
+        manifest = import_local(self, path, spec)
+        return self.open_dataset(manifest["product_id"])
+
     def open_dataset(self, snapshot_id: str):
         """Verify and open a retained standardized dataset without acquisition or mutation."""
         from ssdu.dataset_contract import Dataset
@@ -329,22 +344,36 @@ class Store:
 
     def migrate_dataset(self, snapshot_id: str):
         """Normalize historical evidence offline; publish a new immutable derived snapshot."""
-        from ssdu.dataset_contract import CONTRACT_VERSION
+        from ssdu.dataset_contract import CONTRACT_VERSION, RECORDS_CONTRACT_VERSION
 
         manifest = self.verify(snapshot_id)
         snapshot_id = manifest["product_id"]
         if "dataset_contract" in manifest:
             return self.open_dataset(snapshot_id)
-        if manifest["provider"] not in PROVIDERS:
-            raise RetrievalError("A normalized record profile for local imports is not implemented")
-        registration = get_provider(manifest["provider"])
-        implementation = {p.name: checksum(p) for p in registration.normalization_paths()}
+        provider = manifest["provider"]
+        if provider == "local":
+            from ssdu.records import TRANSFORM_ID, TRANSFORM_VERSION
+
+            contract_version = RECORDS_CONTRACT_VERSION
+            profile = "records"
+            transform_id, transform_version = TRANSFORM_ID, TRANSFORM_VERSION
+        elif provider in PROVIDERS:
+            registration = get_provider(provider)
+            contract_version = CONTRACT_VERSION
+            profile = "observations"
+            transform_id, transform_version = (
+                registration.transform_id,
+                registration.transform_version,
+            )
+        else:
+            raise RetrievalError("No standardized dataset profile exists for this provider")
+        implementation = {p.name: checksum(p) for p in _normalization_paths(provider)}
         marker = {
-            "version": CONTRACT_VERSION,
-            "profile": "observations",
+            "version": contract_version,
+            "profile": profile,
             "descriptor": "dataset.json",
-            "transform_id": registration.transform_id,
-            "transform_version": registration.transform_version,
+            "transform_id": transform_id,
+            "transform_version": transform_version,
         }
         cache_key = hashlib.sha256(
             canonical({"parent": snapshot_id, "contract": marker, "implementation": implementation})
@@ -421,9 +450,15 @@ class Store:
             source_url=manifest["source_url"],
         )
         request = Request(**manifest["request"])
-        acquisition.dataset = normalize(
-            acquisition, request=request, raw_frame=self._normalization_raw_frame(manifest)
-        )
+        if manifest["provider"] == "local":
+            from ssdu.records import normalize_records, retained_frame
+
+            acquisition.frame = retained_frame(manifest, self.path(snapshot_id))
+            acquisition.dataset = normalize_records(acquisition, request=request)
+        else:
+            acquisition.dataset = normalize(
+                acquisition, request=request, raw_frame=self._normalization_raw_frame(manifest)
+            )
         transform = acquisition.dataset.descriptor.transform
         migrated = self._publish(
             request,
@@ -432,7 +467,11 @@ class Store:
             [],
             kind="normalization",
             parents=[snapshot_id],
-            transformation_version=f"dataset-contract-1.0.0:{transform.id}:{transform.version}",
+            transformation_version=(
+                f"dataset-contract-{acquisition.dataset.descriptor.contract_version}:"
+                f"{transform.id}:{transform.version}"
+            ),
+            implementation_paths=_normalization_paths(manifest["provider"]),
             index_request=False,
         )
         return self.open_dataset(migrated["product_id"])
@@ -583,10 +622,7 @@ class Store:
                     "transform_version": descriptor.transform.version,
                 }
                 identity["implementation_sha256"].update(
-                    {
-                        p.name: checksum(p)
-                        for p in get_provider(request.provider).normalization_paths()
-                    }
+                    {p.name: checksum(p) for p in _normalization_paths(request.provider)}
                 )
             if kind:
                 identity.update(
@@ -616,7 +652,7 @@ class Store:
                     fingerprint["dataset_contract"] = identity["dataset_contract"]
                     fingerprint["normalization_implementation"] = {
                         p.name: identity["implementation_sha256"][p.name]
-                        for p in get_provider(request.provider).normalization_paths()
+                        for p in _normalization_paths(request.provider)
                     }
                 identity["content_fingerprint"] = hashlib.sha256(canonical(fingerprint)).hexdigest()
             if dataset is not None:

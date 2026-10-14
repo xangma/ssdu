@@ -15,7 +15,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
-from pydantic import Field, StringConstraints, field_validator
+from pydantic import Field, StrictBool, StringConstraints, field_validator, model_validator
 
 from ssdu.contracts import StrictModel
 from ssdu.http import Resource
@@ -35,6 +35,13 @@ class LocalColumn(StrictModel):
     label: Annotated[str, StringConstraints(max_length=500)] | None = None
     definition: Annotated[str, StringConstraints(max_length=10_000)] | None = None
     unit: Annotated[str, StringConstraints(max_length=200)] | None = None
+    type: ColumnType | None = None
+    nullable: StrictBool | None = None
+    role: Literal["attribute", "identifier"] | None = None
+    missing_values: dict[
+        Annotated[str, StringConstraints(max_length=2000)],
+        Annotated[str, StringConstraints(min_length=1, max_length=2000)],
+    ] = Field(default_factory=dict, max_length=100)
 
 
 class LocalImportSpec(StrictModel):
@@ -47,6 +54,8 @@ class LocalImportSpec(StrictModel):
     citation: Annotated[str, StringConstraints(max_length=10_000)] = ""
     column_types: dict[ColumnName, ColumnType] = Field(default_factory=dict, max_length=1000)
     columns: dict[ColumnName, LocalColumn] = Field(default_factory=dict, max_length=1000)
+    primary_key: Annotated[list[ColumnName], Field(max_length=100)] = Field(default_factory=list)
+    row_grain: Annotated[str, StringConstraints(min_length=1, max_length=10_000)] | None = None
     null_values: Annotated[
         list[Annotated[str, StringConstraints(max_length=2000)]], Field(max_length=100)
     ] = Field(default_factory=lambda: [""])
@@ -59,6 +68,25 @@ class LocalImportSpec(StrictModel):
             raise ValueError("Must not be blank")
         return value
 
+    @model_validator(mode="after")
+    def consistent_declarations(self):
+        if len(self.primary_key) != len(set(self.primary_key)):
+            raise ValueError("Primary key columns must be unique")
+        if self.row_grain is not None and not self.row_grain.strip():
+            raise ValueError("Row grain must not be blank")
+        for name, column in self.columns.items():
+            if column.type is not None and self.column_types.get(name, column.type) != column.type:
+                raise ValueError(f"Conflicting type declarations for column {name!r}")
+            if name in self.primary_key and (column.nullable is True or column.role == "attribute"):
+                raise ValueError("Primary key columns must be non-nullable identifiers")
+        return self
+
+    def declared_types(self):
+        return {
+            **self.column_types,
+            **{name: column.type for name, column in self.columns.items() if column.type},
+        }
+
 
 def _validate_columns(names, spec):
     if not names or any(not isinstance(name, str) or not name for name in names):
@@ -67,7 +95,9 @@ def _validate_columns(names, spec):
         raise RetrievalError("Import contains duplicate column names")
     if len(names) > MAX_COLUMNS:
         raise RetrievalError(f"Import exceeds the {MAX_COLUMNS} column limit")
-    unknown = sorted((set(spec.column_types) | set(spec.columns)) - set(names))
+    unknown = sorted(
+        (set(spec.column_types) | set(spec.columns) | set(spec.primary_key)) - set(names)
+    )
     if unknown:
         raise RetrievalError(f"Import specification names unknown columns: {', '.join(unknown)}")
 
@@ -104,7 +134,7 @@ def _csv_frame(body, spec):
     frame = pd.DataFrame(rows, columns=names, dtype="string")
     for name in names:
         frame[name] = frame[name].mask(frame[name].isin(spec.null_values), pd.NA)
-    for name, dtype in spec.column_types.items():
+    for name, dtype in spec.declared_types().items():
         if dtype == "string":
             continue
         values = []
@@ -188,7 +218,7 @@ def _parquet_frame(body, spec):
             "float64": pa.float64(),
             "boolean": pa.bool_(),
         }
-        for name, dtype in spec.column_types.items():
+        for name, dtype in spec.declared_types().items():
             position = table.schema.get_field_index(name)
             native = table.schema.field(position).type
             numeric = pa.types.is_integer(native) or pa.types.is_floating(native)
@@ -276,6 +306,9 @@ def import_local(store: Store, path, spec: LocalImportSpec | dict) -> dict:
         spec.citation,
         source_url,
     )
+    from ssdu.records import implementation_paths, normalize_records
+
+    acquisition.dataset = normalize_records(acquisition, request=request)
     resource = Resource(
         body=body,
         url=source_url,
@@ -290,8 +323,8 @@ def import_local(store: Store, path, spec: LocalImportSpec | dict) -> dict:
         acquisition,
         [resource],
         kind="local",
-        transformation_version="local-import-v1",
-        implementation_paths=(Path(__file__),),
+        transformation_version="local-import-v2",
+        implementation_paths=implementation_paths(),
     )
     Registry(store.root).register(store, manifest, make_current=True)
     return manifest

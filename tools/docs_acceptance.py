@@ -192,10 +192,96 @@ def main():
             for row in destination["providers"].values()
         )
         assert four_nations["live_rate_settings_unchanged"]
+    dataset_api = None
+    if example := manifest.get("dataset_api_example"):
+        run = validation / "dataset-api"
+        if run.exists():
+            shutil.rmtree(run)
+        result = subprocess.run(
+            [sys.executable, str(docs.ROOT / example), "--output-dir", str(run)],
+            cwd=docs.ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=240,
+        )
+        dataset_api = json.loads(result.stdout)
+        assert dataset_api == json.loads((run / "result.json").read_text())
+        assert dataset_api["verified"] and dataset_api["fresh_store_verified"]
+        assert dataset_api["fixture_kind"] == "synthetic_teaching_fixtures"
+        assert dataset_api["interfaces"] == ["python", "cli", "rest", "mcp"]
+        assert dataset_api["api_parity_comparisons"] == 90
+        assert dataset_api["network_attempts"] == dataset_api["provider_network_requests"] == 0
+        assert dataset_api["live_rate_settings_unchanged"]
+        assert {
+            name: (row["profile"], row["contract_version"])
+            for name, row in dataset_api["datasets"].items()
+        } == {
+            "nomis": ("observations", "1.0.0"),
+            "local_csv": ("records", "1.1.0"),
+            "local_parquet": ("records", "1.1.0"),
+        }
+        destination = dataset_api["destination"]
+        assert destination["interfaces"] == dataset_api["interfaces"]
+        assert destination["comparisons"] == 45
+        assert destination["pid"] != dataset_api["pid"]
+        assert destination["cli_pid"] != dataset_api["cli_pid"]
+        assert destination["network_attempts"] == destination["original_input_attempts"] == 0
+        assert all(
+            destination[key]
+            for key in (
+                "verified",
+                "original_paths_unavailable",
+                "dataset_hashes_equal",
+                "queries_equal",
+                "metadata_equal",
+                "collection_replay_equal",
+            )
+        )
+        evidence = json.loads((run / "expected.json").read_text())
+        for item in evidence["results"].values():
+            for dimension in item["describe"]["descriptor"]["dimensions"]:
+                assert "codes" not in dimension
+                assert dimension["codes_omitted"] and isinstance(dimension["code_count"], int)
+        unchanged = (run / "result.json").read_bytes()
+        rejected = subprocess.run(
+            [sys.executable, str(docs.ROOT / example), "--output-dir", str(run)],
+            cwd=docs.ROOT,
+            check=False,
+            text=True,
+            capture_output=True,
+            timeout=30,
+        )
+        assert rejected.returncode != 0 and "FileExistsError" in rejected.stderr
+        assert (run / "result.json").read_bytes() == unchanged
     default_rest = json.loads((source / "_downloads/openapi.json").read_text())
     jobs_rest = json.loads((source / "_downloads/openapi-jobs.json").read_text())
     default_mcp = json.loads((source / "_downloads/mcp.json").read_text())
     jobs_mcp = json.loads((source / "_downloads/mcp-jobs.json").read_text())
+    assert len(default_rest["paths"]) == 10 and len(jobs_rest["paths"]) == 16
+    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 17
+    assert {
+        "/snapshots/{snapshot_id}/dataset": "get",
+        "/snapshots/{snapshot_id}/dataset/query": "post",
+        "/snapshots/{snapshot_id}/dataset/dimensions/{dimension}": "get",
+    }.items() <= {
+        (path, method) for path, methods in default_rest["paths"].items() for method in methods
+    }
+    assert len(default_mcp["tools"]) == 9 and len(jobs_mcp["tools"]) == 16
+    dataset_tools = {"describe_snapshot", "query_dataset", "list_snapshot_dimension_values"}
+    assert dataset_tools <= {tool["name"] for tool in default_mcp["tools"]}
+    assert all(
+        tool["annotations"]["readOnlyHint"]
+        for tool in default_mcp["tools"]
+        if tool["name"] in dataset_tools
+    )
+    assert len(default_mcp["resource_templates"]) == 3
+    assert "ssdu://snapshots/{snapshot_id}/dataset" in {
+        resource["uriTemplate"] for resource in default_mcp["resource_templates"]
+    }
+    assert {f"ssdu dataset {command}" for command in ("describe", "query", "dimensions")} <= {
+        item["command"] for item in cli
+    }
     # CLI/replay checks take time; reject input changes during acceptance too.
     for page, notebook in manifest.get("notebooks", {}).items():
         assert (source / page).read_text() == docs.docs_notebooks.render(docs.ROOT, page, notebook)
@@ -208,10 +294,13 @@ def main():
         "allowlisted_pages": len(expected),
         "cli_help_checks": len(cli),
         "default_rest_paths": len(default_rest["paths"]),
+        "jobs_rest_paths": len(jobs_rest["paths"]),
+        "jobs_rest_operations": sum(len(v) for v in jobs_rest["paths"].values()),
         "optional_rest_paths": len(jobs_rest["paths"]) - len(default_rest["paths"]),
         "optional_rest_operations": sum(len(v) for v in jobs_rest["paths"].values())
         - sum(len(v) for v in default_rest["paths"].values()),
         "default_mcp_tools": len(default_mcp["tools"]),
+        "jobs_mcp_tools": len(jobs_mcp["tools"]),
         "optional_mcp_tools": len(jobs_mcp["tools"]) - len(default_mcp["tools"]),
         "mcp_resource_templates": len(default_mcp["resource_templates"]),
         "network_denied_during_generation_build_and_quickstart": True,
@@ -223,6 +312,7 @@ def main():
         "conformance_registry_matches_core": True,
         "conformance_families": len(families["families"]),
         "four_nations": four_nations,
+        "dataset_api": dataset_api,
         "links": local_links(html),
         "generated_sha256": {
             name: hashlib.sha256(content.encode()).hexdigest() for name, content in repeated.items()

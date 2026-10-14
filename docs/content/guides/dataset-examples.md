@@ -16,6 +16,8 @@ the generated [source coverage reference](../reference/sources.md) before choosi
 published data: a successful fixture is not certification of every provider table.
 The [four-nation workflow](four-nations.md) adds NISRA and Scottish selections,
 durable job recovery and fresh-process verification after collection transfer.
+Use the [common dataset interface](dataset-api.md) to inspect and query provider
+observations alongside typed CSV/Parquet records through Python, CLI, REST and MCP.
 
 ## Run the combined example
 

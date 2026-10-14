@@ -8,6 +8,8 @@ from ssdu.providers import provider_ids
 from ssdu.source_coverage import (
     COVERAGE_SCHEMA_VERSION,
     DATASET_CONTRACT_VERSION,
+    OBSERVATIONS_CONTRACT_VERSION,
+    RECORDS_CONTRACT_VERSION,
     SOURCE_COVERAGE,
     CoverageMatrix,
     SourceCoverage,
@@ -32,15 +34,20 @@ def test_only_migrated_providers_claim_standardized_datasets():
     standardized = {
         source_id for source_id, row in rows.items() if row["capabilities"]["standardized_dataset"]
     }
-    assert {rows[source_id]["provider"] for source_id in standardized} == set(provider_ids())
+    assert {rows[source_id]["provider"] for source_id in standardized} == {*provider_ids(), "local"}
     for source_id in standardized:
-        assert rows[source_id]["contract_version"] == DATASET_CONTRACT_VERSION
-        assert rows[source_id]["profiles"] == ["observations"]
+        local = source_id == "local_files"
+        assert rows[source_id]["contract_version"] == (
+            RECORDS_CONTRACT_VERSION if local else OBSERVATIONS_CONTRACT_VERSION
+        )
+        assert rows[source_id]["profiles"] == (["records"] if local else ["observations"])
         assert rows[source_id]["capabilities"]["retained_raw_inputs"]
         assert rows[source_id]["capabilities"]["offline_replay"]
     assert rows["local_files"]["capabilities"]["data_retrieval"]
-    assert rows["local_files"]["normalization"]["status"] == "not_in_scope"
-    assert rows["local_files"]["contract_version"] is None
+    assert rows["local_files"]["normalization"]["status"] == "implemented"
+    assert rows["local_files"]["contract_version"] == RECORDS_CONTRACT_VERSION
+    assert get_source_coverage()["supported_contract_versions"] == ["1.0.0", "1.1.0"]
+    assert not rows["local_files"]["capabilities"]["rate_limited_requests"]
 
 
 def test_plans_and_catalogue_metadata_never_claim_retrieval_support():

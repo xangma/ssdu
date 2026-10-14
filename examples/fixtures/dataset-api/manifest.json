@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "kind": "synthetic_teaching_fixtures",
+  "description": "All rows, measurements and response metadata are independently invented. Geographic identifiers are protocol selector tokens only. No published provider statistics are redistributed. Native Parquet bytes are generated at runtime from explicitly invented Python literals.",
+  "files": [
+    {
+      "path": "fixtures/dataset-api/local-services.csv",
+      "sha256": "d2d3cbcef953e2dcdf47b27ffa92c8b7b3b39712f96676533ee754387890a8d3",
+      "reference": "https://github.com/xangma/ssdu/blob/main/examples/dataset_api.py",
+      "origin": "independently invented SSDU teaching fixture"
+    },
+    {
+      "path": "fixtures/dataset-api/local-import.json",
+      "sha256": "8db9b6f84744020fa569710d5b8439babac24903e61aefd25654f9d0bad05df2",
+      "reference": "https://github.com/xangma/ssdu/blob/main/examples/dataset_api.py",
+      "origin": "independently invented SSDU teaching fixture"
+    },
+    {
+      "path": "fixtures/dataset-contract/nomis-data.csv",
+      "sha256": "fab423f1f1d461695a133d4be54c32b662a65f841c04df05534c81e077c5f7ae",
+      "reference": "https://www.nomisweb.co.uk/api/v01/help",
+      "origin": "independently invented SSDU teaching fixture"
+    },
+    {
+      "path": "fixtures/dataset-contract/nomis-definition.json",
+      "sha256": "32cb0f1d76048c56f3877289ef642de8f42152032690498eada71fbd2d10128d",
+      "reference": "https://www.nomisweb.co.uk/api/v01/help",
+      "origin": "independently invented SSDU teaching fixture"
+    }
+  ]
+}

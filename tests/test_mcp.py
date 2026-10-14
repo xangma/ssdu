@@ -15,6 +15,7 @@ from test_api import SNAPSHOT, FakeService
 from ssdu.api import create_app
 from ssdu.http import HttpClient
 from ssdu.mcp_server import create_mcp_server
+from ssdu.models import RetrievalError
 
 local_service = test_api.local_service
 iod_csv = test_deprivation.iod_csv
@@ -37,6 +38,9 @@ def test_mcp_protocol_tools_resources_and_bounded_input(monkeypatch):
                 "preview_data",
                 "query_data",
                 "get_provenance",
+                "describe_snapshot",
+                "query_dataset",
+                "list_snapshot_dimension_values",
             }
             for tool in listing.tools:
                 assert tool.annotations.read_only_hint is True
@@ -55,6 +59,14 @@ def test_mcp_protocol_tools_resources_and_bounded_input(monkeypatch):
             assert json.loads(resource.contents[0].text)["dataset_id"] == "deprivation:iod2025"
             provenance = await client.read_resource(f"ssdu://snapshots/{SNAPSHOT}/provenance")
             assert json.loads(provenance.contents[0].text)["snapshot_id"] == SNAPSHOT
+            descriptor = await client.call_tool("describe_snapshot", {"snapshot_id": SNAPSHOT})
+            assert not descriptor.is_error
+            resource = await client.read_resource(f"ssdu://snapshots/{SNAPSHOT}/dataset")
+            assert json.loads(resource.contents[0].text) == descriptor.structured_content
+            query_schema = next(t for t in listing.tools if t.name == "query_dataset").input_schema
+            assert query_schema["$defs"]["DatasetQuerySpec"]["properties"]["table"]["anyOf"][0][
+                "enum"
+            ] == ["observations", "records", "source"]
             for name, args in (
                 ("search_datasets", {"limit": 101}),
                 ("search_datasets", {"limit": "20"}),
@@ -65,6 +77,20 @@ def test_mcp_protocol_tools_resources_and_bounded_input(monkeypatch):
                 ("describe_dataset", {"dataset_id": "missing"}),
                 ("describe_dataset", {"dataset_id": "broken"}),
                 ("describe_dataset", {"dataset_id": "crash"}),
+                ("describe_snapshot", {"snapshot_id": "short"}),
+                (
+                    "query_dataset",
+                    {"snapshot_id": SNAPSHOT, "query": {"table": "../../private/file"}},
+                ),
+                ("query_dataset", {"snapshot_id": SNAPSHOT, "query": {"sql": "SELECT 1"}}),
+                (
+                    "list_snapshot_dimension_values",
+                    {"snapshot_id": SNAPSHOT, "dimension": "area", "limit": "20"},
+                ),
+                (
+                    "list_snapshot_dimension_values",
+                    {"snapshot_id": SNAPSHOT, "dimension": "area", "table": "source"},
+                ),
             ):
                 result = await client.call_tool(name, args)
                 assert result.is_error
@@ -87,7 +113,7 @@ def test_actual_stdio_protocol():
     async def exercise():
         parameters = StdioServerParameters(command=sys.executable, args=["-c", source])
         async with Client(parameters, read_timeout_seconds=10) as client:
-            assert len((await client.list_tools()).tools) == 6
+            assert len((await client.list_tools()).tools) == 9
             result = await client.call_tool(
                 "query_data", {"snapshot_id": SNAPSHOT, "query": {"count_only": True}}
             )
@@ -115,6 +141,49 @@ def test_streamable_http_protocol():
                 )
                 assert not result.is_error
                 assert result.structured_content["total_rows"] == 15
+
+    anyio.run(exercise)
+
+
+@pytest.mark.parametrize("exception", [KeyError, ValueError, RetrievalError, RuntimeError])
+def test_mcp_contract_errors_are_redacted(exception):
+    service = FakeService()
+
+    def fail(*args, **kwargs):
+        raise exception("/private/internal/path")
+
+    service.describe_snapshot = fail
+    service.query_dataset = fail
+    service.list_snapshot_dimension_values = fail
+
+    async def exercise():
+        async with Client(create_mcp_server(service=service)) as client:
+            for name, args in (
+                ("describe_snapshot", {"snapshot_id": SNAPSHOT}),
+                ("query_dataset", {"snapshot_id": SNAPSHOT, "query": {}}),
+                ("list_snapshot_dimension_values", {"snapshot_id": SNAPSHOT, "dimension": "area"}),
+            ):
+                result = await client.call_tool(name, args)
+                assert result.is_error
+                assert "/private" not in result.content[0].text
+
+    anyio.run(exercise)
+
+
+def test_mcp_contract_output_budget():
+    service = FakeService()
+    service.describe_snapshot = lambda _: {"notes": "x" * 256_001}
+    service.list_snapshot_dimension_values = lambda *a, **k: {"notes": "x" * 256_001}
+
+    async def exercise():
+        async with Client(create_mcp_server(service=service)) as client:
+            for name, args in (
+                ("describe_snapshot", {"snapshot_id": SNAPSHOT}),
+                ("list_snapshot_dimension_values", {"snapshot_id": SNAPSHOT, "dimension": "area"}),
+            ):
+                result = await client.call_tool(name, args)
+                assert result.is_error
+                assert "Invalid query or identifier" in result.content[0].text
 
     anyio.run(exercise)
 

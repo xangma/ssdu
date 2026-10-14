@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .contracts import (
     Column,
     DataService,
+    DatasetQuerySpec,
     DimensionParams,
     Identifier,
     QueryResult,
@@ -145,6 +146,28 @@ def create_app(
     @app.get("/snapshots/{snapshot_id}/provenance")
     def get_provenance(snapshot_id: SnapshotId):
         return call(data.get_provenance, snapshot_id)
+
+    @app.get("/snapshots/{snapshot_id}/dataset")
+    def describe_snapshot(snapshot_id: SnapshotId):
+        """Inspect the verified dataset contract without expanding its code lists."""
+        return call(data.describe_snapshot, snapshot_id)
+
+    @app.post("/snapshots/{snapshot_id}/dataset/query", response_model=QueryResult)
+    def query_dataset(snapshot_id: SnapshotId, query: DatasetQuerySpec):
+        """Query a contract table locally; the default table follows the dataset profile."""
+        return call(data.query_dataset, snapshot_id, query)
+
+    @app.get("/snapshots/{snapshot_id}/dataset/dimensions/{dimension}")
+    def list_snapshot_dimension_values(
+        snapshot_id: SnapshotId, dimension: Column, params: Annotated[DimensionParams, Query()]
+    ):
+        """Page through dimension values belonging to this exact verified snapshot."""
+        return call(
+            data.list_snapshot_dimension_values,
+            snapshot_id,
+            dimension,
+            **params.model_dump(),
+        )
 
     if enable_jobs:
 

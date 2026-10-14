@@ -34,6 +34,7 @@ _IOD = "https://www.gov.uk/government/statistics/english-indices-of-deprivation-
 _JSONSTAT = "https://json-stat.org/format/"
 _PXSTAT = "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful"
 _SCOTLAND = "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+_LOCAL = "https://github.com/xangma/ssdu/blob/main/docs/content/concepts/dataset-contract.md"
 
 CONFORMANCE_FAMILIES = (
     _family(
@@ -131,6 +132,27 @@ CONFORMANCE_FAMILIES = (
         "Linked-data missing or suppressed cells retain source status and notes.",
         (_SCOTLAND,),
         "tests/test_scotland.py::test_suppression_status_and_notes_are_retained",
+    ),
+    ConformanceFamily(
+        "local_typed_csv",
+        "local",
+        "Invented CSV identifiers, declared field types and exact null-token meanings.",
+        (_LOCAL,),
+        "tests/test_records_store.py::test_records_typed_csv_identifiers_and_explicit_null_policy",
+    ),
+    ConformanceFamily(
+        "local_native_parquet",
+        "local",
+        "Invented native Parquet scalar types retain precision and temporal meaning.",
+        (_LOCAL,),
+        "tests/test_records_store.py::test_records_native_parquet_types_are_preserved",
+    ),
+    ConformanceFamily(
+        "local_declared_keys",
+        "local",
+        "Invented records preserve row grain and reject duplicate or null declared composite keys.",
+        (_LOCAL,),
+        "tests/test_records_store.py::test_records_declared_composite_keys_grain_and_validation",
     ),
 )
 

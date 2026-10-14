@@ -6,7 +6,7 @@
     {
       "path": ".github/workflows/conformance.yml",
       "kind": "configuration",
-      "sha256": "520f9f2eeca471e1c05ebc10ab00a4f4e5c07b4b369f4a32153a7db8e28d271e",
+      "sha256": "df819253498bdaf2e4a333790dfb8a99e21d82387a340bb89e3630f44242f347",
       "review": "Author-owned deterministic CI configuration; no captured data or secrets."
     },
     {
@@ -30,13 +30,13 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "3521efa82f0c2bdc485373396999d940156e9c73b988c58f223fd774a148c17c",
+      "sha256": "159915cae3a07164b8465b6641339f45ce8f53ad8b9cba1dab964839414b8a2e",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
       "path": "docs/README.md",
       "kind": "documentation",
-      "sha256": "48d46cb42531c20f961ed16ecea06a83ba7426ec9821aa1a873678bae073b5c5",
+      "sha256": "9618cbfa878d50866253a972b7d968f5c3886c0bd85d2b960b3c5a7684e8a176",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -54,7 +54,7 @@
     {
       "path": "docs/content/concepts/dataset-contract.md",
       "kind": "documentation",
-      "sha256": "20005aecd2222973cde18a322785ac8dc529b7e5df9fa9ce78a40c4b99329640",
+      "sha256": "e69ad78724524e1ec3a571fcc030558d9b657d598543675a63e9e5c149742087",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -70,9 +70,15 @@
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
+      "path": "docs/content/guides/dataset-api.md",
+      "kind": "documentation",
+      "sha256": "6706aa56e53d7095a8f6c0e2397fc04580e4a81b2dc4fc3c0682380b99afa1cc",
+      "review": "Curated user guide to the records and observations contracts, bounded shared APIs and invented offline transfer example; no captured data."
+    },
+    {
       "path": "docs/content/guides/dataset-examples.md",
       "kind": "documentation",
-      "sha256": "1bd1b371491d0da1aa33b68d4b2e923f1a6563e2713140de1f01287b2f3b6ae1",
+      "sha256": "71b36f8b68fbfb48f0d645faa215c0066c56fc3420f681b3a04d1471cd099190",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -84,13 +90,13 @@
     {
       "path": "docs/content/guides/interfaces.md",
       "kind": "documentation",
-      "sha256": "66ea5169872fae0f0b7a7ba112880baee2e9674459251c0248333e8ea376e223",
+      "sha256": "f8d5e952f86f39709c8ab2b205e0b1258b0a8b02124455b66b05273fc16fb697",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "2024326a1b8df582bf8ac2807f8c231eb644ed3ab14dd8a2b9b0b74a9b0ff9d1",
+      "sha256": "feb46bf7fc3b518fed235c44b020e10726fa84e708b01b2ce5df9978318607e3",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -114,13 +120,13 @@
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "d758e043e088f74c689e8799386d45017536969b93ebc1bebeb5613ba93c957f",
+      "sha256": "1685d03f4524c9a99ebd6137dddfaec9aa98c537f1f2b319ebe7d784cc7c3bfa",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
       "path": "examples/api.py",
       "kind": "source",
-      "sha256": "fb83633d1fd9ead541d4b96edc6078fe8d01b8319e8f3f707fd30875e39abb6d",
+      "sha256": "cf5ed16477e92104a7a932aae6f75028e9699a2d928a90193593356590aee292",
       "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
     },
     {
@@ -134,6 +140,12 @@
       "kind": "request_specification",
       "sha256": "736a82a74f379466ef4d36765116da5f205b3317e0b87e65f08c2cf999b9806d",
       "review": "User-authored collection request/selection specification; no downloaded data."
+    },
+    {
+      "path": "examples/dataset_api.py",
+      "kind": "source",
+      "sha256": "77cebc2caf4b2df6710a0fac3144820bdccab49f974f9037350e37701b0f8ddb",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
     },
     {
       "path": "examples/dataset_contract.py",
@@ -158,6 +170,24 @@
       "kind": "source",
       "sha256": "0c5c32c8f066b6a8b9e96a026090e8c834f3a1f0aa469949c2563c3ec2ceddae",
       "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/fixtures/dataset-api/local-import.json",
+      "kind": "synthetic_fixture",
+      "sha256": "8db9b6f84744020fa569710d5b8439babac24903e61aefd25654f9d0bad05df2",
+      "review": "Independently invented common dataset API teaching fixture; references and hashes retained, no captured provider observations."
+    },
+    {
+      "path": "examples/fixtures/dataset-api/local-services.csv",
+      "kind": "synthetic_fixture",
+      "sha256": "d2d3cbcef953e2dcdf47b27ffa92c8b7b3b39712f96676533ee754387890a8d3",
+      "review": "Independently invented common dataset API teaching fixture; references and hashes retained, no captured provider observations."
+    },
+    {
+      "path": "examples/fixtures/dataset-api/manifest.json",
+      "kind": "synthetic_fixture",
+      "sha256": "a38f0df2cea4143b53eca6f8ac4bc233d43c7a8beb5c2e18526ac5b8ea7093c4",
+      "review": "Independently invented common dataset API teaching fixture; references and hashes retained, no captured provider observations."
     },
     {
       "path": "examples/fixtures/dataset-contract/deprivation.csv",
@@ -270,7 +300,7 @@
     {
       "path": "src/ssdu/__init__.py",
       "kind": "source",
-      "sha256": "0fb89df969134b0af4b6f2adda488a3ba6e55bf6fdb455e707530b6dad93e1e7",
+      "sha256": "258dc330e071bd9cfa25573b2cb75682d2b6ac9c6c166828f0e470134415f153",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -312,7 +342,7 @@
     {
       "path": "src/ssdu/api.py",
       "kind": "source",
-      "sha256": "e0bbf9666e21b3e09eaff7b49b7f9ca678f4f2f7c1d277772f7efe1b9508e507",
+      "sha256": "8e61116870568babe7d9380beb8541ee921d032883f28a6439a2d7e1fc03f97f",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -324,7 +354,7 @@
     {
       "path": "src/ssdu/cli.py",
       "kind": "source",
-      "sha256": "5f4a2e0ffb7b4a20faca7c6c12440213bc0669badd75792de6a8bb46e3bcb636",
+      "sha256": "b558947cfa33d06c6a7bda04bee0a5fb04e3b48ece0f6d8389ca5dd96409ecec",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -342,19 +372,19 @@
     {
       "path": "src/ssdu/conformance.py",
       "kind": "source",
-      "sha256": "14116c841c62a14b51c943e100b942806640b5ee5044fe51ca252862695b4c04",
+      "sha256": "d948d9326b631f6448ba258ad43acc3e4196686a802eec4cf83add1cf6c36116",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/contracts.py",
       "kind": "source",
-      "sha256": "26fd617a5b2747b5d55a79f8aaa2bf903a5f35f88f38f86d7cc4a19f36eab346",
+      "sha256": "a34b0e823f90525a618920fcba8a9f68d9bf2b35e77530b7a9d1b2ab01752f68",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/dataset_contract.py",
       "kind": "source",
-      "sha256": "e9cf4f0fc1e5fafb0fab566e83defda2d90af188cd3c3457028df6407172d388",
+      "sha256": "7afa3381dddfbdc3dc96311ed1a424fd27774aee09a3641e05ee0009d1f6e69a",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -456,13 +486,13 @@
     {
       "path": "src/ssdu/local_import.py",
       "kind": "source",
-      "sha256": "2b1763cf67006f7a44ea801c308c6390557cd7e70a2a384b1c901ad034549aad",
+      "sha256": "ceeb0abba3a4e87fd027578116f7e7f0dd0894b5e818b856f5670f19753d945c",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/mcp_server.py",
       "kind": "source",
-      "sha256": "87eed6bb31f8e387e194e7ea12476737fcbb063deb33e57a9586d5a2cf9cb6c8",
+      "sha256": "e2d01cc5423b04b872cd8dd1aa533c8298e1b97f089d805d5ccc313ab1cb5848",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -508,6 +538,12 @@
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
+      "path": "src/ssdu/records.py",
+      "kind": "source",
+      "sha256": "f6543d2e7e13c4ada3d3acd6ac09be5a050b05c9dadb4df2c161ab97e6a3deee",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
       "path": "src/ssdu/registry.py",
       "kind": "source",
       "sha256": "72d30f41f82f1dccf770e4b563482b139b9068d50edd7ef0cfde2d5c0f9391fe",
@@ -540,7 +576,7 @@
     {
       "path": "src/ssdu/service.py",
       "kind": "source",
-      "sha256": "bf4450a54f533e3f4608f85eda59ffed367803cd9e142fd58266cb8a5e0f5255",
+      "sha256": "997127d68a884eaf277de2529a3a31e012e77e1ff0431206330754132e6d43e0",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -552,13 +588,13 @@
     {
       "path": "src/ssdu/source_coverage.py",
       "kind": "source",
-      "sha256": "f85ce7b8271330dcd161b6a3d499e27f8753b3f671a99e7268901e20b28ee1ed",
+      "sha256": "bb54a91f9c0f0714ba49882f857c7468350ee8d390e000fdfcfdceeeeccff197",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/store.py",
       "kind": "source",
-      "sha256": "4346256cb47c031eb37f5bb544e46c0250d46c414e2a87a6d11f8a61744447c1",
+      "sha256": "c6b0efbe7ebb376955585b18d732e56f21b4f298cb513de59a7f633d2b19a287",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -738,7 +774,7 @@
     {
       "path": "tests/test_api.py",
       "kind": "source",
-      "sha256": "f415a0a0dd6c115255da23142afdae7b67040f131c3673c3710b690a4bbd5cbc",
+      "sha256": "e818ee074321f67f4adf9bdef255e3912455024bcfadd57fbc938e3a25765c67",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -796,6 +832,30 @@
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
+      "path": "tests/test_contract_cli.py",
+      "kind": "source",
+      "sha256": "a1b75be74471f4a2ccb7dfae3a5ac3521dc598d514c45324509b9bf92852e59f",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
+      "path": "tests/test_contract_service.py",
+      "kind": "source",
+      "sha256": "5c59e2829e47575df6910fc135aa1701c468c2cf484eea3e81a118b0d872cc87",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
+      "path": "tests/test_contract_transports.py",
+      "kind": "source",
+      "sha256": "97193d3afdbcd6648057d84b1187c254a8221a0f92a79bf8fcabe5db8caf23a2",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
+      "path": "tests/test_dataset_api_example.py",
+      "kind": "source",
+      "sha256": "4391dc23f18e6f9df90c7f9a53e0340c557bdc8cab935685904b67531a7714ea",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
       "path": "tests/test_dataset_contract.py",
       "kind": "source",
       "sha256": "48139db89a7a79c86303fa19d2883207bb027e34a68158bdb726c89b74bd412d",
@@ -810,7 +870,7 @@
     {
       "path": "tests/test_dataset_store.py",
       "kind": "source",
-      "sha256": "665edf367f71d01dae4ad4c8dfadeb47113f14c60d636f6c8275c883e9bcb689",
+      "sha256": "62e96fae92b3cec7d60cc0c8f095cdca0adce70c40ac03ec2c8e57ea6760fc80",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -870,7 +930,7 @@
     {
       "path": "tests/test_documentation.py",
       "kind": "source",
-      "sha256": "177807f20b97184989783d954d85d7747e4c442de9f0fe8c52f41974b6155edb",
+      "sha256": "92d095cf0b259269e922e4e8db4471aa9d538ce90ae598003986b90344afc498",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -930,13 +990,13 @@
     {
       "path": "tests/test_local_import.py",
       "kind": "source",
-      "sha256": "4813b8713d89481ce1a3e1fdf66c51d578522dddfcf06020342a5e29e3813be3",
+      "sha256": "7111bd07f23891f3c734a33386cfa22454d611e418457e1683dd7401800d5220",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
       "path": "tests/test_mcp.py",
       "kind": "source",
-      "sha256": "d20f4777d132c0b98f42aba6550708d819d9bde74e328d1e73929672bb0288f2",
+      "sha256": "70539eabf6bc54d043172bd4437e7f56a9feae532c7d8ae96fc109bcc3b62926",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -988,6 +1048,18 @@
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
+      "path": "tests/test_records_contract.py",
+      "kind": "source",
+      "sha256": "19b9e9ec3ad5cdaf5ae9a38036957eb0763b001517c65eafd2de4d9c8e9f14f5",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
+      "path": "tests/test_records_store.py",
+      "kind": "source",
+      "sha256": "2d49c6c1a57445a2d95514f9a621da9beb6abfed8b66e596afbe9d20f997cd83",
+      "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
       "path": "tests/test_retrieval_api.py",
       "kind": "source",
       "sha256": "36bd1709eb7ad930d11b62a1429cb8af0e5f797827adb50e27019886926d2251",
@@ -1008,7 +1080,7 @@
     {
       "path": "tests/test_retrieval_mcp.py",
       "kind": "source",
-      "sha256": "78a40fb5c5de29582de8654afd2ede93fab38290e7e94418e8d47eb5c0d3974c",
+      "sha256": "3a642711c040c7507952097eb64f36a8d48a77cd427afa4ef98c2680e19712bf",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1062,7 +1134,7 @@
     {
       "path": "tests/test_source_coverage.py",
       "kind": "source",
-      "sha256": "dfde74b77a7e9fb3557b541e5b1ab4a0aedae703fd4c21b812e24860d91eb53c",
+      "sha256": "eca248cf86dc2ae886cb67c2d64c76d03b0cd344428544799a3896b23e9622d1",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1098,13 +1170,13 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "4d223bd5ae8497991eacc8e48eb8199731533c8e0857bfff9360bc3376fe5628",
+      "sha256": "09b7207497e17583516e850cb1288810dbca36441f3afb775f30f63a97bbca5a",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
       "path": "tools/docs_acceptance.py",
       "kind": "source",
-      "sha256": "e44c3ab1c01873a0e5c13105a4641ff1c0679a841afbe312418bf521246bd4e8",
+      "sha256": "488b27ffcfbd4126394e99b6069006a2ff7f9c9d0e05b68c5ec5b894aa70095b",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
@@ -1139,6 +1211,10 @@
       "tests/test_collection_publication.py",
       "tests/test_collections.py",
       "tests/test_conformance_families.py",
+      "tests/test_contract_cli.py",
+      "tests/test_contract_service.py",
+      "tests/test_contract_transports.py",
+      "tests/test_dataset_api_example.py",
       "tests/test_dataset_contract.py",
       "tests/test_dataset_examples.py",
       "tests/test_dataset_store.py",
@@ -1171,6 +1247,8 @@
       "tests/test_provider_registration.py",
       "tests/test_publication.py",
       "tests/test_rate_limit.py",
+      "tests/test_records_contract.py",
+      "tests/test_records_store.py",
       "tests/test_retrieval_api.py",
       "tests/test_retrieval_cli.py",
       "tests/test_retrieval_jobs.py",

@@ -48,6 +48,31 @@ def test_unlisted_reader_page_is_rejected(publication):
         docs.inventory(publication)
 
 
+@pytest.mark.parametrize("source", ["examples/other.py", "../private.py"])
+def test_dataset_api_acceptance_rejects_unapproved_executable(publication, source):
+    manifest = publication / "docs/publication.json"
+    value = json.loads(manifest.read_text())
+    value["dataset_api_example"] = source
+    manifest.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="Dataset API.*independently allowlisted"):
+        docs.inventory(publication)
+
+
+def test_dataset_api_acceptance_requires_approved_download(publication):
+    source = publication / "examples/dataset_api.py"
+    source.parent.mkdir()
+    source.write_text("raise RuntimeError('must not execute during inventory')\n")
+    manifest = publication / "docs/publication.json"
+    value = json.loads(manifest.read_text())
+    value["dataset_api_example"] = "examples/dataset_api.py"
+    manifest.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="Dataset API.*independently allowlisted"):
+        docs.inventory(publication)
+    value["downloads"]["_downloads/dataset_api.py"] = "examples/dataset_api.py"
+    manifest.write_text(json.dumps(value))
+    assert docs.inventory(publication) == value
+
+
 def test_symlink_source_is_rejected(publication):
     page = publication / "docs/content/index.md"
     page.unlink()

@@ -19,7 +19,8 @@ account, dataset download or existing cache is required.
 - [Install SSDU](start/install.md) from the repository's locked environment.
 - [Understand offline operation](concepts/offline.md) and explicit acquisition.
 - [Inspect provenance](concepts/provenance.md) before comparing or citing results.
-- [Use the dataset contract](concepts/dataset-contract.md) for observations and metadata.
+- [Use the dataset contract](concepts/dataset-contract.md) for observations and typed local records.
+- [Inspect and query retained datasets](guides/dataset-api.md) through a common interface.
 - [Run provider examples](guides/dataset-examples.md) with synthetic offline responses.
 - [Transfer four distinct national datasets](guides/four-nations.md) with resumable jobs.
 - [Connect an interface](guides/interfaces.md) to retained metadata and snapshots.
@@ -56,6 +57,7 @@ start/quickstart
 :hidden:
 
 guides/interfaces
+guides/dataset-api
 guides/dataset-examples
 guides/four-nations
 ```

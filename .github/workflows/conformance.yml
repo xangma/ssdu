@@ -54,6 +54,8 @@ jobs:
         run: .venv/bin/python examples/dataset_contract.py --output-dir "$RUNNER_TEMP/dataset-contract"
       - name: Resume four-nation acquisition and replay a transferred collection offline
         run: .venv/bin/python examples/four_nations.py --output-dir "$RUNNER_TEMP/four-nations"
+      - name: Query provider and local datasets through every interface and replay offline
+        run: .venv/bin/python examples/dataset_api.py --output-dir "$RUNNER_TEMP/dataset-api"
       - name: Retain acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,4 +64,5 @@ jobs:
           path: |
             ${{ runner.temp }}/dataset-contract/result.json
             ${{ runner.temp }}/four-nations/result.json
+            ${{ runner.temp }}/dataset-api/result.json
           if-no-files-found: ignore

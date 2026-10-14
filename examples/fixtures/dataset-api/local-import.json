@@ -1,0 +1,36 @@
+{
+  "dataset_id": "synthetic-local-services",
+  "title": "Invented local service counts",
+  "description": "Independently invented teaching records; these are not published statistics.",
+  "licence": "MIT; independently invented SSDU teaching fixture",
+  "citation": "SSDU synthetic dataset API example, fixture version 1",
+  "row_grain": "One invented service unit per row",
+  "primary_key": ["unit_code"],
+  "columns": {
+    "unit_code": {
+      "type": "string",
+      "label": "Invented unit code",
+      "definition": "A string identifier; leading zeros are significant.",
+      "nullable": false,
+      "role": "identifier"
+    },
+    "label": {
+      "type": "string",
+      "label": "Invented unit label",
+      "nullable": false
+    },
+    "estimate": {
+      "type": "float64",
+      "label": "Invented count",
+      "unit": "persons",
+      "nullable": true
+    },
+    "status": {
+      "type": "string",
+      "label": "Invented reporting status",
+      "definition": "reported includes zero; missing means no estimate was supplied.",
+      "nullable": false,
+      "missing_values": {"missing": "No estimate supplied; not a suppressed value"}
+    }
+  }
+}

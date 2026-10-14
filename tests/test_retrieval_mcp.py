@@ -28,7 +28,7 @@ def test_mcp_controls_require_opt_in(retrieval_service):
         async with Client(create_mcp_server(service=retrieval_service)) as client:
             names = {tool.name for tool in (await client.list_tools()).tools}
             assert not names.intersection(CONTROL_TOOLS)
-            assert len(names) == 6
+            assert len(names) == 9
 
     anyio.run(exercise)
     assert retrieval_service.calls == []
@@ -75,7 +75,7 @@ def test_mcp_controls_match_rest_without_running_workers(retrieval_service):
         async with Client(create_mcp_server(service=retrieval_service, enable_jobs=True)) as client:
             listing = {tool.name: tool for tool in (await client.list_tools()).tools}
             assert CONTROL_TOOLS.issubset(listing)
-            assert len(listing) == 13
+            assert len(listing) == 16
             for name, tool in listing.items():
                 assert tool.input_schema["additionalProperties"] is False
                 assert tool.output_schema is not None
@@ -240,7 +240,7 @@ def test_enabled_stdio_controls():
     async def exercise():
         parameters = StdioServerParameters(command=sys.executable, args=["-c", source])
         async with Client(parameters, read_timeout_seconds=10) as client:
-            assert len((await client.list_tools()).tools) == 13
+            assert len((await client.list_tools()).tools) == 16
             result = await client.call_tool("plan_retrieval", {"spec": SPEC, "offline": True})
             assert not result.is_error
             assert result.structured_content["input"]["offline"] is True

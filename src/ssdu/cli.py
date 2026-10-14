@@ -38,6 +38,23 @@ def main(argv=None):
     dataset = commands.add_parser("dataset", help="Fetch, inspect or migrate standardized datasets")
     dataset_commands = dataset.add_subparsers(dest="dataset_command", required=True)
     dataset_commands.add_parser("schema", help="Print the versioned dataset descriptor JSON Schema")
+    describe = dataset_commands.add_parser(
+        "describe", help="Describe a verified retained dataset without provider access"
+    )
+    describe.add_argument("snapshot_id", help="Full snapshot SHA-256 identifier")
+    query = dataset_commands.add_parser(
+        "query", help="Query a retained contract table using a bounded JSON specification"
+    )
+    query.add_argument("snapshot_id", help="Full snapshot SHA-256 identifier")
+    query.add_argument("--query", type=Path, required=True, help="DatasetQuerySpec JSON file")
+    dimensions = dataset_commands.add_parser(
+        "dimensions", help="List dimension values present in a verified retained dataset"
+    )
+    dimensions.add_argument("snapshot_id", help="Full snapshot SHA-256 identifier")
+    dimensions.add_argument("dimension", help="Contract dimension identifier")
+    dimensions.add_argument("--search", default="", help="Match retained codes or labels")
+    dimensions.add_argument("--limit", type=int, default=20, help="Page size, from 1 to 100")
+    dimensions.add_argument("--offset", type=int, default=0, help="Page offset, up to 100000")
     dataset_fetch = dataset_commands.add_parser("fetch", help="Fetch a request as a common Dataset")
     dataset_fetch.add_argument("request", type=Path)
     dataset_policy = dataset_fetch.add_mutually_exclusive_group()
@@ -56,7 +73,7 @@ def main(argv=None):
         *[dataset_commands.choices[action] for action in ("show", "migrate")],
     ):
         item.add_argument(
-            "--preview", type=int, default=0, help="Return up to 100 observation rows"
+            "--preview", type=int, default=0, help="Return up to 100 default-table rows"
         )
     search = commands.add_parser("search", help="Live provider search (deprivation is curated)")
     search.add_argument("query")
@@ -195,6 +212,37 @@ def main(argv=None):
             if args.dataset_command == "schema":
                 _print(DatasetDescriptor.model_json_schema())
                 return 0
+            if args.dataset_command in {"describe", "query", "dimensions"}:
+                from pydantic import ValidationError
+
+                from ssdu.contracts import DatasetQuerySpec
+                from ssdu.service import Service
+
+                service = Service(args.store, index_store=False)
+                try:
+                    if args.dataset_command == "describe":
+                        output = service.describe_snapshot(args.snapshot_id)
+                    elif args.dataset_command == "query":
+                        with args.query.open("rb") as stream:
+                            body = stream.read(256_001)
+                        if len(body) > 256_000:
+                            raise ValueError("Query specification exceeds the 256 KB input limit")
+                        spec = DatasetQuerySpec.model_validate_json(body)
+                        output = service.query_dataset(args.snapshot_id, spec)
+                    else:
+                        output = service.list_snapshot_dimension_values(
+                            args.snapshot_id,
+                            args.dimension,
+                            search=args.search,
+                            limit=args.limit,
+                            offset=args.offset,
+                        )
+                except ValidationError as exc:
+                    raise ValueError("Invalid dataset query specification or bounds") from exc
+                except KeyError as exc:
+                    raise RetrievalError("Snapshot or dimension not found") from exc
+                _print(output)
+                return 0
             if not 0 <= args.preview <= 100:
                 raise ValueError("--preview must be between 0 and 100")
             store = Store(args.store)
@@ -210,7 +258,11 @@ def main(argv=None):
                 result = store.migrate_dataset(args.snapshot_id)
             output = {"snapshot_id": result.snapshot_id, "dataset": result.contract}
             if args.preview:
-                output["preview"] = result.to_arrow().slice(0, args.preview).to_pylist()
+                from ssdu.service import Service
+
+                output["preview"] = Service._dataset_json_rows(
+                    result.to_arrow().slice(0, args.preview)
+                )
             _print(output)
             return 0
         if args.command in {"retrieval", "jobs"}:

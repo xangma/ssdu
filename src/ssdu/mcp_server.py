@@ -15,6 +15,7 @@ from .collection_models import CollectionSpec
 from .contracts import (
     Column,
     DataService,
+    DatasetQuerySpec,
     Identifier,
     Limit,
     Offset,
@@ -97,6 +98,26 @@ def create_mcp_server(
         """Get source, release, attribution and verification information for a frozen snapshot."""
         return call(data.get_provenance, snapshot_id)
 
+    def describe_snapshot(snapshot_id: SnapshotId) -> dict[str, Any]:
+        """Inspect a verified snapshot's contract, units and quality; dimension codes are paged separately."""
+        return call(data.describe_snapshot, snapshot_id)
+
+    def query_dataset(snapshot_id: SnapshotId, query: DatasetQuerySpec) -> QueryResult:
+        """Query a local contract table. Omit table to use its profile; cite provenance and inspect quality."""
+        return QueryResult.model_validate(call(data.query_dataset, snapshot_id, query))
+
+    def list_snapshot_dimension_values(
+        snapshot_id: SnapshotId,
+        dimension: Column,
+        search: SearchText = "",
+        limit: Limit = 20,
+        offset: Offset = 0,
+    ) -> dict[str, Any]:
+        """List a bounded page of dimension values from this exact verified snapshot; no provider call."""
+        return call(
+            data.list_snapshot_dimension_values, snapshot_id, dimension, search, limit, offset
+        )
+
     annotations = ToolAnnotations(
         read_only_hint=True,
         destructive_hint=False,
@@ -112,6 +133,9 @@ def create_mcp_server(
             preview_data,
             query_data,
             get_provenance,
+            describe_snapshot,
+            query_dataset,
+            list_snapshot_dimension_values,
         )
     ]
 
@@ -242,6 +266,22 @@ def create_mcp_server(
         except (ValueError, ToolError):
             raise ResourceError(
                 "Snapshot provenance is unavailable or the identifier is invalid."
+            ) from None
+
+    @server.resource(
+        "ssdu://snapshots/{snapshot_id}/dataset",
+        mime_type="application/json",
+        description="Verified contract metadata for an immutable local snapshot, with paged code lists.",
+    )
+    def snapshot_dataset(snapshot_id: str) -> str:
+        try:
+            key = TypeAdapter(SnapshotId).validate_python(snapshot_id)
+            return json.dumps(
+                call(data.describe_snapshot, key), ensure_ascii=False, allow_nan=False
+            )
+        except (ValueError, ToolError):
+            raise ResourceError(
+                "Snapshot dataset is unavailable or the identifier is invalid."
             ) from None
 
     return server

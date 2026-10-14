@@ -4,16 +4,26 @@ import hashlib
 import json
 import re
 from contextlib import contextmanager
+from datetime import date, datetime, time
+from decimal import Decimal, InvalidOperation
 from threading import Timer
+from time import monotonic
 from typing import Any
 
 import duckdb
+import pyarrow as pa
+import pyarrow.compute as pc
+import pyarrow.parquet as pq
 from pydantic import TypeAdapter
 
-from ssdu.contracts import QuerySpec, bounded_result
+from ssdu.contracts import DatasetQuerySpec, QuerySpec, bounded_result
 from ssdu.models import RetrievalError
 from ssdu.registry import Registry, dataset_key, snapshot_descriptor
 from ssdu.store import Store, canonical
+
+MAX_DATASET_QUERY_ROWS = 5_000_000
+MAX_DATASET_QUERY_BYTES = 256_000_000
+DATASET_QUERY_SECONDS = 5
 
 
 def quote(name):
@@ -260,6 +270,369 @@ class Service:
 
     def preview_data(self, snapshot_id, query):
         return self.query_data(snapshot_id, query)
+
+    def _dataset(self, snapshot_id):
+        # Validate the identifier before Store resolves any path. Opening verifies
+        # all retained file hashes, descriptor bindings and Arrow semantics.
+        manifest = self._manifest(snapshot_id)
+        if "dataset_contract" not in manifest:
+            raise RetrievalError(
+                "Historical snapshot has no dataset contract; use migrate_dataset(snapshot_id)"
+            )
+        from ssdu.dataset_contract import Dataset
+
+        root = self.store.path(snapshot_id)
+        descriptor = Dataset.inspect(root)
+        decoded_bytes = 0
+        for table in descriptor.tables:
+            if table.rows > MAX_DATASET_QUERY_ROWS:
+                raise ValueError("Dataset exceeds the local query row budget")
+            footer = pq.ParquetFile(root / table.path).metadata
+            decoded_bytes += sum(
+                footer.row_group(group).column(column).total_uncompressed_size
+                for group in range(footer.num_row_groups)
+                for column in range(footer.num_columns)
+            )
+            if decoded_bytes > MAX_DATASET_QUERY_BYTES:
+                raise ValueError("Dataset exceeds the local query decoded-byte budget")
+        dataset = self.store.open_dataset(snapshot_id)
+        if (
+            sum(dataset.to_arrow(name).nbytes for name in dataset.table_names)
+            > MAX_DATASET_QUERY_BYTES
+        ):
+            raise ValueError("Dataset exceeds the local query decoded-byte budget")
+        return dataset
+
+    def _dataset_table(self, snapshot_id, table=None):
+        dataset = self._dataset(snapshot_id)
+        table = table or dataset.descriptor.profile
+        if table not in ("observations", "records", "source") or table not in dataset.table_names:
+            raise ValueError("Unknown dataset table")
+        return dataset, table, dataset.to_arrow(table)
+
+    @staticmethod
+    def _dataset_identity(dataset):
+        descriptor = dataset.descriptor
+        return {
+            "snapshot_id": dataset.snapshot_id,
+            "dataset_id": descriptor.dataset_id,
+            "contract_version": descriptor.contract_version,
+            "profile": descriptor.profile,
+        }
+
+    def describe_snapshot(self, snapshot_id):
+        """Describe verified contract semantics without returning unbounded code lists."""
+        dataset = self._dataset(snapshot_id)
+        descriptor = dataset.contract
+        for dimension in descriptor["dimensions"]:
+            dimension["code_count"] = len(dimension.pop("codes"))
+            dimension["codes_omitted"] = True
+        return bounded_result(
+            {
+                **self._dataset_identity(dataset),
+                "default_table": dataset.descriptor.profile,
+                "descriptor": descriptor,
+                "descriptor_scope": "Contract summary; use snapshot dimension pagination for observed codes",
+                "verification": {
+                    "file_hashes": "verified",
+                    "contract": "validated",
+                    "offline": True,
+                },
+                "provenance": self.get_provenance(snapshot_id),
+            }
+        )
+
+    @staticmethod
+    def _dataset_operand(value, dtype):
+        if value is None:
+            return None
+        if pa.types.is_decimal(dtype):
+            if type(value) not in (str, int, float):
+                raise ValueError("Decimal filters require finite decimal values")
+            try:
+                number = Decimal(str(value))
+            except InvalidOperation as exc:
+                raise ValueError("Decimal filters require finite decimal values") from exc
+            if not number.is_finite() or not re.fullmatch(
+                r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?", str(value)
+            ):
+                raise ValueError("Decimal filters require finite decimal values")
+            return pa.scalar(number)
+        if pa.types.is_integer(dtype) or pa.types.is_floating(dtype):
+            if type(value) not in (int, float):
+                raise ValueError("Numeric filters require numeric values")
+            if pa.types.is_integer(dtype):
+                return pa.scalar(Decimal(str(value)))
+            return pa.scalar(value)
+        if pa.types.is_boolean(dtype):
+            if type(value) is not bool:
+                raise ValueError("Boolean filters require boolean values")
+            return pa.scalar(value)
+        if not isinstance(value, str):
+            raise ValueError("Identifier/text filters require strings")  # noqa: TRY004
+        if pa.types.is_temporal(dtype):
+            if pa.types.is_time(dtype):
+                match = re.fullmatch(r"(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?", value)
+                if not match:
+                    raise ValueError("Time filters require an ISO time string")
+                hour, minute, second = map(int, match.groups()[:3])
+                if hour > 23 or minute > 59 or second > 59:
+                    raise ValueError("Time filters require an ISO time string")
+                nanos = ((hour * 60 + minute) * 60 + second) * 10**9 + int(
+                    (match.group(4) or "").ljust(9, "0")
+                )
+                return pc.cast(pa.scalar(nanos, type=pa.int64()), pa.time64("ns"))
+            return pc.cast(pa.scalar(value), dtype, safe=True)
+        if pa.types.is_null(dtype):
+            return pa.scalar(value)
+        return pa.scalar(value, type=dtype)
+
+    @staticmethod
+    def _dataset_budget(started):
+        if monotonic() - started > DATASET_QUERY_SECONDS:
+            raise ValueError("Query exceeded the local cooperative execution budget")
+
+    @staticmethod
+    def _dataset_execution_array(column):
+        """Widen only kernel inputs when Arrow lacks exact narrow scalar kernels."""
+        if pa.types.is_float16(column.type):
+            return pc.cast(column, pa.float32(), safe=True)
+        if pa.types.is_decimal(column.type) and column.type.bit_width < 128:
+            return pc.cast(
+                column, pa.decimal128(column.type.precision, column.type.scale), safe=True
+            )
+        return column
+
+    @classmethod
+    def _dataset_execution_table(cls, table):
+        for index, field in enumerate(table.schema):
+            execution = cls._dataset_execution_array(table[index])
+            if execution.type != field.type:
+                table = table.set_column(index, field.name, execution)
+        return table
+
+    @classmethod
+    def _dataset_filter(cls, table, filters, started):
+        for condition in filters:
+            if condition.column not in table.column_names:
+                raise ValueError("Unknown filter column")
+            original = table[condition.column]
+            column = cls._dataset_execution_array(original)
+            compared = (
+                pc.cast(column, pa.decimal128(20, 0))
+                if pa.types.is_integer(column.type)
+                else column
+            )
+            values = condition.value if isinstance(condition.value, list) else [condition.value]
+            mask = None
+            for value in values:
+                if value is not None and pa.types.is_null(column.type):
+                    # An untyped null column has no non-null values of any
+                    # scalar type; equality/range matches none, IN may add null.
+                    comparison = pc.is_valid(column)
+                    mask = comparison if mask is None else pc.or_kleene(mask, comparison)
+                    cls._dataset_budget(started)
+                    continue
+                operand = cls._dataset_operand(value, column.type)
+                if operand is None:
+                    if condition.op not in ("eq", "in"):
+                        raise ValueError("Only equality supports null")
+                    comparison = pc.is_null(column)
+                else:
+                    function = {
+                        "eq": pc.equal,
+                        "in": pc.equal,
+                        "gte": pc.greater_equal,
+                        "lte": pc.less_equal,
+                    }[condition.op]
+                    comparison = function(compared, operand)
+                mask = comparison if mask is None else pc.or_kleene(mask, comparison)
+                cls._dataset_budget(started)
+            table = table.filter(pc.fill_null(mask, False))
+            cls._dataset_budget(started)
+        return table
+
+    @staticmethod
+    def _dataset_json_rows(table):
+        # Arrow keeps nanosecond timestamps that generic datetime serialization
+        # rounds to microseconds. time64[ns].as_py() also drops nanoseconds.
+        def scalar(value):
+            if isinstance(value, Decimal):
+                return str(value)
+            if isinstance(value, (datetime, date, time)):
+                return value.isoformat()
+            return value
+
+        for index, field in enumerate(table.schema):
+            if pa.types.is_time(field.type):
+                table = table.set_column(index, field.name, pc.cast(table[index], pa.string()))
+        return [{name: scalar(value) for name, value in row.items()} for row in table.to_pylist()]
+
+    def query_dataset(self, snapshot_id, query):
+        """Query verified contract tables offline with exact Arrow scalar semantics.
+
+        Inputs have explicit row/decoded-byte caps. The five-second Arrow budget
+        is cooperative between kernels; it does not interrupt an active kernel.
+        Hash/semantic verification occurs before that execution budget starts.
+        """
+        query = DatasetQuerySpec.model_validate(
+            query.model_dump() if isinstance(query, QuerySpec) else query
+        )
+        dataset, table, retained = self._dataset_table(snapshot_id, query.table)
+        started = monotonic()
+        try:
+            schema = retained.schema
+            columns = query.columns or schema.names
+            if len(set(columns)) != len(columns) or not set(columns).issubset(schema.names):
+                raise ValueError("Unknown or duplicated output columns")
+            if not query.count_only and len(columns) > 100:
+                raise ValueError("Select at most 100 output columns")
+            if any(order.column not in schema.names for order in query.sort):
+                raise ValueError("Unknown sort column")
+            selected = self._dataset_filter(retained, query.filters, started)
+            total = selected.num_rows
+            if query.count_only:
+                rows, next_offset = [{"count": total}], None
+            else:
+                order = [
+                    (item.column, "descending" if item.descending else "ascending")
+                    for item in query.sort
+                ]
+                order.extend(
+                    (name, "ascending")
+                    for name in schema.names
+                    if name not in {s[0] for s in order}
+                )
+                # Arrow's stable sort keeps identical records interchangeable,
+                # and all retained columns resolve ties outside the projection.
+                indices = pc.sort_indices(self._dataset_execution_table(selected), sort_keys=order)
+                self._dataset_budget(started)
+                page = selected.select(columns).take(indices.slice(query.offset, query.limit))
+                rows = self._dataset_json_rows(page)
+                end = query.offset + len(rows)
+                next_offset = end if end < total else None
+            self._dataset_budget(started)
+            descriptor = dataset.descriptor
+            specification = next(item for item in descriptor.tables if item.name == table)
+            units = {
+                "value_column": "unit" if table == "observations" else None,
+                "variables": {item.id: item.unit for item in descriptor.variables},
+                "columns": {
+                    item.name: item.model_dump().get("unit")
+                    for item in specification.columns
+                    if item.model_dump().get("unit") is not None
+                },
+            }
+        except (pa.ArrowException, OverflowError, TypeError) as exc:
+            raise ValueError("Query operands or retained scalar types are not supported") from exc
+        return bounded_result(
+            {
+                **self._dataset_identity(dataset),
+                "table": table,
+                "rows": rows,
+                "total_rows": total,
+                "truncated": next_offset is not None,
+                "next_offset": next_offset,
+                "effective_query": query.model_copy(update={"table": table}).model_dump(),
+                "column_types": {"count": "int64"}
+                if query.count_only
+                else {
+                    item.name: item.dtype for item in specification.columns if item.name in columns
+                },
+                "value_encoding": {
+                    "decimal": "Exact decimal string",
+                    "date": "ISO 8601 date string",
+                    "time": "ISO 8601 time string preserving retained precision",
+                    "timestamp": "ISO 8601 timestamp string preserving precision and offset",
+                    "integer": "JSON integer; consumers must preserve the declared integer width",
+                    "float": "JSON number",
+                    "null": "JSON null",
+                },
+                "units": units,
+                "quality": descriptor.quality.model_dump(),
+                "provenance": self.get_provenance(snapshot_id),
+            }
+        )
+
+    def list_snapshot_dimension_values(self, snapshot_id, dimension, search="", limit=20, offset=0):
+        """Paginate declared dimension/identifier values present in one retained snapshot."""
+        if (
+            type(limit) is not int
+            or type(offset) is not int
+            or not 1 <= limit <= 100
+            or not 0 <= offset <= 100_000
+            or not isinstance(search, str)
+            or len(search) > 512
+            or not isinstance(dimension, str)
+            or not 1 <= len(dimension) <= 200
+        ):
+            raise ValueError("Invalid dimension query bounds")
+        dataset, table, retained = self._dataset_table(snapshot_id)
+        started = monotonic()
+        try:
+            descriptor = dataset.descriptor
+            matches = [item for item in descriptor.dimensions if dimension == item.column]
+            if not matches:
+                matches = [item for item in descriptor.dimensions if dimension == item.id]
+            specification = next(item for item in descriptor.tables if item.name == table)
+            if matches:
+                selected = matches[0]
+                column, dimension_id = selected.column, selected.id
+                codes = selected.codes
+            elif table == "records" and (
+                dimension in descriptor.primary_key
+                or any(
+                    item.name == dimension and item.role == "identifier"
+                    for item in specification.columns
+                )
+            ):
+                column = dimension_id = dimension
+                codes = []
+            else:
+                raise ValueError("Unknown declared snapshot dimension or identifier")
+            original = retained[column]
+            values = pc.unique(self._dataset_execution_array(original))
+            if values.type != original.type:
+                values = pc.cast(values, original.type, safe=True)
+            text_values = pc.cast(values, pa.string()).to_pylist()
+            code_labels = {item.code: item.label for item in codes if item.label is not None}
+            labels = pa.array(
+                [code_labels.get(value, value) for value in text_values], type=pa.string()
+            )
+            items_table = pa.table({"value": values, "label": labels})
+            self._dataset_budget(started)
+            if search:
+                pattern = search.lower()
+                mask = pc.or_kleene(
+                    pc.match_substring(pc.utf8_lower(pc.cast(values, pa.string())), pattern),
+                    pc.match_substring(pc.utf8_lower(labels), pattern),
+                )
+                items_table = items_table.filter(pc.fill_null(mask, False))
+            total = items_table.num_rows
+            indices = pc.sort_indices(
+                self._dataset_execution_table(items_table),
+                sort_keys=[("value", "ascending"), ("label", "ascending")],
+            )
+            self._dataset_budget(started)
+            items = self._dataset_json_rows(items_table.take(indices.slice(offset, limit)))
+            self._dataset_budget(started)
+        except (pa.ArrowException, OverflowError, TypeError) as exc:
+            raise ValueError("Snapshot dimension scalar types are not supported") from exc
+        end = offset + len(items)
+        return bounded_result(
+            {
+                **self._dataset_identity(dataset),
+                "table": table,
+                "dimension": dimension_id,
+                "column": column,
+                "items": items,
+                "total": total,
+                "truncated": end < total,
+                "next_offset": end if end < total else None,
+                "scope": "Values present in the selected local snapshot",
+                "provenance": self.get_provenance(snapshot_id),
+            }
+        )
 
     @staticmethod
     def _dimension_label(dimension, schema, metadata):

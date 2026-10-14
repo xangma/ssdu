@@ -33,6 +33,13 @@ The family conformance reference comes from `ssdu.conformance`. Acceptance also
 runs the approved four-nation example and checks durable recovery, cache reuse
 and fresh-process transfer/replay with network and original-store reads blocked.
 
+The dataset API guide is an authored page, not a new notebook. Its
+`examples/dataset_api.py` workflow uses invented Nomis responses, a CSV and runtime
+Parquet, checks Python/CLI/REST/MCP parity, and transfers a bundle into a fresh
+offline process. Run it with `--output-dir` pointing to an absent directory.
+Verify its `result.json` before treating the guide's success expectations as
+observed results; keep receipts and execution logs under ignored `data/` paths.
+
 Source publication uses the separate root `publication.json`/`PUBLICATION.md`
 policy. Build and execute tutorials again inside its clean exported `tree/`:
 private research evidence must not be a hidden documentation dependency. All

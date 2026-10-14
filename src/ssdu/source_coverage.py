@@ -5,9 +5,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ssdu.conformance import get_conformance_families
+from ssdu.dataset_contract import CONTRACT_VERSION as OBSERVATIONS_CONTRACT_VERSION
+from ssdu.dataset_contract import RECORDS_CONTRACT_VERSION
 
-COVERAGE_SCHEMA_VERSION = "1.0.0"
-DATASET_CONTRACT_VERSION = "1.0.0"
+COVERAGE_SCHEMA_VERSION = "1.1.0"
+DATASET_CONTRACT_VERSION = RECORDS_CONTRACT_VERSION
 StageStatus = Literal["implemented", "partial", "planned", "not_in_scope"]
 
 
@@ -100,6 +102,10 @@ class CoverageMatrix(BaseModel):
 
     schema_version: str = COVERAGE_SCHEMA_VERSION
     dataset_contract_version: str = DATASET_CONTRACT_VERSION
+    supported_contract_versions: tuple[str, ...] = (
+        OBSERVATIONS_CONTRACT_VERSION,
+        RECORDS_CONTRACT_VERSION,
+    )
     sources: tuple[SourceCoverage, ...]
     planned_adapter_families: tuple[PlannedAdapterFamily, ...] = ()
     notes: tuple[str, ...] = ()
@@ -166,7 +172,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Three registered semantic shapes: category/time, independent measures and unavailable/ambiguous metadata; pagination and revision checks remain scoped.",
             ),
             profiles=("observations",),
-            contract_version=DATASET_CONTRACT_VERSION,
+            contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(f.family_id for f in get_conformance_families("nomis")),
             capabilities=_network_capabilities(),
             access="Public API; application caching and shared per-provider request limiting.",
@@ -205,7 +211,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Three registered semantic shapes: hierarchical multi-measure, ambiguous references and Welsh formatted cells; not all published tables.",
             ),
             profiles=("observations",),
-            contract_version=DATASET_CONTRACT_VERSION,
+            contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(
                 f.family_id for f in get_conformance_families("statswales")
             ),
@@ -246,7 +252,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Three registered synthetic File 7 shapes: measure types, missing/suppressed cells and complete LAD selections; geography and offline replay checks.",
             ),
             profiles=("observations",),
-            contract_version=DATASET_CONTRACT_VERSION,
+            contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(
                 f.family_id for f in get_conformance_families("deprivation")
             ),
@@ -277,21 +283,34 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "implemented", "Import CSV or Parquet into immutable local snapshots."
             ),
             normalization=_stage(
-                "not_in_scope", "Generic record-profile normalization is outside this increment."
+                "implemented",
+                "Records profile retains typed columns, supplied field meanings, declared keys and row grain.",
             ),
             conformance=_stage(
                 "partial",
-                "Import, snapshot verification, bundle transfer and offline replay; no normalized record profile.",
+                "Three synthetic semantic shapes: typed CSV identifiers and null policy, native Parquet types, and declared composite keys; offline migration and transfer replay.",
             ),
+            profiles=("records",),
+            contract_version=RECORDS_CONTRACT_VERSION,
+            conformance_family_ids=tuple(f.family_id for f in get_conformance_families("local")),
             capabilities=SourceCapabilities(
-                data_retrieval=True, retained_raw_inputs=True, offline_replay=True
+                data_retrieval=True,
+                standardized_dataset=True,
+                retained_raw_inputs=True,
+                offline_replay=True,
             ),
             access="Local files accessible to the calling process; licence and semantics supplied by the user.",
             limits=(
                 "File import does not infer units, survey weights, codebooks or geographic compatibility.",
                 "Imports are bounded to 25 MB source bytes, 100 MB decoded bytes, 1,000 columns and 100,000 rows.",
+                "Records are not automatically reshaped into observations; undeclared keys and row grain remain unknown.",
+                "Local import is not an access mechanism for safeguarded or controlled survey data.",
             ),
-            implementation_paths=("src/ssdu/local_import.py", "tests/test_local_import.py"),
+            implementation_paths=(
+                "src/ssdu/local_import.py",
+                "src/ssdu/records.py",
+                "tests/test_records_store.py",
+            ),
         ),
         _planned(
             "ons_additional",
@@ -323,7 +342,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Three registered synthetic linked-cube shapes: series, multiple measures and suppressed cells; no whole-portal certification.",
             ),
             profiles=("observations",),
-            contract_version=DATASET_CONTRACT_VERSION,
+            contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(f.family_id for f in get_conformance_families("scotland")),
             capabilities=_network_capabilities(),
             access="Public SPARQL endpoint through shared cached, rate-limited HTTP requests.",
@@ -365,7 +384,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Three registered synthetic JSON-stat shapes: dense time series, multidimensional measures and sparse/status cells.",
             ),
             profiles=("observations",),
-            contract_version=DATASET_CONTRACT_VERSION,
+            contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(f.family_id for f in get_conformance_families("nisra")),
             capabilities=_network_capabilities(),
             access="Public PxStat JSON-stat API through shared cached, rate-limited HTTP requests.",
@@ -416,6 +435,7 @@ SOURCE_COVERAGE = CoverageMatrix(
         "Harvested catalogue records and Rich Context/OpenAlex paper–dataset links are discovery metadata, not implemented data retrieval.",
         "Implemented capabilities apply only to each row's stated scope. False means no implemented support claimed; it does not describe the provider's own capabilities.",
         "Dataset contract and coverage schema versions are independent.",
+        "The latest contract version is 1.1.0 for records; supported provider observation profiles retain contract 1.0.0. Each source row identifies its profile and version.",
         "Raw tables remain available; normalized observations do not establish comparability between sources.",
         "Conformance family fixtures are independently invented protocol-shaped examples, not redistributed published statistics. References identify protocols; certification remains bounded to tested shapes.",
     ),

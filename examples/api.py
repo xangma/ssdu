@@ -71,7 +71,14 @@ async def mcp_check(
     )
     async with Client(parameters, read_timeout_seconds=15) as client:
         listing = await client.list_tools()
-        assert len(listing.tools) == 6
+        assert {
+            "search_datasets",
+            "describe_dataset",
+            "list_dimension_values",
+            "preview_data",
+            "query_data",
+            "get_provenance",
+        } <= {tool.name for tool in listing.tools}
         found = await client.call_tool("search_datasets", {"query": "deprivation"})
         assert not found.is_error
         key = metadata["dataset_id"]

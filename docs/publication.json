@@ -10,7 +10,8 @@
     "research/index.md",
     "concepts/dataset-contract.md",
     "guides/dataset-examples.md",
-    "guides/four-nations.md"
+    "guides/four-nations.md",
+    "guides/dataset-api.md"
   ],
   "generated_pages": [
     "reference/cli.md",
@@ -39,7 +40,8 @@
     "_downloads/deprivation.ipynb": "examples/notebooks/deprivation.ipynb",
     "_downloads/LICENSE.txt": "LICENSE",
     "_downloads/four_nations.py": "examples/four_nations.py",
-    "_downloads/four-nations.yaml": "examples/collections/four-nations.yaml"
+    "_downloads/four-nations.yaml": "examples/collections/four-nations.yaml",
+    "_downloads/dataset_api.py": "examples/dataset_api.py"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -66,7 +68,13 @@
     "ssdu.dataset_contract.Dataset.to_pandas",
     "ssdu.source_coverage.get_source_coverage",
     "ssdu.conformance.get_conformance_families",
-    "ssdu.conformance.conformance_coverage"
+    "ssdu.conformance.conformance_coverage",
+    "ssdu.store.Store.import_dataset",
+    "ssdu.service.Service.describe_snapshot",
+    "ssdu.service.Service.query_dataset",
+    "ssdu.service.Service.list_snapshot_dimension_values",
+    "ssdu.contracts.DatasetQuerySpec",
+    "ssdu.local_import.LocalImportSpec"
   ],
   "schema_models": [
     "ssdu.contracts.QuerySpec",
@@ -78,12 +86,14 @@
     "ssdu.retrieval_models.SubmitInput",
     "ssdu.retrieval_models.JobBudget",
     "ssdu.dataset_contract.DatasetDescriptor",
-    "ssdu.source_coverage.CoverageMatrix"
+    "ssdu.source_coverage.CoverageMatrix",
+    "ssdu.contracts.DatasetQuerySpec"
   ],
   "notebooks": {
     "examples/nomis.md": "examples/notebooks/nomis.ipynb",
     "examples/statswales.md": "examples/notebooks/statswales.ipynb",
     "examples/deprivation.md": "examples/notebooks/deprivation.ipynb"
   },
-  "four_nation_example": "examples/four_nations.py"
+  "four_nation_example": "examples/four_nations.py",
+  "dataset_api_example": "examples/dataset_api.py"
 }

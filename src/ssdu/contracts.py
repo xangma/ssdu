@@ -59,6 +59,12 @@ class QuerySpec(StrictModel):
     count_only: StrictBool = False
 
 
+class DatasetQuerySpec(QuerySpec):
+    """Query one registered contract table; omission selects the dataset profile."""
+
+    table: Literal["observations", "records", "source"] | None = None
+
+
 class SearchParams(BaseModel):
     # HTTP query strings require normal integer parsing. The MCP equivalent uses StrictInt.
     model_config = ConfigDict(extra="forbid")
@@ -98,6 +104,14 @@ class DataService(Protocol):
     def preview_data(self, snapshot_id: str, query: QuerySpec) -> dict: ...
 
     def query_data(self, snapshot_id: str, query: QuerySpec) -> dict: ...
+
+    def describe_snapshot(self, snapshot_id: str) -> dict: ...
+
+    def query_dataset(self, snapshot_id: str, query: DatasetQuerySpec) -> dict: ...
+
+    def list_snapshot_dimension_values(
+        self, snapshot_id: str, dimension: str, search: str = "", limit: int = 20, offset: int = 0
+    ) -> dict: ...
 
     def get_provenance(self, snapshot_id: str) -> dict: ...
 

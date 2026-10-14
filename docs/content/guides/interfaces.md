@@ -13,11 +13,15 @@ signatures are generated in the [Python reference](../reference/python.md).
 
 For the standardized [dataset contract](../concepts/dataset-contract.md), use
 `Store.fetch_dataset()` to acquire or reuse supported provider data and
-`Store.open_dataset()` to verify a retained dataset. Arrow and pandas access
-default to observations, with a separate retained source table. Follow the
-[provider examples](dataset-examples.md), and check the generated
-[source coverage](../reference/sources.md) before acquisition. Local imports
-retain their existing table interface and do not yet use the observation profile.
+`Store.open_dataset()` to verify a retained dataset. `Store.import_dataset()`
+returns a dataset from a local CSV/Parquet file and `LocalImportSpec`. Provider
+datasets use the observation profile; local datasets use the records profile to
+preserve types and describe row grain, keys and field meanings. Follow the
+[dataset API guide](dataset-api.md) to describe, query and inspect dimensions
+across interfaces. The [provider examples](dataset-examples.md) explain
+observation semantics; check [source coverage](../reference/sources.md) before
+acquisition. Dataset reads require a retained contract; they do not acquire data
+or migrate historical snapshots.
 
 The CLI's global `--store` option precedes its subcommand. For example, inspect
 the transferred quickstart store with:

@@ -68,11 +68,15 @@ def test_default_csv_strings_exact_bytes_private_path_and_offline_registration(
     assert manifest["resources"][0]["method"] == "LOCAL_IMPORT"
     assert manifest["files"]["raw/0000.bin"]["sha256"] == digest
     assert manifest["kind"] == "local"
-    assert manifest["transformation_version"] == "local-import-v1"
+    assert manifest["transformation_version"] == "local-import-v2"
     metadata = json.loads((snapshot / "metadata.json").read_bytes())
     assert metadata["original_filename"] == "survey.csv"
     assert metadata["columns"]["code"]["definition"] == "Original area identifier"
     assert metadata["description"] == "Researcher supplied observations"
+    dataset = store.open_dataset(manifest["product_id"])
+    assert dataset.descriptor.profile == "records"
+    assert dataset.descriptor.contract_version == "1.1.0"
+    assert dataset.to_arrow().column("code").to_pylist() == ["00123", "00007"]
     assert str(csv_source.parent) not in json.dumps({"manifest": manifest, "metadata": metadata})
     registry = Registry(store.root).get("local:local-survey")
     assert registry["current_snapshot_id"] == manifest["product_id"]

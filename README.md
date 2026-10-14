@@ -40,6 +40,17 @@ durable recovery and verified offline transfer. The generated family reference
 states the validated shapes; collection membership does not establish comparable
 measures across nations.
 
+The [dataset API guide](docs/content/guides/dataset-api.md) covers provider
+observations and typed local CSV/Parquet records through Python, CLI, REST and MCP.
+Run its synthetic transfer example with a new output directory:
+
+```sh
+uv run --frozen --offline python examples/dataset_api.py --output-dir data/dataset-api-example
+```
+
+A successful run checks 90 cross-interface comparisons and fresh-process offline
+bundle replay. See the guide for expected receipt fields and value interpretation.
+
 Notebook preparation requires the checkout's notebooks, `examples/dataset_contract.py`
 helper and `examples/fixtures/dataset-contract/` fixtures. It runs in fresh local
 directories with provider networking blocked. Re-run preparation after notebook,

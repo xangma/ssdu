@@ -92,14 +92,18 @@ def inventory(root=ROOT):
         checked_file(root, source)
         if manifest["downloads"].get(f"_downloads/{Path(source).name}") != source:
             raise ValueError("Notebook download must be independently allowlisted")
-    example = manifest.get("four_nation_example")
-    if example is not None:
-        if (
-            example != "examples/four_nations.py"
-            or manifest["downloads"].get("_downloads/four_nations.py") != example
-        ):
-            raise ValueError("Four-nation acceptance example must be independently allowlisted")
-        checked_file(root, example)
+    for key, expected, label in (
+        ("four_nation_example", "examples/four_nations.py", "Four-nation"),
+        ("dataset_api_example", "examples/dataset_api.py", "Dataset API"),
+    ):
+        example = manifest.get(key)
+        if example is not None:
+            if (
+                example != expected
+                or manifest["downloads"].get(f"_downloads/{Path(expected).name}") != example
+            ):
+                raise ValueError(f"{label} acceptance example must be independently allowlisted")
+            checked_file(root, example)
     return manifest
 
 
@@ -278,7 +282,12 @@ def references(manifest):
     coverage = get_source_coverage()
     files["_downloads/source-coverage.json"] = json_text(coverage)
     text = "# Source coverage\n\nGenerated from SSDU's declared support matrix.\n\n"
-    text += f"Coverage schema: `{coverage['schema_version']}`. Dataset contract: `{coverage['dataset_contract_version']}`.\n\n"
+    versions = ", ".join(f"`{version}`" for version in coverage["supported_contract_versions"])
+    text += (
+        f"Coverage schema: `{coverage['schema_version']}`. "
+        f"Latest dataset contract: `{coverage['dataset_contract_version']}`. "
+        f"Supported contracts: {versions}. Each source row identifies its profile.\n\n"
+    )
     text += "{download}`Complete coverage matrix <../_downloads/source-coverage.json>`\n\n"
     text += "See [family conformance](conformance.md) for the exercised shapes and their protocol references.\n\n"
     text += source_coverage_markdown()

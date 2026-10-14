@@ -55,6 +55,18 @@ class FakeService:
     def get_provenance(self, snapshot_id):
         return {"snapshot_id": snapshot_id, "source_url": "https://example.gov.uk/deprivation"}
 
+    def describe_snapshot(self, snapshot_id):
+        self.calls.append(("describe_snapshot", snapshot_id))
+        return {"snapshot_id": snapshot_id, "profile": "observations"}
+
+    def query_dataset(self, snapshot_id, query):
+        self.calls.append(("query_dataset", snapshot_id, query))
+        return {**self.query_data(snapshot_id, query), "table": query.table or "observations"}
+
+    def list_snapshot_dimension_values(self, snapshot_id, dimension, search="", limit=20, offset=0):
+        self.calls.append(("snapshot_dimensions", snapshot_id, dimension, search, limit, offset))
+        return {"snapshot_id": snapshot_id, "items": [{"value": "001", "label": "Area A"}]}
+
 
 @pytest.fixture
 def service():
@@ -150,6 +162,67 @@ def test_rest_rejects_large_body_before_json_parsing(api):
         headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 413
+
+
+def test_rest_contract_routes_schema_and_shared_bounds(api, service):
+    assert api.get(f"/snapshots/{SNAPSHOT}/dataset").json()["snapshot_id"] == SNAPSHOT
+    result = api.post(f"/snapshots/{SNAPSHOT}/dataset/query", json={"table": "source"})
+    assert result.status_code == 200
+    assert result.json()["table"] == "source"
+    values = api.get(f"/snapshots/{SNAPSHOT}/dataset/dimensions/area?search=A&limit=1&offset=2")
+    assert values.status_code == 200
+    assert service.calls[-1] == ("snapshot_dimensions", SNAPSHOT, "area", "A", 1, 2)
+    schema = api.get("/openapi.json").json()["components"]["schemas"]
+    contract_query = schema["DatasetQuerySpec"]
+    assert contract_query["additionalProperties"] is False
+    assert contract_query["properties"]["table"]["anyOf"][0]["enum"] == [
+        "observations",
+        "records",
+        "source",
+    ]
+    assert "table" not in schema["QuerySpec"]["properties"]
+    for body in ({"table": "../../private/file"}, {"sql": "SELECT 1"}, {"limit": "20"}):
+        rejected = api.post(f"/snapshots/{SNAPSHOT}/dataset/query", json=body)
+        assert rejected.status_code == 422
+        assert "/private" not in rejected.text
+    assert api.get("/snapshots/nope/dataset").status_code == 422
+    assert api.get(f"/snapshots/{SNAPSHOT}/dataset/dimensions/area?limit=101").status_code == 422
+    assert api.get(f"/snapshots/{SNAPSHOT}/dataset/dimensions/area?table=source").status_code == 422
+    assert (
+        api.post(
+            f"/snapshots/{SNAPSHOT}/dataset/query",
+            content=b"x" * 64_001,
+            headers={"Content-Type": "application/json"},
+        ).status_code
+        == 413
+    )
+
+
+@pytest.mark.parametrize(
+    "exception,status",
+    [(KeyError, 404), (RetrievalError, 409), (ValueError, 400), (RuntimeError, 500)],
+)
+def test_rest_contract_error_redaction(api, service, exception, status):
+    def fail(*args, **kwargs):
+        raise exception("/private/internal/path")
+
+    service.describe_snapshot = fail
+    service.query_dataset = fail
+    service.list_snapshot_dimension_values = fail
+    for response in (
+        api.get(f"/snapshots/{SNAPSHOT}/dataset"),
+        api.post(f"/snapshots/{SNAPSHOT}/dataset/query", json={}),
+        api.get(f"/snapshots/{SNAPSHOT}/dataset/dimensions/area"),
+    ):
+        assert response.status_code == status
+        assert "/private" not in response.text
+
+
+def test_rest_contract_output_budget(api, service):
+    service.describe_snapshot = lambda _: {"notes": "x" * 256_001}
+    service.list_snapshot_dimension_values = lambda *a, **k: {"notes": "x" * 256_001}
+    assert api.get(f"/snapshots/{SNAPSHOT}/dataset").status_code == 400
+    assert api.get(f"/snapshots/{SNAPSHOT}/dataset/dimensions/area").status_code == 400
 
 
 @pytest.fixture

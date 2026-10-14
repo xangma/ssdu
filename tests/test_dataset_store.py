@@ -66,7 +66,7 @@ def test_public_sdk_fetch_and_open_common_dataset(tmp_path):
     assert opened.to_arrow().equals(dataset.to_arrow())
     assert opened.to_pandas("source")["OBS_VALUE"].tolist() == ["001", "..", "0"]
     assert Request is type(default_request())
-    assert get_source_coverage()["dataset_contract_version"] == "1.0.0"
+    assert get_source_coverage()["dataset_contract_version"] == "1.1.0"
 
 
 def test_historical_migration_is_offline_idempotent_and_preserves_source(tmp_path, monkeypatch):
@@ -227,7 +227,7 @@ def test_dataset_cli_and_source_matrix(tmp_path, capsys):
     store = Store(tmp_path)
     prior = historical_snapshot(store)
     assert main(["sources"]) == 0
-    assert json.loads(capsys.readouterr().out)["dataset_contract_version"] == "1.0.0"
+    assert json.loads(capsys.readouterr().out)["dataset_contract_version"] == "1.1.0"
     assert main(["dataset", "schema"]) == 0
     assert "contract_version" in json.loads(capsys.readouterr().out)["properties"]
     argv = ["--store", str(tmp_path), "dataset", "migrate", prior["product_id"], "--preview", "2"]

@@ -2,7 +2,15 @@
 
 __version__ = "0.3.0"
 
-__all__ = ["Dataset", "Request", "Store", "get_source_coverage"]
+__all__ = [
+    "Dataset",
+    "DatasetQuerySpec",
+    "LocalImportSpec",
+    "Request",
+    "Service",
+    "Store",
+    "get_source_coverage",
+]
 
 
 def __getattr__(name):
@@ -19,6 +27,18 @@ def __getattr__(name):
         from ssdu.store import Store
 
         return Store
+    if name == "Service":
+        from ssdu.service import Service
+
+        return Service
+    if name == "DatasetQuerySpec":
+        from ssdu.contracts import DatasetQuerySpec
+
+        return DatasetQuerySpec
+    if name == "LocalImportSpec":
+        from ssdu.local_import import LocalImportSpec
+
+        return LocalImportSpec
     if name == "get_source_coverage":
         from ssdu.source_coverage import get_source_coverage
 
