@@ -18,12 +18,12 @@ def _process_acquire(path, gate, output):
         limiter = RateLimiter(path, interval_seconds=0.15, max_wait_seconds=5)
         gate.wait(5)
         limiter.acquire("www.nomisweb.co.uk")
-        output.put(("ok", time.time()))
+        output.put(("ok",))
     except (RetrievalError, OSError, ValueError) as exc:
         output.put(("error", str(exc)))
 
 
-def _process_request(path, gate, output):
+def _process_request(path, gate, output, interval):
     class RecordedStream(httpx.SyncByteStream):
         def __iter__(self):
             yield b"ok"
@@ -36,7 +36,7 @@ def _process_request(path, gate, output):
         time.sleep(0.15)
         return httpx.Response(200, stream=RecordedStream())
 
-    limiter = RateLimiter(path, interval_seconds=0, max_wait_seconds=5)
+    limiter = RateLimiter(path, interval_seconds=interval, max_wait_seconds=5)
     gate.wait(5)
     with HttpClient(transport=httpx.MockTransport(handler), rate_limiter=limiter) as client:
         client.get("https://www.nomisweb.co.uk/test")
@@ -50,9 +50,16 @@ def _process_hold_slot(path, ready):
 
 
 def test_concurrent_processes_share_request_spacing(tmp_path):
-    """Actual processes race for a shared host, not only sequential mocks."""
+    """Inspect reservations inside the transaction, before caller descheduling."""
     path = tmp_path / "rates.sqlite3"
     RateLimiter(path, interval_seconds=0.15)
+    with sqlite3.connect(path) as connection:
+        connection.execute("CREATE TABLE reservations(next_allowed REAL NOT NULL)")
+        for operation in ("INSERT", "UPDATE"):
+            connection.execute(
+                f"CREATE TRIGGER record_{operation.lower()} AFTER {operation} ON provider_rate "
+                "BEGIN INSERT INTO reservations VALUES (NEW.next_allowed); END"
+            )
     context = multiprocessing.get_context("spawn")
     gate = context.Event()
     output = context.Queue()
@@ -68,8 +75,17 @@ def test_concurrent_processes_share_request_spacing(tmp_path):
             worker.join(timeout=10)
         assert all(worker.exitcode == 0 for worker in workers)
         assert all(result[0] == "ok" for result in results), results
-        starts = sorted(result[1] for result in results)
-        assert all(right - left >= 0.14 for left, right in pairwise(starts))
+        with sqlite3.connect(path) as connection:
+            reservations = [
+                row[0]
+                for row in connection.execute(
+                    "SELECT next_allowed FROM reservations ORDER BY next_allowed"
+                )
+            ]
+        assert len(reservations) == len(workers)
+        assert all(right - left >= 0.15 - 1e-6 for left, right in pairwise(reservations)), (
+            reservations
+        )
     finally:
         for worker in workers:
             if worker.is_alive():
@@ -79,13 +95,15 @@ def test_concurrent_processes_share_request_spacing(tmp_path):
         output.join_thread()
 
 
-def test_concurrent_http_processes_never_overlap_response_streams(tmp_path):
+@pytest.mark.parametrize("interval", [0, 0.15])
+def test_concurrent_http_processes_preserve_spacing_after_response_streams(tmp_path, interval):
     path = tmp_path / "rates.sqlite3"
     context = multiprocessing.get_context("spawn")
     gate = context.Event()
     output = context.Queue()
     workers = [
-        context.Process(target=_process_request, args=(path, gate, output)) for _ in range(3)
+        context.Process(target=_process_request, args=(path, gate, output, interval))
+        for _ in range(3)
     ]
     try:
         for worker in workers:
@@ -100,7 +118,10 @@ def test_concurrent_http_processes_never_overlap_response_streams(tmp_path):
             intervals.setdefault(pid, {})[kind] = timestamp
         assert len(intervals) == 3
         ordered = sorted(intervals.values(), key=lambda item: item["start"])
-        assert all(left["end"] <= right["start"] for left, right in pairwise(ordered))
+        assert all(left["end"] <= right["start"] for left, right in pairwise(ordered)), ordered
+        assert all(
+            right["start"] - left["end"] >= interval - 1e-6 for left, right in pairwise(ordered)
+        ), ordered
     finally:
         for worker in workers:
             if worker.is_alive():

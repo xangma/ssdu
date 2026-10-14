@@ -41,12 +41,14 @@ def retry_after_seconds(value: str | None, *, now: float) -> float | None:
 
 
 class RateLimiter:
-    """Reserve request starts atomically; share spacing and cooldown across clients.
+    """Share request reservations, concurrency and cooldowns across clients.
 
     The default one-second spacing is an operator policy, not a provider quota.
     All processes on one machine must use the same database path. POSIX file
     locks additionally allow one in-flight request per host and release on
-    process exit. Multiple machines require a separate distributed coordinator.
+    process exit. HTTP clients also preserve the configured spacing after an
+    attempt closes, so dispatch delays cannot consume the next request's gap.
+    Multiple machines require a separate distributed coordinator.
     """
 
     def __init__(
@@ -167,6 +169,7 @@ class RateLimiter:
             os.close(descriptor)
 
     def acquire(self, host: str, *, deadline: float | None = None) -> None:
+        """Reserve an attempt atomically; its caller can be descheduled afterward."""
         host = host.lower()
         deadline = self.deadline() if deadline is None else deadline
         while True:
@@ -194,6 +197,16 @@ class RateLimiter:
             # Release the SQLite lock before waiting and recheck after waking;
             # another process may have received a longer provider cooldown.
             self.sleeper(min(wait, 60.0))
+
+    def complete_attempt(self, host: str) -> None:
+        """Persist spacing after an HTTP attempt closes, before releasing its slot.
+
+        This conservative boundary covers both a delayed dispatch and a slow
+        response. Do not call it for attempts denied by a budget or cooldown.
+        Existing provider Retry-After deadlines are never shortened.
+        """
+        host = host.lower()
+        self.defer(host, self.host_intervals.get(host, self.interval_seconds))
 
     def defer(self, host: str, seconds: float) -> None:
         """Persist a cooldown without ever shortening another client's delay."""

@@ -103,53 +103,57 @@ class HttpClient:
                     self.before_attempt(method, url)
                 self.attempts += 1
                 try:
-                    with self.client.stream(method, url, params=params, json=json) as response:
-                        if response.status_code == 429 or response.status_code >= 500:
-                            delay = retry_after_seconds(
-                                response.headers.get("retry-after"), now=self.rate_limiter.clock()
-                            )
-                            self.rate_limiter.defer(
-                                parsed.hostname,
-                                delay if delay is not None else min(0.5 * 2**attempt, 5.0),
-                            )
-                            if attempt < self.retries:
-                                continue
-                        response.raise_for_status()
-                        body = bytearray()
-                        for chunk in response.iter_bytes():
-                            body.extend(chunk)
-                            self.total_bytes += len(chunk)
-                            if self.on_bytes is not None:
-                                self.on_bytes(len(chunk))
-                            if len(body) > self.max_bytes:
-                                raise RetrievalError(
-                                    f"Response exceeds {self.max_bytes} bytes: {url}"
+                    try:
+                        with self.client.stream(method, url, params=params, json=json) as response:
+                            if response.status_code == 429 or response.status_code >= 500:
+                                delay = retry_after_seconds(
+                                    response.headers.get("retry-after"),
+                                    now=self.rate_limiter.clock(),
                                 )
-                            if self.total_bytes > self.max_total_bytes:
-                                raise RetrievalError("Provider download budget exhausted")
-                        resource = Resource(
-                            body=bytes(body),
-                            url=str(response.url),
-                            method=method,
-                            request_body=json,
-                            content_type=response.headers.get("content-type", ""),
-                            headers={
-                                k: v
-                                for k, v in response.headers.items()
-                                if k
-                                in {
-                                    "etag",
-                                    "last-modified",
-                                    "content-type",
-                                    "x-ratelimit-limit",
-                                    "x-ratelimit-remaining",
-                                    "x-ratelimit-credits-used",
-                                    "x-ratelimit-reset",
-                                }
-                            },
-                        )
-                        self.resources.append(resource)
-                        return resource
+                                self.rate_limiter.defer(
+                                    parsed.hostname,
+                                    delay if delay is not None else min(0.5 * 2**attempt, 5.0),
+                                )
+                                if attempt < self.retries:
+                                    continue
+                            response.raise_for_status()
+                            body = bytearray()
+                            for chunk in response.iter_bytes():
+                                body.extend(chunk)
+                                self.total_bytes += len(chunk)
+                                if self.on_bytes is not None:
+                                    self.on_bytes(len(chunk))
+                                if len(body) > self.max_bytes:
+                                    raise RetrievalError(
+                                        f"Response exceeds {self.max_bytes} bytes: {url}"
+                                    )
+                                if self.total_bytes > self.max_total_bytes:
+                                    raise RetrievalError("Provider download budget exhausted")
+                            resource = Resource(
+                                body=bytes(body),
+                                url=str(response.url),
+                                method=method,
+                                request_body=json,
+                                content_type=response.headers.get("content-type", ""),
+                                headers={
+                                    k: v
+                                    for k, v in response.headers.items()
+                                    if k
+                                    in {
+                                        "etag",
+                                        "last-modified",
+                                        "content-type",
+                                        "x-ratelimit-limit",
+                                        "x-ratelimit-remaining",
+                                        "x-ratelimit-credits-used",
+                                        "x-ratelimit-reset",
+                                    }
+                                },
+                            )
+                            self.resources.append(resource)
+                            return resource
+                    finally:
+                        self.rate_limiter.complete_attempt(parsed.hostname)
                 except httpx.HTTPError as exc:
                     if isinstance(exc, httpx.TransportError) and attempt < self.retries:
                         self.rate_limiter.defer(parsed.hostname, min(0.5 * 2**attempt, 5.0))

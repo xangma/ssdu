@@ -414,7 +414,7 @@
     {
       "path": "src/ssdu/http.py",
       "kind": "source",
-      "sha256": "769b48684d2cde35a949d0ac4a983b39a5de072bff910337a00d4c228238be44",
+      "sha256": "6100e4c1de775538ef214381c352331e413adec3af5410dd46a768494e10241e",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -504,7 +504,7 @@
     {
       "path": "src/ssdu/rate_limit.py",
       "kind": "source",
-      "sha256": "c7e3eba13f999dd7830a257ed8c85de4329526c44ab757d313f2192155e1d471",
+      "sha256": "b83e411004b31b10e5813acc63f036ac635277fe7dc449198eca603e61bd7819",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -888,7 +888,7 @@
     {
       "path": "tests/test_http.py",
       "kind": "source",
-      "sha256": "63794dae56e4429ca1a5ab5c7bae173841bf06141cb0bbc917b87015f133b456",
+      "sha256": "30c623c3df7256fc6dc215b59db00f9a776905f26af2dc228f9cc187b26f30ea",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -984,7 +984,7 @@
     {
       "path": "tests/test_rate_limit.py",
       "kind": "source",
-      "sha256": "5f9a2a248e0949837b81e5f81ff0828d4355b5d7d8387e4e58ff6c2c58acdb09",
+      "sha256": "ce66f4e71dda45239431fb3e61261aea92ecacf8b1fdf40da7e7437cec1d4163",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {

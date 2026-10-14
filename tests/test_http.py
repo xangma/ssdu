@@ -247,3 +247,94 @@ def test_inflight_wait_budget_blocks_network_attempts(limiter, timer, tmp_path):
     assert calls == []
     assert all(seconds <= 0.05 for seconds in timer.sleeps)
     assert sum(timer.sleeps) == pytest.approx(0.2, abs=1e-6)
+
+
+def test_dispatch_delays_and_stream_close_do_not_consume_next_requests_spacing(limiter, timer):
+    """A reservation can expire while its caller is descheduled before dispatch."""
+    starts = []
+    closed = []
+
+    def before_attempt(method, url):
+        if not starts:
+            timer.now += 5
+
+    class SlowCloseStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield b"ok"
+
+        def close(self):
+            timer.now += 3
+            closed.append(timer.now)
+
+    def handler(request):
+        starts.append(timer.now)
+        return httpx.Response(200, stream=SlowCloseStream())
+
+    with HttpClient(
+        transport=httpx.MockTransport(handler),
+        rate_limiter=limiter,
+        before_attempt=before_attempt,
+    ) as client:
+        client.get("https://www.nomisweb.co.uk/first")
+        client.get("https://www.nomisweb.co.uk/second")
+
+    assert starts[1] - closed[0] == 1
+
+
+@pytest.mark.parametrize("outcome", ["success", "status", "transport", "size"])
+def test_attempt_completion_preserves_host_interval_after_errors(tmp_path, timer, outcome):
+    limiter = RateLimiter(
+        tmp_path / "rates.sqlite3",
+        interval_seconds=1,
+        host_intervals={"www.nomisweb.co.uk": 3},
+        clock=timer.clock,
+        monotonic=timer.clock,
+        sleeper=timer.sleep,
+    )
+
+    def handler(request):
+        timer.now += 5
+        if outcome == "transport":
+            raise httpx.ReadTimeout("timeout", request=request)
+        return httpx.Response(404 if outcome == "status" else 200, content=b"ok")
+
+    with HttpClient(
+        transport=httpx.MockTransport(handler),
+        rate_limiter=limiter,
+        retries=0,
+        max_bytes=1 if outcome == "size" else 10,
+    ) as client:
+        if outcome == "success":
+            client.get("https://www.nomisweb.co.uk/test")
+        else:
+            with pytest.raises(RetrievalError) as caught:
+                client.get("https://www.nomisweb.co.uk/test")
+            if outcome == "transport":
+                assert caught.value.retry_at == timer.now + 3
+        assert client.attempts == 1
+
+    assert limiter.next_allowed("www.nomisweb.co.uk") == timer.now + 3
+
+
+def test_completion_does_not_extend_unattempted_requests(limiter, timer):
+    limiter.defer("www.nomisweb.co.uk", 120)
+    deadline = limiter.next_allowed("www.nomisweb.co.uk")
+    transport = httpx.MockTransport(lambda request: pytest.fail("Unexpected HTTP attempt"))
+    with HttpClient(transport=transport, rate_limiter=limiter) as client:
+        for _ in range(2):
+            timer.now += 5
+            with pytest.raises(RetrievalError, match="rate limit"):
+                client.get("https://www.nomisweb.co.uk/test")
+            assert limiter.next_allowed("www.nomisweb.co.uk") == deadline
+        assert client.attempts == 0
+
+    def cancelled(method, url):
+        timer.now += 5
+        raise RetrievalError("Cancelled before HTTP")
+
+    reserved = timer.now + 1
+    with HttpClient(transport=transport, rate_limiter=limiter, before_attempt=cancelled) as client:
+        with pytest.raises(RetrievalError, match="Cancelled before HTTP"):
+            client.get("https://api.stats.gov.wales/test")
+        assert client.attempts == 0
+    assert limiter.next_allowed("api.stats.gov.wales") == reserved
