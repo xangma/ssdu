@@ -189,7 +189,7 @@ def references(manifest):
     from ssdu import __version__
     from ssdu.api import create_app
     from ssdu.conformance import conformance_coverage
-    from ssdu.source_coverage import get_source_coverage, source_coverage_markdown
+    from ssdu.source_coverage import get_source_coverage, provider_coverage_markdown
 
     cli = cli_inventory()
     apis = [
@@ -282,49 +282,68 @@ def references(manifest):
     coverage = get_source_coverage()
     files["_downloads/source-coverage.json"] = json_text(coverage)
     text = (
-        "# Supported data sources\n\n"
-        "Use this page to check whether SSDU can read the data you need. "
-        "Available sources support the formats and selections described below; "
-        "support does not extend to every table held by each publisher.\n\n"
-        "| Source | Available in SSDU? |\n|---|---|\n"
+        "# Data provider coverage\n\n"
+        "This matrix lists data providers and the parts of their services or publications "
+        "that SSDU supports. **Partial** means that the selections described here are "
+        "supported; it does not mean that every dataset from that provider is available. "
+        "**Planned** means that retrieval has not been implemented.\n\n"
+        "A provider, an access service and a dataset are different things. For example, "
+        "MHCLG is the provider; the English Indices of Deprivation are a dataset series; "
+        "the corrected 2025 File 7 is the specific release file currently supported. "
+        "Nomis is an access service for ONS data.\n\n"
+        "Provider names identify the organisation responsible for the service or "
+        "publication. Portals can include data from other publishers, so check each "
+        "dataset's recorded source and terms.\n\n"
     )
-    for source in sorted(coverage["sources"], key=lambda source: source["status"] == "planned"):
-        availability = (
-            "Yes, within the limits below" if source["status"] == "implemented" else "Planned"
-        )
-        text += f"| {source['name']} | {availability} |\n"
+    text += provider_coverage_markdown()
     text += (
         "\nStart with the [guided tutorial](../start/research-tutorial.md) to learn the "
         "common workflow. The [provider examples](../guides/dataset-examples.md) explain "
         "how different sources represent values. Planned integrations have no promised "
-        "delivery date.\n\n"
-        "## Detailed support\n\n"
-        "The following reference is generated from the implementation's support matrix. "
-        "It separates finding descriptions, downloading data, and converting tables.\n\n"
+        "delivery date. Local file imports are described separately below.\n\n"
     )
+    source_rows = {source["source_id"]: source for source in coverage["sources"]}
+    provider_sources = set()
+    for provider in coverage["providers"]:
+        text += f"\n## {provider['name']}\n"
+        for source_id in provider["source_ids"]:
+            provider_sources.add(source_id)
+            source = source_rows[source_id]
+            text += f"\n### {source['name']}\n\n"
+            if source["status"] == "planned":
+                text += f"Planned: {source['retrieval']['scope']}\n\n"
+            else:
+                text += f"Supported selection: {source['retrieval']['scope']}\n\n"
+            text += source["access"] + "\n\n"
+            text += "\n".join(f"- {limit}" for limit in source["limits"]) + "\n"
+            if source["source_urls"]:
+                text += (
+                    "\nSource and access details: "
+                    + ", ".join(
+                        f"[reference {index}]({url})"
+                        for index, url in enumerate(source["source_urls"], 1)
+                    )
+                    + ".\n"
+                )
+    text += (
+        "\n## Import your own files\n\n"
+        "Local CSV and Parquet imports are an input method, rather than a data provider. "
+        "You supply the files, descriptions and rights information.\n"
+    )
+    for source_id, source in source_rows.items():
+        if source_id not in provider_sources:
+            text += f"\n### {source['name']}\n\n{source['retrieval']['scope']}\n\n"
+            text += "\n".join(f"- {limit}" for limit in source["limits"]) + "\n"
+    text += "\n## Technical reference\n\n"
     versions = ", ".join(f"`{version}`" for version in coverage["supported_contract_versions"])
     text += (
         f"Coverage schema: `{coverage['schema_version']}`. "
         f"Latest dataset contract: `{coverage['dataset_contract_version']}`. "
-        f"Supported contracts: {versions}. Each source row identifies its profile.\n\n"
+        f"Supported contracts: {versions}.\n\n"
     )
     text += "{download}`Complete coverage matrix <../_downloads/source-coverage.json>`\n\n"
     text += "See [family conformance](conformance.md) for the exercised shapes and their protocol references.\n\n"
-    text += source_coverage_markdown()
-    for source in coverage["sources"]:
-        text += f"\n## {source['name']}\n\n{source['access']}\n\n"
-        text += "\n".join(f"- {limit}" for limit in source["limits"]) + "\n"
-        text += (
-            "\n### Declared capabilities\n\n| Capability | Implemented within scope |\n|---|---|\n"
-        )
-        text += (
-            "\n".join(
-                f"| `{key}` | {'yes' if value else 'no'} |"
-                for key, value in source["capabilities"].items()
-            )
-            + "\n"
-        )
-    text += "\n## Planned adapter families\n\n"
+    text += "\n### Planned adapter families\n\n"
     for family in coverage["planned_adapter_families"]:
         text += f"- `{family['family_id']}` ({family['status']}): {family['scope']}\n"
     files["reference/sources.md"] = text

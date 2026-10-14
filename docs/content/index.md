@@ -15,7 +15,7 @@ through a small task one step at a time.
    community-centre table, select areas with at least three centres in 2024 and
    reopen your saved data. You can read its results without installing anything.
 2. [Install SSDU](start/install.md) to try the notebook on your computer.
-3. [Check supported sources](reference/sources.md) before choosing a real dataset.
+3. [Check provider coverage](reference/sources.md) before choosing a real dataset.
 
 The tutorial uses invented values, so you can learn without a provider account
 or downloading official data.
@@ -39,11 +39,12 @@ metadata format in detail.
 
 ## What is covered?
 
-SSDU supports selected datasets and formats from Nomis, StatsWales, English
-deprivation statistics, NISRA and Scottish linked data, plus local CSV and
-Parquet tables. The [coverage matrix](reference/sources.md) describes the exact
-support and limits; the [four-nation example](guides/four-nations.md) shows how
-separate national datasets can be saved in one collection.
+SSDU has partial coverage of ONS, Welsh Government, Scottish Government, NISRA
+and MHCLG data through specific services or publications. The
+[provider coverage matrix](reference/sources.md) distinguishes providers from
+their access services and supported datasets or releases. Local CSV and Parquet
+imports are listed separately. The [four-nation example](guides/four-nations.md)
+shows how separate national datasets can be saved in one collection.
 
 A common format does not make measures comparable. Check definitions, dates,
 units and geographical boundaries before combining data. Search currently uses

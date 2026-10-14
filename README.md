@@ -7,7 +7,7 @@ analysis so you can reproduce it later.
 
 **[Read the manual](https://xangma.github.io/ssdu/)** ·
 **[Try the guided tutorial](https://xangma.github.io/ssdu/start/research-tutorial.html)** ·
-**[Check supported sources](https://xangma.github.io/ssdu/reference/sources.html)**
+**[Check provider coverage](https://xangma.github.io/ssdu/reference/sources.html)**
 
 ## What can I do with it?
 
@@ -50,14 +50,16 @@ uv run --frozen --offline --extra notebook jupyter lab examples/notebooks/resear
 The first installation needs an internet connection. The tutorial itself uses
 local, synthetic data.
 
-## Which sources are supported?
+## Which data providers are covered?
 
-SSDU has adapters for selected datasets and formats from **Nomis, StatsWales,
-English deprivation statistics, NISRA and Scottish linked data**, as well as
-local CSV and Parquet files. Support is scoped: this does not mean every table
-from each organisation is available. The
-[source coverage matrix](https://xangma.github.io/ssdu/reference/sources.html)
-explains the supported selections, limits and planned sources.
+SSDU has partial coverage of **ONS** through Nomis, the **Welsh Government**
+through StatsWales, the **Scottish Government** through statistics.gov.scot,
+**NISRA** through its Data Portal, and **MHCLG** through a specific English
+deprivation release. The
+[provider coverage matrix](https://xangma.github.io/ssdu/reference/sources.html)
+lists the supported datasets, access routes, limits and planned integrations.
+Support for one dataset or service does not mean all of a provider's data are
+available. Local CSV and Parquet imports are supported separately.
 
 A common interface helps you work with different sources; it does not make their
 statistics directly comparable. Check definitions, units, dates and geographical

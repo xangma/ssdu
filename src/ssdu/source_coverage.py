@@ -8,7 +8,7 @@ from ssdu.conformance import get_conformance_families
 from ssdu.dataset_contract import CONTRACT_VERSION as OBSERVATIONS_CONTRACT_VERSION
 from ssdu.dataset_contract import RECORDS_CONTRACT_VERSION
 
-COVERAGE_SCHEMA_VERSION = "1.1.0"
+COVERAGE_SCHEMA_VERSION = "1.2.0"
 DATASET_CONTRACT_VERSION = RECORDS_CONTRACT_VERSION
 StageStatus = Literal["implemented", "partial", "planned", "not_in_scope"]
 
@@ -97,6 +97,17 @@ class PlannedAdapterFamily(BaseModel):
     source_urls: tuple[str, ...] = ()
 
 
+class ProviderCoverage(BaseModel):
+    """An organisation or service custodian, separate from its adapters and releases."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    provider_id: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
+    name: str = Field(min_length=1)
+    source_ids: tuple[str, ...] = Field(min_length=1)
+    source_urls: tuple[str, ...] = ()
+
+
 class CoverageMatrix(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -107,6 +118,7 @@ class CoverageMatrix(BaseModel):
         RECORDS_CONTRACT_VERSION,
     )
     sources: tuple[SourceCoverage, ...]
+    providers: tuple[ProviderCoverage, ...] = ()
     planned_adapter_families: tuple[PlannedAdapterFamily, ...] = ()
     notes: tuple[str, ...] = ()
 
@@ -115,6 +127,25 @@ class CoverageMatrix(BaseModel):
         ids = [source.source_id for source in self.sources]
         if len(ids) != len(set(ids)):
             raise ValueError("source identifiers must be unique")
+        # Previously emitted 1.1 documents predate institutional provider bindings.
+        if self.schema_version == "1.1.0" and not self.providers:
+            return self
+        provider_ids = [provider.provider_id for provider in self.providers]
+        if len(provider_ids) != len(set(provider_ids)):
+            raise ValueError("provider identifiers must be unique")
+        bindings: list[str] = []
+        for provider in self.providers:
+            if provider.provider_id in {"local", "local_files"}:
+                raise ValueError("local files are import support, not a provider")
+            if "local_files" in provider.source_ids:
+                raise ValueError("local files are import support, not a provider")
+            if not set(provider.source_ids).issubset(ids):
+                raise ValueError("providers must reference existing source identifiers")
+            bindings.extend(provider.source_ids)
+        if len(bindings) != len(set(bindings)):
+            raise ValueError("source identifiers must have exactly one provider binding")
+        if set(bindings) != set(ids) - {"local_files"}:
+            raise ValueError("every non-local source must have exactly one provider binding")
         return self
 
 
@@ -152,6 +183,46 @@ def _planned(source_id: str, name: str, scope: str, access: str, *urls: str) -> 
 
 
 SOURCE_COVERAGE = CoverageMatrix(
+    providers=(
+        ProviderCoverage(
+            provider_id="ons",
+            name="Office for National Statistics (ONS)",
+            source_ids=("nomis", "ons_additional"),
+            source_urls=("https://www.ons.gov.uk/",),
+        ),
+        ProviderCoverage(
+            provider_id="welsh_government",
+            name="Welsh Government",
+            source_ids=("statswales",),
+            source_urls=("https://www.gov.wales/",),
+        ),
+        ProviderCoverage(
+            provider_id="mhclg",
+            name="Ministry of Housing, Communities and Local Government (MHCLG)",
+            source_ids=("deprivation",),
+            source_urls=(
+                "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
+            ),
+        ),
+        ProviderCoverage(
+            provider_id="scottish_government",
+            name="Scottish Government",
+            source_ids=("scotland",),
+            source_urls=("https://www.gov.scot/",),
+        ),
+        ProviderCoverage(
+            provider_id="nisra",
+            name="Northern Ireland Statistics and Research Agency (NISRA)",
+            source_ids=("northern_ireland",),
+            source_urls=("https://www.nisra.gov.uk/",),
+        ),
+        ProviderCoverage(
+            provider_id="uk_data_service",
+            name="UK Data Service",
+            source_ids=("uk_data_service",),
+            source_urls=("https://ukdataservice.ac.uk/",),
+        ),
+    ),
     sources=(
         SourceCoverage(
             source_id="nomis",
@@ -431,7 +502,7 @@ SOURCE_COVERAGE = CoverageMatrix(
         ),
     ),
     notes=(
-        "Coverage is declared adapter scope, not a count of every UK social-science dataset.",
+        "Provider coverage groups scoped adapters and releases; it does not certify all datasets from an organisation. Local file imports are separate input support.",
         "Harvested catalogue records and Rich Context/OpenAlex paper–dataset links are discovery metadata, not implemented data retrieval.",
         "Implemented capabilities apply only to each row's stated scope. False means no implemented support claimed; it does not describe the provider's own capabilities.",
         "Dataset contract and coverage schema versions are independent.",
@@ -469,4 +540,36 @@ def source_coverage_markdown() -> str:
             )
         lines.append("| " + " | ".join(values) + " |")
     lines.extend(["", *(f"- {note}" for note in SOURCE_COVERAGE.notes)])
+    return "\n".join(lines) + "\n"
+
+
+def provider_coverage_markdown() -> str:
+    """Render providers with coverage derived from their scoped adapter/release entries."""
+
+    def cell(value: str) -> str:
+        return value.replace("|", "\\|").replace("\n", " ")
+
+    sources = {source.source_id: source for source in SOURCE_COVERAGE.sources}
+    lines = [
+        "| Provider | SSDU coverage | Available data or access routes | Gaps and plans |",
+        "|---|---|---|---|",
+    ]
+    for provider in SOURCE_COVERAGE.providers:
+        bound = [sources[source_id] for source_id in provider.source_ids]
+        available = [source for source in bound if source.status == "implemented"]
+        planned = [source for source in bound if source.status == "planned"]
+        title = cell(provider.name)
+        if provider.source_urls:
+            title = f"[{title}]({provider.source_urls[0]})"
+        status = "Partial" if available else "Planned"
+        supported = "; ".join(cell(source.name) for source in available) or "None yet."
+        limits = " ".join(
+            [f"Planned: {cell(source.name)}." for source in planned]
+            + [
+                cell(source.limits[0].partition(". ")[0]).rstrip(".") + "."
+                for source in available
+                if source.limits
+            ]
+        )
+        lines.append(f"| {title} | {status} | {supported} | {limits} |")
     return "\n".join(lines) + "\n"

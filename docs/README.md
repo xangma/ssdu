@@ -27,8 +27,15 @@ outputs only, discards rich HTML representations, and rejects errors, unexecuted
 cells, execution overrides, widgets and unsupported assets. Notebook Markdown
 uses the same include/download boundary as authored pages.
 
-Source coverage Markdown, scope limits, capability flags and downloadable JSON
+Provider coverage Markdown, scope limits, capability flags and downloadable JSON
 are generated from `ssdu.source_coverage`; do not maintain a second support list.
+The `providers` bindings group organisation/service custodians separately from
+the `sources` adapter scopes. ONS includes Nomis and planned additional APIs;
+MHCLG's implemented scope is one deprivation release file. Local file import is
+an input method outside the provider matrix. Provider coverage is partial whenever
+any bound access scope is implemented; it never certifies a whole organisation.
+Keep existing adapter IDs and source-level capabilities intact when changing
+provider presentation.
 The family conformance reference comes from `ssdu.conformance`. Acceptance also
 runs the approved four-nation example and checks durable recovery, cache reuse
 and fresh-process transfer/replay with network and original-store reads blocked.

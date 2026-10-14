@@ -36,13 +36,13 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "1393896b8346e60d0046c0c975aaa54197a38d6c6b0244f3528d98b14b6b4618",
+      "sha256": "ce89b4c5b341e85841c354f8d62f3e134b5c0414a8b4a886e9f5f21ceebcdb1b",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
       "path": "docs/README.md",
       "kind": "documentation",
-      "sha256": "f8077709c2412c45ac79112b39abd3523e41a64fe9b218e0b3d339dff4cf7e0c",
+      "sha256": "9c86365e716d2bc0648aa27245a73c90ac6f7d83a1c6423a1ef7e4a71a219b9e",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -102,7 +102,7 @@
     {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "461e708f60cff3046c6e94b18933eaa20bbc3f8f57049ce6ea4118b141d95ffc",
+      "sha256": "774e46dc3b1653f7b490e1d5e07f5b3efe94942682f6f37151f8a8e0e11d83ea",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -600,7 +600,7 @@
     {
       "path": "src/ssdu/source_coverage.py",
       "kind": "source",
-      "sha256": "bb54a91f9c0f0714ba49882f857c7468350ee8d390e000fdfcfdceeeeccff197",
+      "sha256": "094a85c1838aad17c1d3b327efe6ce7fab8a94a8e11a51f796999a53274fe4b9",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -1146,7 +1146,7 @@
     {
       "path": "tests/test_source_coverage.py",
       "kind": "source",
-      "sha256": "eca248cf86dc2ae886cb67c2d64c76d03b0cd344428544799a3896b23e9622d1",
+      "sha256": "fbfef01386550fc02025c042da85c3f9611952dd0afa7f765f213fe00923d206",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1182,7 +1182,7 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "45c27ecfd90532f1867c09b4c50e9931f07aaa7585c2308aa527c95b28ac1ec3",
+      "sha256": "5dd8494e2af21b46b0d423e9d9e7662f28e5a5beb787b5c1a57420a6f7bd16d0",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {

@@ -14,6 +14,7 @@ from ssdu.source_coverage import (
     CoverageMatrix,
     SourceCoverage,
     get_source_coverage,
+    provider_coverage_markdown,
     source_coverage_markdown,
 )
 
@@ -24,9 +25,106 @@ def test_coverage_is_deterministic_serializable_and_detached():
     assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
     first["sources"][0]["capabilities"]["standardized_dataset"] = False
     first["sources"][0]["limits"].append("mutated")
+    first["providers"][0]["source_ids"].append("mutated")
     assert get_source_coverage() == second
     assert second["schema_version"] == COVERAGE_SCHEMA_VERSION
     assert second["dataset_contract_version"] == DATASET_CONTRACT_VERSION
+
+
+def test_providers_group_source_routes_without_changing_adapter_identifiers():
+    matrix = get_source_coverage()
+    providers = {row["provider_id"]: row for row in matrix["providers"]}
+    assert set(providers) == {
+        "ons",
+        "welsh_government",
+        "mhclg",
+        "scottish_government",
+        "nisra",
+        "uk_data_service",
+    }
+    assert providers["ons"]["source_ids"] == ["nomis", "ons_additional"]
+    assert providers["mhclg"]["source_ids"] == ["deprivation"]
+    assert providers["welsh_government"]["source_ids"] == ["statswales"]
+    assert providers["scottish_government"]["source_ids"] == ["scotland"]
+    assert providers["nisra"]["source_ids"] == ["northern_ireland"]
+    bindings = [source_id for row in providers.values() for source_id in row["source_ids"]]
+    assert set(bindings) == {
+        source["source_id"] for source in matrix["sources"] if source["source_id"] != "local_files"
+    }
+    assert len(bindings) == len(set(bindings))
+    assert all(row["source_urls"][0].startswith("https://") for row in providers.values())
+    sources = {row["source_id"]: row for row in matrix["sources"]}
+    assert sources["deprivation"]["provider"] == "deprivation"
+    assert sources["northern_ireland"]["provider"] == "nisra"
+
+
+@pytest.mark.parametrize(
+    ("case", "message"),
+    [
+        ("duplicate_provider", "provider identifiers must be unique"),
+        ("duplicate_within_provider", "exactly one provider binding"),
+        ("duplicate_across_providers", "exactly one provider binding"),
+        ("unknown_source", "existing source identifiers"),
+        ("missing_provider", "every non-local source"),
+        ("missing_source_binding", "every non-local source"),
+        ("local_source", "import support, not a provider"),
+        ("local_provider", "import support, not a provider"),
+    ],
+)
+def test_invalid_provider_bindings_rejected(case, message):
+    matrix = get_source_coverage()
+    if case == "duplicate_provider":
+        matrix["providers"].append(matrix["providers"][0])
+    elif case == "duplicate_within_provider":
+        matrix["providers"][0]["source_ids"].append("nomis")
+    elif case == "duplicate_across_providers":
+        matrix["providers"][1]["source_ids"].append("nomis")
+    elif case == "unknown_source":
+        matrix["providers"][0]["source_ids"].append("unknown")
+    elif case == "missing_provider":
+        matrix["providers"].pop()
+    elif case == "missing_source_binding":
+        matrix["providers"][0]["source_ids"].remove("ons_additional")
+    elif case == "local_source":
+        matrix["providers"][0]["source_ids"].append("local_files")
+    else:
+        matrix["providers"][0]["provider_id"] = "local_files"
+    with pytest.raises(ValidationError, match=message):
+        CoverageMatrix.model_validate(matrix)
+
+
+def test_provider_bindings_required_for_current_schema_but_legacy_documents_load():
+    matrix = get_source_coverage()
+    del matrix["providers"]
+    with pytest.raises(ValidationError, match="every non-local source"):
+        CoverageMatrix.model_validate(matrix)
+    matrix["schema_version"] = "1.1.0"
+    legacy = CoverageMatrix.model_validate(matrix)
+    assert legacy.providers == ()
+    assert legacy.sources == SOURCE_COVERAGE.sources
+
+
+def test_provider_table_has_organisations_not_dataset_or_local_import_rows():
+    markdown = provider_coverage_markdown()
+    assert markdown == provider_coverage_markdown()
+    lines = markdown.splitlines()
+    assert lines[0] == (
+        "| Provider | SSDU coverage | Available data or access routes | Gaps and plans |"
+    )
+    assert len(lines) == len(SOURCE_COVERAGE.providers) + 2
+    rows = [line.split(" | ") for line in lines[2:]]
+    assert [row[1] for row in rows] == ["Partial"] * 5 + ["Planned"]
+    assert all(provider.name in row[0] for provider, row in zip(SOURCE_COVERAGE.providers, rows))
+    assert "Local CSV and Parquet" not in markdown
+    assert all("English deprivation 2025" not in row[0] for row in rows)
+    assert "English deprivation 2025, corrected File 7" in rows[2][2]
+    assert "Nomis" in rows[0][2] and "Additional ONS APIs" in rows[0][3]
+    assert "None yet." in rows[-1][2]
+    assert rows[0][2] == "Nomis"
+    assert SOURCE_COVERAGE.sources[0].retrieval.scope not in markdown
+    assert SOURCE_COVERAGE.sources[0].limits[0] in rows[0][3]
+    assert SOURCE_COVERAGE.sources[0].limits[1] not in rows[0][3]
+    assert ".;" not in markdown
 
 
 def test_only_migrated_providers_claim_standardized_datasets():
