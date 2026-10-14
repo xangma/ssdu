@@ -1,0 +1,7 @@
+{
+  "provider": "deprivation",
+  "dataset_id": "english-indices-of-deprivation-2025",
+  "params": {"scope": "england"},
+  "page_size": 1000,
+  "max_rows": 100000
+}

@@ -1,0 +1,65 @@
+name: Dataset and adapter conformance
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pinned environment manager
+        run: python -m pip install uv==0.12.1
+      - name: Install the locked package, tests and notebook kernels
+        run: uv sync --frozen --extra dev --python '${{ matrix.python-version }}'
+      - name: Verify reviewed source publication boundaries
+        run: |
+          .venv/bin/python tools/publication.py audit
+          git ls-files -z > "$RUNNER_TEMP/ssdu-tracked-paths"
+          .venv/bin/python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path("publication.json").read_text())
+          approved = {"publication.json", *(item["path"] for item in manifest["files"])}
+          tracked = set((Path(os.environ["RUNNER_TEMP"]) / "ssdu-tracked-paths")
+                        .read_bytes().decode().rstrip("\0").split("\0"))
+          assert tracked == approved, {"unreviewed": sorted(tracked - approved),
+                                       "missing": sorted(approved - tracked)}
+          PY
+      - name: Lint maintained code and examples
+        run: .venv/bin/ruff check src tests examples tools --exclude '**/independent-agent-review/**'
+      - name: Check maintained formatting
+        run: .venv/bin/ruff format --check src tests examples tools --exclude '**/independent-agent-review/**'
+      - name: Run deterministic suite, adapter contract checks and private-kernel notebooks
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: .venv/bin/python -m pytest -q
+      - name: Exercise fixture acquisition, cached normalized data and fresh-store transfer
+        run: .venv/bin/python examples/dataset_contract.py --output-dir "$RUNNER_TEMP/dataset-contract"
+      - name: Resume four-nation acquisition and replay a transferred collection offline
+        run: .venv/bin/python examples/four_nations.py --output-dir "$RUNNER_TEMP/four-nations"
+      - name: Retain acceptance receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataset-contract-python-${{ matrix.python-version }}
+          path: |
+            ${{ runner.temp }}/dataset-contract/result.json
+            ${{ runner.temp }}/four-nations/result.json
+          if-no-files-found: ignore

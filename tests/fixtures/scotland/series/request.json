@@ -1,0 +1,7 @@
+{
+  "provider": "scotland",
+  "dataset_id": "ssdu-synthetic-series",
+  "params": {},
+  "page_size": 2,
+  "max_rows": 20
+}

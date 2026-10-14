@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssdu-retrieval"
+version = "0.3.0"
+description = "Local data management, immutable collections and UK REST/MCP discovery APIs"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+dependencies = [
+  "httpx>=0.28,<0.29",
+  "pandas>=2.2,<3",
+  "pyarrow>=20",
+  "intake>=2,<3",
+  "PyYAML>=6,<7",
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.34,<1",
+  "mcp~=2.3.0",
+  "duckdb>=1.4,<2",
+  "pydantic>=2.14,<3",
+  "numpy>=2,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.11",
+  "nbclient>=0.10,<0.11",
+  "nbformat>=5.10,<6",
+  "ipykernel>=6,<8",
+]
+benchmark = [
+    "sentence-transformers>=5,<6",
+]
+
+[project.scripts]
+ssdu = "ssdu.cli:main"
+
+[dependency-groups]
+docs = [
+  "sphinx==9.1.0",
+  "myst-parser==5.1.0",
+  "furo==2025.12.19",
+]
+
+[tool.uv.dependency-groups]
+docs = {requires-python = ">=3.12"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

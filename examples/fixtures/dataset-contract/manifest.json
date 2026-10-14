@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "synthetic_teaching_fixtures",
+  "description": "All observation values and response metadata in this directory are synthetic teaching fixtures shaped like supported provider responses. Geography identifiers illustrate preserved codes; the values are not published statistics. These files exercise the actual acquisition and transformation paths without provider calls.",
+  "providers": {
+    "nomis": {
+      "reference": "https://www.nomisweb.co.uk/api/v01/help",
+      "files": [
+        "nomis-definition.json",
+        "nomis-data.csv"
+      ]
+    },
+    "statswales": {
+      "reference": "https://api.stats.gov.wales/v2/docs",
+      "files": [
+        "statswales.json"
+      ]
+    },
+    "deprivation": {
+      "reference": "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025",
+      "files": [
+        "deprivation.csv"
+      ],
+      "notice": "All measurements and labels independently invented; illustrative geography codes are selector tokens only. No published deprivation observations are redistributed."
+    }
+  },
+  "files": {
+    "deprivation.csv": "356ed985994929e3b7fc4c06514797723eeb39b700152b4de92bb31cc22d8493",
+    "nomis-data.csv": "fab423f1f1d461695a133d4be54c32b662a65f841c04df05534c81e077c5f7ae",
+    "nomis-definition.json": "32cb0f1d76048c56f3877289ef642de8f42152032690498eada71fbd2d10128d",
+    "statswales.json": "127e562e530f7ba2ac7d7f8c9dc462e97d47bbc6c48746945b2cf96fbe9e61dd"
+  }
+}

@@ -1,0 +1,1243 @@
+{
+  "schema_version": 1,
+  "policy": "source-only",
+  "license": "MIT",
+  "files": [
+    {
+      "path": ".github/workflows/conformance.yml",
+      "kind": "configuration",
+      "sha256": "520f9f2eeca471e1c05ebc10ab00a4f4e5c07b4b369f4a32153a7db8e28d271e",
+      "review": "Author-owned deterministic CI configuration; no captured data or secrets."
+    },
+    {
+      "path": ".gitignore",
+      "kind": "configuration",
+      "sha256": "bf05872fa985f1fac0718dfc7a30726de3061e3fc306ba8b120d7a89b5cb5ae9",
+      "review": "Package/build configuration and dependency references only; no installed dependency payloads."
+    },
+    {
+      "path": "LICENSE",
+      "kind": "documentation",
+      "sha256": "44e61a8fe95e7fac0394f2d8151ce4e9a9fb5a93ba29cf3f191df56447b3c86e",
+      "review": "Curated author-owned documentation or project artwork; no captured data payload."
+    },
+    {
+      "path": "PUBLICATION.md",
+      "kind": "documentation",
+      "sha256": "eb2b068088c36f47f1bc35f34d6e52be5d4b9282713652fe6e557bc6bfef6b9a",
+      "review": "Curated author-owned documentation or project artwork; no captured data payload."
+    },
+    {
+      "path": "README.md",
+      "kind": "documentation",
+      "sha256": "3521efa82f0c2bdc485373396999d940156e9c73b988c58f223fd774a148c17c",
+      "review": "Curated author-owned documentation or project artwork; no captured data payload."
+    },
+    {
+      "path": "docs/README.md",
+      "kind": "documentation",
+      "sha256": "48d46cb42531c20f961ed16ecea06a83ba7426ec9821aa1a873678bae073b5c5",
+      "review": "Curated author-owned documentation or project artwork; no captured data payload."
+    },
+    {
+      "path": "docs/assets/favicon.svg",
+      "kind": "documentation",
+      "sha256": "0644ab673a0c123128c4ac0815d9ce9aa7825828b63d75218a7a6bcf67960e0d",
+      "review": "Curated author-owned documentation or project artwork; no captured data payload."
+    },
+    {
+      "path": "docs/conf.py",
+      "kind": "source",
+      "sha256": "2a3026bd74470ab86fbed83e141e1baf7f7cb29f1eaa5c75b4a4b8069f2399b7",
+      "review": "Author-owned Sphinx configuration."
+    },
+    {
+      "path": "docs/content/concepts/dataset-contract.md",
+      "kind": "documentation",
+      "sha256": "20005aecd2222973cde18a322785ac8dc529b7e5df9fa9ce78a40c4b99329640",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/concepts/offline.md",
+      "kind": "documentation",
+      "sha256": "fec24b73a24668120a23a1ce2b29d79b1d7a903bab5414cc37c11c3b959a0610",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/concepts/provenance.md",
+      "kind": "documentation",
+      "sha256": "a0455708e0e2916d17224b70c8d8bf8f2e1a0c284a3c28b91a781082337128c3",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/guides/dataset-examples.md",
+      "kind": "documentation",
+      "sha256": "1bd1b371491d0da1aa33b68d4b2e923f1a6563e2713140de1f01287b2f3b6ae1",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/guides/four-nations.md",
+      "kind": "documentation",
+      "sha256": "34198a8a3201b0e3b0381e817196340a48a51fe13d13eaaa29e3c9f9f6b42573",
+      "review": "Curated author-owned guide to invented four-nation fixtures, retained acquisition, recovery and offline transfer. No captured provider payload."
+    },
+    {
+      "path": "docs/content/guides/interfaces.md",
+      "kind": "documentation",
+      "sha256": "66ea5169872fae0f0b7a7ba112880baee2e9674459251c0248333e8ea376e223",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/index.md",
+      "kind": "documentation",
+      "sha256": "2024326a1b8df582bf8ac2807f8c231eb644ed3ab14dd8a2b9b0b74a9b0ff9d1",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/research/index.md",
+      "kind": "documentation",
+      "sha256": "d8e9e58ef7b5a847df9109bab3b5a9ec046c636b86fabf152e68eea3e9707d47",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/start/install.md",
+      "kind": "documentation",
+      "sha256": "a8e782712468348f5cde50652c1a23e87b39b5c547aafe513d3bf2b2d1d998a7",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/start/quickstart.md",
+      "kind": "documentation",
+      "sha256": "78c76112420c481796b31026872d0b3c5206c7dc95807d98835b0ce28a14b7a2",
+      "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/publication.json",
+      "kind": "configuration",
+      "sha256": "d758e043e088f74c689e8799386d45017536969b93ebc1bebeb5613ba93c957f",
+      "review": "Package/build configuration and dependency references only; no installed dependency payloads."
+    },
+    {
+      "path": "examples/api.py",
+      "kind": "source",
+      "sha256": "fb83633d1fd9ead541d4b96edc6078fe8d01b8319e8f3f707fd30875e39abb6d",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/collection_transfer.py",
+      "kind": "source",
+      "sha256": "375afb28dc5494372eb771965789026615b32db43d4f4e1e90ac5259f414b727",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/collections/four-nations.yaml",
+      "kind": "request_specification",
+      "sha256": "736a82a74f379466ef4d36765116da5f205b3317e0b87e65f08c2cf999b9806d",
+      "review": "User-authored collection request/selection specification; no downloaded data."
+    },
+    {
+      "path": "examples/dataset_contract.py",
+      "kind": "source",
+      "sha256": "6e4c0ced26bcd2d9f8cbe39567650465d29217bf1f3cc808b81b5e0c8c863607",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/deprivation.json",
+      "kind": "request_specification",
+      "sha256": "36f2bf0cbb644b153b38bbeb2298e20353a7f789a835207a5a52fee5cbfa5210",
+      "review": "User-authored provider request specification; no provider response or observation payload."
+    },
+    {
+      "path": "examples/documentation_quickstart.py",
+      "kind": "source",
+      "sha256": "ea50171a14a2422fe170298b86e9745189d41f76f842658c95eacd4b0b104e05",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/explore.py",
+      "kind": "source",
+      "sha256": "0c5c32c8f066b6a8b9e96a026090e8c834f3a1f0aa469949c2563c3ec2ceddae",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/fixtures/dataset-contract/deprivation.csv",
+      "kind": "synthetic_fixture",
+      "sha256": "356ed985994929e3b7fc4c06514797723eeb39b700152b4de92bb31cc22d8493",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/dataset-contract/manifest.json",
+      "kind": "synthetic_fixture",
+      "sha256": "e66eec0998ffd10fbca05dd06db37019ab6554777e061323af0ae54ed9589f4f",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/dataset-contract/nomis-data.csv",
+      "kind": "synthetic_fixture",
+      "sha256": "fab423f1f1d461695a133d4be54c32b662a65f841c04df05534c81e077c5f7ae",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/dataset-contract/nomis-definition.json",
+      "kind": "synthetic_fixture",
+      "sha256": "32cb0f1d76048c56f3877289ef642de8f42152032690498eada71fbd2d10128d",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/dataset-contract/statswales.json",
+      "kind": "synthetic_fixture",
+      "sha256": "127e562e530f7ba2ac7d7f8c9dc462e97d47bbc6c48746945b2cf96fbe9e61dd",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/four-nations/manifest.json",
+      "kind": "synthetic_fixture",
+      "sha256": "cb94420e5ce90e4fc636e52543c6a6e709f74c977b49ee4bd52f13b8523a47d7",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/four-nations/nisra-cube.json",
+      "kind": "synthetic_fixture",
+      "sha256": "ec4108d61f38505f8d8972bfe9a9804e3bf1ff1ce4782e60c6967c40eff60b80",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/four-nations/scotland-metadata.json",
+      "kind": "synthetic_fixture",
+      "sha256": "b9564dc712c0c5d2cce906e3b4b78d6effb08169e51d6e5cb21baf1386ffae82",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/fixtures/four-nations/scotland-observations.json",
+      "kind": "synthetic_fixture",
+      "sha256": "600ca49e2f80cf76cce952cbc6ef25b0ef13036c27598802e48603bce83a0a96",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "examples/four_nations.py",
+      "kind": "source",
+      "sha256": "04b9bc5dec0da276096393bffd620e571a95faae609c5d927abe477ec5b78248",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/nomis.json",
+      "kind": "request_specification",
+      "sha256": "f8df2fc080a82526acd1200c0b43a59b4b918b48848e03ce21fb04153b12009a",
+      "review": "User-authored provider request specification; no provider response or observation payload."
+    },
+    {
+      "path": "examples/notebooks/deprivation.ipynb",
+      "kind": "notebook",
+      "sha256": "eee491f40a8da44c43af665434669bfd614aafd0bb7c70ed2687be4df77e43da",
+      "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
+    },
+    {
+      "path": "examples/notebooks/nomis.ipynb",
+      "kind": "notebook",
+      "sha256": "ee4d1c0e4b17165700d002941b5473055aa1e6c8b5296d5c438959234f0fa0bb",
+      "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
+    },
+    {
+      "path": "examples/notebooks/statswales.ipynb",
+      "kind": "notebook",
+      "sha256": "23cdfea6856ae5e3624d0e104d8203863ea0478ed810c9341537a0d07487606c",
+      "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
+    },
+    {
+      "path": "examples/retrieval_jobs.py",
+      "kind": "source",
+      "sha256": "37c0e8414dc902fb3d7bcc59d76ff6650bb3dcfe3fd386544c4aac627331731a",
+      "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
+    },
+    {
+      "path": "examples/social-sciences.collection.yaml",
+      "kind": "request_specification",
+      "sha256": "0c7b0578f8e2c9c279456136cca8db8cff3b405463b92f5a8e39d510d9cf50bd",
+      "review": "User-authored collection request/selection specification; no downloaded data."
+    },
+    {
+      "path": "examples/statswales.json",
+      "kind": "request_specification",
+      "sha256": "a940466172a36ec4d20998a16e5a269fdc868311ad25e65f0b8cbc5f4f1bf9b6",
+      "review": "User-authored provider request specification; no provider response or observation payload."
+    },
+    {
+      "path": "pyproject.toml",
+      "kind": "configuration",
+      "sha256": "299727a78febcd507ac841d0c97dccaafcc61d85164d406f46a8c66ce6425e3d",
+      "review": "Package/build configuration and dependency references only; no installed dependency payloads."
+    },
+    {
+      "path": "src/ssdu/__init__.py",
+      "kind": "source",
+      "sha256": "0fb89df969134b0af4b6f2adda488a3ba6e55bf6fdb455e707530b6dad93e1e7",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/__init__.py",
+      "kind": "source",
+      "sha256": "5258b8327438626cbd1de850f061c8c63f137d87bac80cca84c5d800a03142d5",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/deprivation.py",
+      "kind": "source",
+      "sha256": "6b70d95e020798c1959f22deace78fb12d9bc16462af507e686e67700665ee73",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/nisra.py",
+      "kind": "source",
+      "sha256": "ce50fbfd69344beb923900d7ca8bd4a2418e23d4f3d01373dbb87d24e6c483a4",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/nomis.py",
+      "kind": "source",
+      "sha256": "07126f14daaac8cc6f864f2ca7265292e767ebd1ee42d3e91a24b021bbc01041",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/scotland.py",
+      "kind": "source",
+      "sha256": "2529e0db9e0cd03f6978797866be7d31022e6baa957be86011936c7a2864ee41",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/statswales.py",
+      "kind": "source",
+      "sha256": "f1443a4eda17fdf3013774daf440e800db2e665b5e1f52f224c1eb36dc64ec8a",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/api.py",
+      "kind": "source",
+      "sha256": "e0bbf9666e21b3e09eaff7b49b7f9ca678f4f2f7c1d277772f7efe1b9508e507",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/bundles.py",
+      "kind": "source",
+      "sha256": "32902e79b0e4161051fc55dc776c38199d6cd113dc4d0be4020e5e73367fd052",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/cli.py",
+      "kind": "source",
+      "sha256": "5f4a2e0ffb7b4a20faca7c6c12440213bc0669badd75792de6a8bb46e3bcb636",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/collection_models.py",
+      "kind": "source",
+      "sha256": "6cdb04bd0e0bbd8457b5c29a5f415b65acf0aba31d76d1ae760c45b0a6197fd9",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/collections.py",
+      "kind": "source",
+      "sha256": "0f41435d5ea686593bc528ebd11612685798c58d6fb6674ff58745cc8ef147a3",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/conformance.py",
+      "kind": "source",
+      "sha256": "14116c841c62a14b51c943e100b942806640b5ee5044fe51ca252862695b4c04",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/contracts.py",
+      "kind": "source",
+      "sha256": "26fd617a5b2747b5d55a79f8aaa2bf903a5f35f88f38f86d7cc4a19f36eab346",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/dataset_contract.py",
+      "kind": "source",
+      "sha256": "e9cf4f0fc1e5fafb0fab566e83defda2d90af188cd3c3457028df6407172d388",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_adjudication.py",
+      "kind": "source",
+      "sha256": "77daaef5451cafc1a566e25231361f549a77884ee709e87788624954f77e385c",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_benchmark.py",
+      "kind": "source",
+      "sha256": "edc01004919e99c42bee1bd02405c235419d679d8bd243a2f4dda610e9deee32",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_cli.py",
+      "kind": "source",
+      "sha256": "edcd19877026dd92dd4f28e1b743edff377f64668ee473da0be9c2762558e9e7",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_enrichment.py",
+      "kind": "source",
+      "sha256": "4e4fd1275cf171cbe8a1d7829da8fd0045d4f526d86d6266de2d91b63d614bd0",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_review.py",
+      "kind": "source",
+      "sha256": "853d6b49ab61d7379c47b166ffa20d7c1b18ad68deaf5e6b5a0ffe4353761257",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_review_export.py",
+      "kind": "source",
+      "sha256": "4c587db1830fa8a482cc36b81313c81d999c09ee0a806afdffa586350623f218",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/discovery_workflow.py",
+      "kind": "source",
+      "sha256": "a3ebe34a9684b251e5578ce820294a865593679234ec083b03d0a1c009ad363c",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/harvest.py",
+      "kind": "source",
+      "sha256": "194776cdf85662073afc311f3a2fb679eb71d8206f3e18292a72738ca7be77d2",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/harvest_cli.py",
+      "kind": "source",
+      "sha256": "40a2c3ffc4b2ea498fd3b609c2c6832acc9731e15f31f6117d909757d9ad38e1",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/http.py",
+      "kind": "source",
+      "sha256": "769b48684d2cde35a949d0ac4a983b39a5de072bff910337a00d4c228238be44",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/literature_benchmark.py",
+      "kind": "source",
+      "sha256": "3696a93995516f611615ec44cc0a147dd4e6b6c43532254db9e5903529f196fa",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/literature_cli.py",
+      "kind": "source",
+      "sha256": "f0ca30eabdc902e7a1abbab1fae19ec12ed3f9295d9ea8e03458f454b53a1a43",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/literature_ingest.py",
+      "kind": "source",
+      "sha256": "00a415816172db14c0eaceeb1fb94c55400e4faa9555332ac059e95e4e9387dc",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/literature_sources.py",
+      "kind": "source",
+      "sha256": "27b3e1c53fe987d7718e6ba4d19362d01657b1efb3fbf609206ebbbfa81588a5",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/literature_store.py",
+      "kind": "source",
+      "sha256": "33c2f4a3aa76608434a675b37113a1fa5a93fb7087de2c6899a094e2034df94a",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/literature_validation.py",
+      "kind": "source",
+      "sha256": "5d35ffd380f79ca6943ba81ee2cbe2637c9c81986996e9bbaaeaec29db64a1d1",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/local_import.py",
+      "kind": "source",
+      "sha256": "2b1763cf67006f7a44ea801c308c6390557cd7e70a2a384b1c901ad034549aad",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/mcp_server.py",
+      "kind": "source",
+      "sha256": "87eed6bb31f8e387e194e7ea12476737fcbb063deb33e57a9586d5a2cf9cb6c8",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/models.py",
+      "kind": "source",
+      "sha256": "eacac1d5866140add0c8c30a7eacedec3cba235a82998c305cf9e4285aeb4737",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/normalization.py",
+      "kind": "source",
+      "sha256": "ccf2f185e0d3a5101f7edf4f04461a1d3ecd6200edf0d0044af2a8505361065b",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/normalization_nisra.py",
+      "kind": "source",
+      "sha256": "5a8fe15368e55b06ad486263c5fb66ab6955f4bddac73028dd88aabe2164c212",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/normalization_scotland.py",
+      "kind": "source",
+      "sha256": "667236589817d91bdec0979d8d43012fd4e9a2a1177a14f4e6ec85b5a1fdd6e6",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/provider_harvest.py",
+      "kind": "source",
+      "sha256": "b5fe0955cd41e466f7c222bc0577092baf70ee86020f67a8ffccd4cd037cf9d9",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/providers.py",
+      "kind": "source",
+      "sha256": "9d2ab8e51ff5b9910e691e71eaa2ba20c8adafd91e79ea56340765d3c7144353",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/rate_limit.py",
+      "kind": "source",
+      "sha256": "c7e3eba13f999dd7830a257ed8c85de4329526c44ab757d313f2192155e1d471",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/registry.py",
+      "kind": "source",
+      "sha256": "72d30f41f82f1dccf770e4b563482b139b9068d50edd7ef0cfde2d5c0f9391fe",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/retrieval.py",
+      "kind": "source",
+      "sha256": "7fcd3258353b0ceee460c3c62b69839b4c6fa98ce6540bebcf1a6510f9fa47fd",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/retrieval_cli.py",
+      "kind": "source",
+      "sha256": "4d5e6e0449df001bac9db447a76aada48f85291fc1b6d88edddc7981585a2845",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/retrieval_models.py",
+      "kind": "source",
+      "sha256": "08d184ee8bc6636214712290768c574db9c90e786556402165e94fcd9f6b3f17",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/rich_context_harvest.py",
+      "kind": "source",
+      "sha256": "c95ee71108aa73ba4b4b3612a006801731228787b7cb51161042b228016f5b03",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/service.py",
+      "kind": "source",
+      "sha256": "bf4450a54f533e3f4608f85eda59ffed367803cd9e142fd58266cb8a5e0f5255",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/shared.py",
+      "kind": "source",
+      "sha256": "9f5e9c6b90fac5df91e66d046c64dd01ad93ceb125b4d25872f5061a20a7e4df",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/source_coverage.py",
+      "kind": "source",
+      "sha256": "f85ce7b8271330dcd161b6a3d499e27f8753b3f671a99e7268901e20b28ee1ed",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/store.py",
+      "kind": "source",
+      "sha256": "4346256cb47c031eb37f5bb544e46c0250d46c414e2a87a6d11f8a61744447c1",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/uk_discovery_benchmark.py",
+      "kind": "source",
+      "sha256": "2dc23005f5448ecbe741ee1a0eaf7f9de39b230e0563dca5c25d003e6488c23a",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/uk_literature.py",
+      "kind": "source",
+      "sha256": "383d4d8acf9a85959802413194f4c90c51fe86c9d2b836b8f1969b0b647e5d12",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/uk_validation_store.py",
+      "kind": "source",
+      "sha256": "85550771ae295030babed597e317bce72377d047a47ea1dab97ac47b56e8c403",
+      "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "tests/conftest.py",
+      "kind": "source",
+      "sha256": "b7d7a0a96247f08725e8cb9a98b2056ab518249a248434d69f80542d272f7c5b",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/fixtures/conformance/deprivation_complete_lad_selection.json",
+      "kind": "synthetic_fixture",
+      "sha256": "07878bc08c8ce58d4d568aca039ba70c7e7eb6945794c67e3254ad05540dfda7",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/deprivation_file7_measure_types.json",
+      "kind": "synthetic_fixture",
+      "sha256": "eb982480c6e255928fdf2cb328f407514de554d91e52931f40e3f79ea8ddea6a",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/deprivation_suppression_and_population.json",
+      "kind": "synthetic_fixture",
+      "sha256": "f0a4ebbc32c8b13bde2db53433a46e832f9a721dd2ff3f792cab7e401355e51a",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/manifest.json",
+      "kind": "synthetic_fixture",
+      "sha256": "d886264f8c2cd2c95c48be78b78227eb4f0bb65912db2f52b8dc7f3571d53e14",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/nomis_category_time_series.json",
+      "kind": "synthetic_fixture",
+      "sha256": "00ffd42fa50f254866452fc7a6234d47a5791d4c61aa313c154e101212ceb421",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/nomis_independent_measures.json",
+      "kind": "synthetic_fixture",
+      "sha256": "54055ac454fd472882876462b89ab2473326db9de2cd16f40747bb4795cb04b4",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/nomis_missing_and_ambiguous_metadata.json",
+      "kind": "synthetic_fixture",
+      "sha256": "fbd89e8f68d2c449c5794be1112787b2f815d9579a4982d7728646391be38c60",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/statswales_ambiguous_dimensions.json",
+      "kind": "synthetic_fixture",
+      "sha256": "583c65c68028c604a471f842b70f552a6c22fed5170ed5b29031f6c1a3cca555",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/statswales_hierarchical_multi_measure.json",
+      "kind": "synthetic_fixture",
+      "sha256": "e9f51d07be8bd93ec07e413f5ff53f9cc75b017c128748484798a65fa7173ec4",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/conformance/statswales_welsh_formatted_cells.json",
+      "kind": "synthetic_fixture",
+      "sha256": "25cbc0d5115bb6b370f2c7d03a4835d830ae39914f781bbf5d855d69599361a9",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/nisra/manifest.json",
+      "kind": "synthetic_fixture",
+      "sha256": "5b1d461973d35b3508ec88644033338ad57ea3f8ff51318e6c5149ee1a93e9a3",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/nisra/multidimensional.json",
+      "kind": "synthetic_fixture",
+      "sha256": "683eb663745437eec176e657c9ececb47eb4166dc5b9ec4d75c5a2a7552fb36a",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/nisra/sparse.json",
+      "kind": "synthetic_fixture",
+      "sha256": "94291aa741afb5003b3cdf20168325843e736ee52707afb264665030852da747",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/nisra/time_series.json",
+      "kind": "synthetic_fixture",
+      "sha256": "ec4108d61f38505f8d8972bfe9a9804e3bf1ff1ce4782e60c6967c40eff60b80",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/manifest.json",
+      "kind": "synthetic_fixture",
+      "sha256": "98be34d7537c859ca8571ac7c655984df3e5b952cc50fbe7c011e150dfa3cf1b",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/multiple-measures/metadata.json",
+      "kind": "synthetic_fixture",
+      "sha256": "a6398cbfb153f856456f16d49b7335a7aa40aaa8a3ac93dd24469acbca7278bb",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/multiple-measures/observations.json",
+      "kind": "synthetic_fixture",
+      "sha256": "a7efbc0c2163dc1bcac8afe541f116704b1bcfdd29fc903a1dc2be8fa8d8c48c",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/multiple-measures/request.json",
+      "kind": "synthetic_fixture",
+      "sha256": "0882f10cfd4da719986e81ee4813b9ceeb5790b62c6296775eafbf0e4f95c060",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/series/metadata.json",
+      "kind": "synthetic_fixture",
+      "sha256": "b9564dc712c0c5d2cce906e3b4b78d6effb08169e51d6e5cb21baf1386ffae82",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/series/observations.json",
+      "kind": "synthetic_fixture",
+      "sha256": "600ca49e2f80cf76cce952cbc6ef25b0ef13036c27598802e48603bce83a0a96",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/series/request.json",
+      "kind": "synthetic_fixture",
+      "sha256": "27bb150a7699255b2540256ff08ee42105df626cff9202f2dc1e0c16ff9b0c80",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/suppressed/metadata.json",
+      "kind": "synthetic_fixture",
+      "sha256": "6fcd1b20ec61abfd11cfcd6db0876d19427683ee76e4a434bce48caf8a9f4ca9",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/suppressed/observations.json",
+      "kind": "synthetic_fixture",
+      "sha256": "73b793d0bc4721afccb03223f771b6915b642fabbf851d5057200d836e3958db",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/fixtures/scotland/suppressed/request.json",
+      "kind": "synthetic_fixture",
+      "sha256": "7521d53afb7eed64ead14139aaa258d3a9657cb40a0f88ec92d98e40c4aee8ad",
+      "review": "Independently invented conformance or teaching fixture; protocol references and hashes retained, no published observations or copied metadata records."
+    },
+    {
+      "path": "tests/test_adapter_conformance.py",
+      "kind": "source",
+      "sha256": "ebb5833ff4cfa8ef0866dd0003910be6fb0ab6d529ed7d0339d1cbeead9bf3bd",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_api.py",
+      "kind": "source",
+      "sha256": "f415a0a0dd6c115255da23142afdae7b67040f131c3673c3710b690a4bbd5cbc",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_api_example.py",
+      "kind": "source",
+      "sha256": "9b9d3dd2695a89205aa1dc4b3aa4246de12fb3ce1fff28a61dc613dcc73a84c5",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_bundles.py",
+      "kind": "source",
+      "sha256": "f5e6d9050f212fccbc60c0e4c536dda94baba746a8ec3b4741cc08677466581d",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_cache_publication.py",
+      "kind": "source",
+      "sha256": "46b7330e70dece41c8bb4cd62849ced6bb57069ab890096d9677e37d61ed8bbd",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_catalogue_index.py",
+      "kind": "source",
+      "sha256": "ac99266e9c14909ce23cb2a1b38c0e4c8af6c90b9134ea0e4ef9f34d11b5a809",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_cli_cache.py",
+      "kind": "source",
+      "sha256": "1ca100a00cd8dfba8614967989c6fdaed4ac7b061f943c844088dfd63d9da5a4",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_cli_collections.py",
+      "kind": "source",
+      "sha256": "81e5f5ccc76021720b2dc92aa66342d4b280f961620e612eb8049daedcca1415",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_collection_publication.py",
+      "kind": "source",
+      "sha256": "e3a617fbd1d041e43a4bd2105dba7b7fa1b876c294d97f3c2b95514d1866e7f3",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_collections.py",
+      "kind": "source",
+      "sha256": "6cbfacccaa8be7e9652bc4e867d6d79abf3c143fdcc65e3ffcd68618dca4292f",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_conformance_families.py",
+      "kind": "source",
+      "sha256": "64d2d6a10b903b3f8ee313a09f99c74db57d8eb457f13c00136eaede9be95809",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_dataset_contract.py",
+      "kind": "source",
+      "sha256": "48139db89a7a79c86303fa19d2883207bb027e34a68158bdb726c89b74bd412d",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_dataset_examples.py",
+      "kind": "source",
+      "sha256": "168e7edcdaee29b9230e13ba0bae335763dccb27898d849ebf9ec48334615e93",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_dataset_store.py",
+      "kind": "source",
+      "sha256": "665edf367f71d01dae4ad4c8dfadeb47113f14c60d636f6c8275c883e9bcb689",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_demo_cli.py",
+      "kind": "source",
+      "sha256": "0d026586a655114ee8253a78bb08985cdce3dcac58d6f39c12d7370784a599d0",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_deprivation.py",
+      "kind": "source",
+      "sha256": "424f3fb431218367331b3c738d059e9d31b40e0dd7905d09962e0ac1610e744e",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_adjudication.py",
+      "kind": "source",
+      "sha256": "db89b1c115e5936afdb9b268d3442c5bcda1c29b22a15bacdae06e911c2da8bd",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_benchmark.py",
+      "kind": "source",
+      "sha256": "bbd31fc58c6d472728a87633322453eb87674b8e3102be00ef5571650d9b68f8",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_cli.py",
+      "kind": "source",
+      "sha256": "22fcb18ac018ffdbc7a6d4081540c6930acf7c0ddc771dfde6841bca516d3e2c",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_enrichment.py",
+      "kind": "source",
+      "sha256": "dd64cf728feb138776e9dfefb7b94f29e173f43b496ced29c6cd34c854beab52",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_review.py",
+      "kind": "source",
+      "sha256": "c886c82fb93af18a35c37e88b02b071551dc5fd8da07b8f254259cba116bf647",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_review_export.py",
+      "kind": "source",
+      "sha256": "5d8f14ef6fbfdcf084340570abd67dee72645def6ccbc01d6ec85e07159ea95c",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_discovery_workflow.py",
+      "kind": "source",
+      "sha256": "0f03f255ea911220a49ee7f5b1f1550a216543eaed3d98a94b55a001c5b18d6d",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_documentation.py",
+      "kind": "source",
+      "sha256": "177807f20b97184989783d954d85d7747e4c442de9f0fe8c52f41974b6155edb",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_four_nations.py",
+      "kind": "source",
+      "sha256": "13ddac9b7c68e3b79e155fcbf3b49a5422c25132a20899e2c1a31148c338826d",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_harvest.py",
+      "kind": "source",
+      "sha256": "8b9f7cb873a7b297df9ee916c4306d735b769b1ddb7e7f6e57dd704ddf7e55fa",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_http.py",
+      "kind": "source",
+      "sha256": "63794dae56e4429ca1a5ab5c7bae173841bf06141cb0bbc917b87015f133b456",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_literature_benchmark.py",
+      "kind": "source",
+      "sha256": "e9a910293e7049aa8a327a6200f71b6d4412f3188ef9c3995f139c9da02b3364",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_literature_cli.py",
+      "kind": "source",
+      "sha256": "514d755ac607c7031cbe4ba1d42cca1b0eea32ff7a02a0214c620c6c3cfc9a76",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_literature_ingest.py",
+      "kind": "source",
+      "sha256": "24760a28025ea3855a7a5b21356addc56df43193dafa8dd9cd652faa78749619",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_literature_sources.py",
+      "kind": "source",
+      "sha256": "b2e1479398861d541536769ebc9befd5bed0b5ce08fdf14b619de30e4846d0d8",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_literature_store.py",
+      "kind": "source",
+      "sha256": "2346646db7831a5989f209485e40943e9a0c078ad5de5fdd4b2bcba77d57f82a",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_literature_validation.py",
+      "kind": "source",
+      "sha256": "8c3fbfd86f2ec51d1364bdf9ceace98e7afd38d118bde03edfc5b2ca40007fc9",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_local_import.py",
+      "kind": "source",
+      "sha256": "4813b8713d89481ce1a3e1fdf66c51d578522dddfcf06020342a5e29e3813be3",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_mcp.py",
+      "kind": "source",
+      "sha256": "d20f4777d132c0b98f42aba6550708d819d9bde74e328d1e73929672bb0288f2",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_nisra.py",
+      "kind": "source",
+      "sha256": "6f6287bf54a9f73a871f98f4705e77b71a6c1209207e28b9f6a0a5d4a50eab9b",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_nomis.py",
+      "kind": "source",
+      "sha256": "64977caf686a5b718ef04e2fd08961c825d76c911c09de52a33876f8c9e052f7",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_provider_harvest.py",
+      "kind": "source",
+      "sha256": "c2417b17162138d54d9fd76fd2c9ffe26cdf35d6502a399628bd513899fa189f",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_provider_migration.py",
+      "kind": "source",
+      "sha256": "bb051308fa50c808842954e0cb0883b4bbe9f56dabaf551aef5e2b88f80e6667",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_provider_normalization.py",
+      "kind": "source",
+      "sha256": "e2e271a99a764da4d102f09eb3cf4396e7960e091d3df41b7b00baf6c4c4c00e",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_provider_registration.py",
+      "kind": "source",
+      "sha256": "ab017db81bde68a6ed018c2ee7fddaf11cd86a6e025e23b5cb9e627d943040ad",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_publication.py",
+      "kind": "source",
+      "sha256": "f0eb71b265b416e2af357101bd334c52abdf3b2fc906c5cfa7a9abcd18c7235e",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_rate_limit.py",
+      "kind": "source",
+      "sha256": "5f9a2a248e0949837b81e5f81ff0828d4355b5d7d8387e4e58ff6c2c58acdb09",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_retrieval_api.py",
+      "kind": "source",
+      "sha256": "36bd1709eb7ad930d11b62a1429cb8af0e5f797827adb50e27019886926d2251",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_retrieval_cli.py",
+      "kind": "source",
+      "sha256": "2df9a19297d135f43f156fa0521a3119ce52f1a02965a928738e3eccd687ff5b",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_retrieval_jobs.py",
+      "kind": "source",
+      "sha256": "532d756a2664360c47e76c2d8210c61169f1afe259e5afdc6be60da604d99902",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_retrieval_mcp.py",
+      "kind": "source",
+      "sha256": "78a40fb5c5de29582de8654afd2ede93fab38290e7e94418e8d47eb5c0d3974c",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_retrieval_new_providers.py",
+      "kind": "source",
+      "sha256": "c751e5f6e9bd3cc53b16fbfc57edd3def653a7cf9dcda4768be97a6ce7877a06",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_retrieval_replay.py",
+      "kind": "source",
+      "sha256": "5f0d7b19c40c88f8673adb5cfe31b9f75c6fd67ff6f406408a2e03b0309fe724",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_rich_context_full.py",
+      "kind": "source",
+      "sha256": "b775c1ad078d1dc672b4eb5ebad83a06d7c0d309c6aaf2126d17b029522e4f03",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_rich_context_harvest.py",
+      "kind": "source",
+      "sha256": "c49fe46e49fd4ea4c5ef40e0767fd02df8b5de876036245b1870913e7116237f",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_scotland.py",
+      "kind": "source",
+      "sha256": "07e814ef9d090da50b3dac50d215faed0083891bb6e1fbbc2c59fb60c28f5bba",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_service.py",
+      "kind": "source",
+      "sha256": "b7e3b62a73d596fe883be054d1d14979dbd5bd9546622c5e81b4eee7ed78c12c",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_shared_registry.py",
+      "kind": "source",
+      "sha256": "29f4b0391835fbba9473ae186b04640f5d0b043daf266b87c26263a760fb4219",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_snapshot_lineage.py",
+      "kind": "source",
+      "sha256": "2dec0fb98c889d21d18802c5f0aafcac7545d2da962722f8f6a0bc4e84307ea2",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_source_coverage.py",
+      "kind": "source",
+      "sha256": "dfde74b77a7e9fb3557b541e5b1ab4a0aedae703fd4c21b812e24860d91eb53c",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_statswales.py",
+      "kind": "source",
+      "sha256": "9631ba692245dd12f21dd27c33d70d9337176f0976a9b63282c104594f32056a",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_store.py",
+      "kind": "source",
+      "sha256": "c6f154ea4d39b8a1c2ac4cdc73b0dd633bdf98a6415a0ed46de6b0f7f1fc8aa3",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_uk_discovery_benchmark.py",
+      "kind": "source",
+      "sha256": "ed1b14b59811080f8be5a6009c4338468aeb0aa10895bbd20d8d260697338333",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_uk_literature.py",
+      "kind": "source",
+      "sha256": "d37ecaf59f0de5439bae2ce1a33b2134a193814ff89b445c660789886683a2aa",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_uk_validation_store.py",
+      "kind": "source",
+      "sha256": "60880e591c367da0b08ffb00c6272b08ee8cd4b7eebf4628f3f9ea06e3cbfd63",
+      "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tools/docs.py",
+      "kind": "source",
+      "sha256": "4d223bd5ae8497991eacc8e48eb8199731533c8e0857bfff9360bc3376fe5628",
+      "review": "Author-owned publication/documentation tooling; no external code vendored."
+    },
+    {
+      "path": "tools/docs_acceptance.py",
+      "kind": "source",
+      "sha256": "e44c3ab1c01873a0e5c13105a4641ff1c0679a841afbe312418bf521246bd4e8",
+      "review": "Author-owned publication/documentation tooling; no external code vendored."
+    },
+    {
+      "path": "tools/docs_notebooks.py",
+      "kind": "source",
+      "sha256": "4e45284ae8a27abdc34908d86a81d693711176fa8e3713818fcf2b81a8b13f27",
+      "review": "Author-owned publication/documentation tooling; no external code vendored."
+    },
+    {
+      "path": "tools/publication.py",
+      "kind": "source",
+      "sha256": "e4dcb90d2a9f216a8023e0894cca898e353ba1db539f320d5d8c8e3ae2dc8646",
+      "review": "Author-owned publication/documentation tooling; no external code vendored."
+    },
+    {
+      "path": "uv.lock",
+      "kind": "configuration",
+      "sha256": "54e47f0c1919c9429b1de84caf52596782be0905abeb3910bd9cb9e9d6a5b858",
+      "review": "Package/build configuration and dependency references only; no installed dependency payloads."
+    }
+  ],
+  "ci": {
+    "test_paths": [
+      "tests/test_adapter_conformance.py",
+      "tests/test_api.py",
+      "tests/test_api_example.py",
+      "tests/test_bundles.py",
+      "tests/test_cache_publication.py",
+      "tests/test_catalogue_index.py",
+      "tests/test_cli_cache.py",
+      "tests/test_cli_collections.py",
+      "tests/test_collection_publication.py",
+      "tests/test_collections.py",
+      "tests/test_conformance_families.py",
+      "tests/test_dataset_contract.py",
+      "tests/test_dataset_examples.py",
+      "tests/test_dataset_store.py",
+      "tests/test_demo_cli.py",
+      "tests/test_deprivation.py",
+      "tests/test_discovery_adjudication.py",
+      "tests/test_discovery_benchmark.py",
+      "tests/test_discovery_cli.py",
+      "tests/test_discovery_enrichment.py",
+      "tests/test_discovery_review.py",
+      "tests/test_discovery_review_export.py",
+      "tests/test_discovery_workflow.py",
+      "tests/test_documentation.py",
+      "tests/test_four_nations.py",
+      "tests/test_harvest.py",
+      "tests/test_http.py",
+      "tests/test_literature_benchmark.py",
+      "tests/test_literature_cli.py",
+      "tests/test_literature_ingest.py",
+      "tests/test_literature_sources.py",
+      "tests/test_literature_store.py",
+      "tests/test_literature_validation.py",
+      "tests/test_local_import.py",
+      "tests/test_mcp.py",
+      "tests/test_nisra.py",
+      "tests/test_nomis.py",
+      "tests/test_provider_harvest.py",
+      "tests/test_provider_migration.py",
+      "tests/test_provider_normalization.py",
+      "tests/test_provider_registration.py",
+      "tests/test_publication.py",
+      "tests/test_rate_limit.py",
+      "tests/test_retrieval_api.py",
+      "tests/test_retrieval_cli.py",
+      "tests/test_retrieval_jobs.py",
+      "tests/test_retrieval_mcp.py",
+      "tests/test_retrieval_new_providers.py",
+      "tests/test_retrieval_replay.py",
+      "tests/test_rich_context_full.py",
+      "tests/test_rich_context_harvest.py",
+      "tests/test_scotland.py",
+      "tests/test_service.py",
+      "tests/test_shared_registry.py",
+      "tests/test_snapshot_lineage.py",
+      "tests/test_source_coverage.py",
+      "tests/test_statswales.py",
+      "tests/test_store.py",
+      "tests/test_uk_discovery_benchmark.py",
+      "tests/test_uk_literature.py",
+      "tests/test_uk_validation_store.py"
+    ],
+    "excluded_tests": [
+      {
+        "path": "tests/test_discovery_adjudication_replay.py",
+        "reason": "Exercises private examples/discovery_review code excluded from source publication."
+      },
+      {
+        "path": "tests/test_uk_validation_replay.py",
+        "reason": "Exercises private examples/validation code excluded from source publication."
+      }
+    ],
+    "expected_source_only_skips": [
+      {
+        "path": "tests/test_literature_cli.py",
+        "test": "test_pilot_cli_transfer_and_review_only_derivation",
+        "reason": "Captured literature pilot omitted."
+      },
+      {
+        "path": "tests/test_rich_context_full.py",
+        "test": "test_actual_pinned_corpus_all_entities_accounted_and_offline_portable",
+        "reason": "Captured Rich Context corpus omitted."
+      },
+      {
+        "path": "tests/test_discovery_workflow.py",
+        "test": "test_portable_transfer_copies_only_verified_manifest_inventory",
+        "reason": "Private discovery replay example omitted."
+      },
+      {
+        "path": "tests/test_uk_discovery_benchmark.py",
+        "test": "test_frozen_uk_bundle_complete_pool_references_and_vector_alignment",
+        "reason": "Frozen UK evidence benchmark omitted."
+      },
+      {
+        "path": "tests/test_uk_discovery_benchmark.py",
+        "test": "test_frozen_uk_bundle_has_no_publication_component_split_overlap",
+        "reason": "Frozen UK evidence benchmark omitted."
+      },
+      {
+        "path": "tests/test_uk_discovery_benchmark.py",
+        "test": "test_frozen_uk_bundle_rejects_welsh_input_for_portsmouth",
+        "reason": "Frozen UK evidence benchmark omitted."
+      }
+    ]
+  },
+  "excluded_categories": [
+    "captured provider data and metadata",
+    "paper abstracts and literature corpora",
+    "source-derived fixtures",
+    "snapshots, bundles, embeddings and results",
+    "private development and review records"
+  ]
+}

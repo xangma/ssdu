@@ -1,0 +1,142 @@
+{
+  "version": "2.0",
+  "class": "dataset",
+  "label": "Synthetic conformance example; not published statistics",
+  "id": [
+    "AREA",
+    "STATISTIC",
+    "YEAR",
+    "SEX"
+  ],
+  "size": [
+    2,
+    2,
+    2,
+    2
+  ],
+  "dimension": {
+    "AREA": {
+      "label": "Synthetic area",
+      "category": {
+        "index": {
+          "001": 1,
+          "002": 0
+        },
+        "label": {
+          "002": "Invented North",
+          "001": "Invented South"
+        }
+      }
+    },
+    "STATISTIC": {
+      "label": "Statistic",
+      "category": {
+        "index": [
+          "PCT",
+          "COUNT"
+        ],
+        "label": {
+          "PCT": "Invented share",
+          "COUNT": "Invented count"
+        },
+        "unit": {
+          "PCT": {
+            "label": "Percent"
+          },
+          "COUNT": {
+            "label": "People"
+          }
+        }
+      }
+    },
+    "YEAR": {
+      "label": "Year",
+      "category": {
+        "index": [
+          "2024",
+          "2023"
+        ],
+        "label": {
+          "2024": "2024",
+          "2023": "2023"
+        }
+      }
+    },
+    "SEX": {
+      "label": "Sex",
+      "category": {
+        "index": [
+          "F",
+          "M"
+        ],
+        "label": {
+          "F": "Female",
+          "M": "Male"
+        },
+        "note": {
+          "F": [
+            "Invented category note"
+          ]
+        }
+      }
+    }
+  },
+  "value": [
+    1,
+    2,
+    3,
+    4,
+    100,
+    200,
+    300,
+    400,
+    5,
+    6,
+    7,
+    8,
+    500,
+    null,
+    700,
+    800
+  ],
+  "updated": "2024-02-01T00:00:00Z",
+  "role": {
+    "metric": [
+      "STATISTIC"
+    ],
+    "time": [
+      "YEAR"
+    ],
+    "geo": [
+      "AREA"
+    ]
+  },
+  "extension": {
+    "matrix": "SYNTH_MULTI",
+    "copyright": {
+      "name": "Independently invented SSDU test values"
+    },
+    "ssdu_fixture": "synthetic; no provider data"
+  },
+  "status": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "c",
+    null,
+    null
+  ],
+  "note": [
+    "Invented dataset note"
+  ]
+}

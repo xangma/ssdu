@@ -1,0 +1,45 @@
+schema_version: 1
+name: four-nation-examples
+description: "Synthetic independent examples from four national providers, not published\
+  \ statistics. Collection membership does not establish comparable measures, dates,\
+  \ geographic units or national deprivation rankings. England uses invented LSOA2021/LAD2024\
+  \ observations in the 2025 release shape; Wales uses invented area/2025 poverty\
+  \ values; Scotland uses invented districts and 2023\u20132024 counts; Northern Ireland\
+  \ uses an invented area and 2023\u20132024 counts."
+entries:
+  england:
+    request:
+      provider: deprivation
+      dataset_id: english-indices-of-deprivation-2025
+      params:
+        scope: england
+      page_size: 1000
+      max_rows: 100000
+  wales:
+    request:
+      provider: statswales
+      dataset_id: 40ddfa33-9ba8-4278-ac27-1f1b0bc5fc0f
+      params:
+        filters:
+        - AreaID:
+          - '001'
+          - '002'
+          - '003'
+        - YearID:
+          - '2025'
+      page_size: 2
+      max_rows: 10
+  scotland:
+    request:
+      provider: scotland
+      dataset_id: ssdu-synthetic-series
+      params: {}
+      page_size: 2
+      max_rows: 20
+  northern_ireland:
+    request:
+      provider: nisra
+      dataset_id: SYNTH_TS
+      params: {}
+      page_size: 1000
+      max_rows: 10

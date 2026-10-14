@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_kind": "independently_invented_synthetic",
+  "contains_publisher_records": false,
+  "notice": "All titles, code lists, observations and values are independently invented examples, not published Scottish statistics. Protocol shape follows official documentation; there are no downloaded provider tables in these fixtures.",
+  "references": [
+    "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql",
+    "https://guides.statistics.gov.scot/article/34-understanding-the-data-structure",
+    "https://guides.statistics.gov.scot/article/41-api-access-for-file-datasets-not-linked-data"
+  ],
+  "files": [
+    {
+      "path": "multiple-measures/metadata.json",
+      "sha256": "a6398cbfb153f856456f16d49b7335a7aa40aaa8a3ac93dd24469acbca7278bb",
+      "bytes": 4793,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "multiple-measures/observations.json",
+      "sha256": "a7efbc0c2163dc1bcac8afe541f116704b1bcfdd29fc903a1dc2be8fa8d8c48c",
+      "bytes": 6838,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "multiple-measures/request.json",
+      "sha256": "0882f10cfd4da719986e81ee4813b9ceeb5790b62c6296775eafbf0e4f95c060",
+      "bytes": 133,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "series/metadata.json",
+      "sha256": "b9564dc712c0c5d2cce906e3b4b78d6effb08169e51d6e5cb21baf1386ffae82",
+      "bytes": 3814,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "series/observations.json",
+      "sha256": "600ca49e2f80cf76cce952cbc6ef25b0ef13036c27598802e48603bce83a0a96",
+      "bytes": 4930,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "series/request.json",
+      "sha256": "27bb150a7699255b2540256ff08ee42105df626cff9202f2dc1e0c16ff9b0c80",
+      "bytes": 122,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "suppressed/metadata.json",
+      "sha256": "6fcd1b20ec61abfd11cfcd6db0876d19427683ee76e4a434bce48caf8a9f4ca9",
+      "bytes": 4810,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "suppressed/observations.json",
+      "sha256": "73b793d0bc4721afccb03223f771b6915b642fabbf851d5057200d836e3958db",
+      "bytes": 7446,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    },
+    {
+      "path": "suppressed/request.json",
+      "sha256": "7521d53afb7eed64ead14139aaa258d3a9657cb40a0f88ec92d98e40c4aee8ad",
+      "bytes": 126,
+      "fixture_kind": "independently_invented_synthetic",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
+    }
+  ]
+}

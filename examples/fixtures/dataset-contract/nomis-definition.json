@@ -1,0 +1,36 @@
+{
+  "structure": {
+    "keyfamilies": {
+      "keyfamily": [
+        {
+          "id": "NM_162_1",
+          "name": {
+            "value": "Synthetic claimant count teaching fixture"
+          },
+          "components": {
+            "dimension": [
+              {
+                "conceptref": "GEOGRAPHY"
+              },
+              {
+                "conceptref": "MEASURES"
+              }
+            ]
+          },
+          "annotations": {
+            "annotation": [
+              {
+                "annotationtitle": "LastRevised",
+                "annotationtext": "fixture-revision-1"
+              },
+              {
+                "annotationtitle": "Units",
+                "annotationtext": "persons"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

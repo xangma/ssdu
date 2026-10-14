@@ -1,0 +1,7 @@
+{
+  "provider": "nomis",
+  "dataset_id": "NM_162_1",
+  "params": {"geography": "2092957697", "date": "2025-01-2025-12"},
+  "page_size": 5,
+  "max_rows": 10000
+}

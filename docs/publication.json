@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "pages": [
+    "index.md",
+    "start/install.md",
+    "start/quickstart.md",
+    "concepts/offline.md",
+    "concepts/provenance.md",
+    "guides/interfaces.md",
+    "research/index.md",
+    "concepts/dataset-contract.md",
+    "guides/dataset-examples.md",
+    "guides/four-nations.md"
+  ],
+  "generated_pages": [
+    "reference/cli.md",
+    "reference/python.md",
+    "reference/schemas.md",
+    "reference/rest.md",
+    "reference/mcp.md",
+    "reference/sources.md",
+    "reference/conformance.md"
+  ],
+  "generated_assets": [
+    "_downloads/cli.json",
+    "_downloads/openapi.json",
+    "_downloads/openapi-jobs.json",
+    "_downloads/mcp.json",
+    "_downloads/mcp-jobs.json",
+    "_downloads/schemas.json",
+    "_downloads/source-coverage.json",
+    "_downloads/conformance.json"
+  ],
+  "downloads": {
+    "_downloads/quickstart.py": "examples/documentation_quickstart.py",
+    "_static/favicon.svg": "docs/assets/favicon.svg",
+    "_downloads/nomis.ipynb": "examples/notebooks/nomis.ipynb",
+    "_downloads/statswales.ipynb": "examples/notebooks/statswales.ipynb",
+    "_downloads/deprivation.ipynb": "examples/notebooks/deprivation.ipynb",
+    "_downloads/LICENSE.txt": "LICENSE",
+    "_downloads/four_nations.py": "examples/four_nations.py",
+    "_downloads/four-nations.yaml": "examples/collections/four-nations.yaml"
+  },
+  "python_symbols": [
+    "ssdu.store.Store",
+    "ssdu.store.Store.fetch",
+    "ssdu.store.Store.verify",
+    "ssdu.store.Store.replay",
+    "ssdu.store.Store.read_intake",
+    "ssdu.collections.Collections",
+    "ssdu.collections.Collections.resolve",
+    "ssdu.collections.Collections.replay",
+    "ssdu.collections.read_document",
+    "ssdu.bundles.export_bundle",
+    "ssdu.bundles.import_bundle",
+    "ssdu.local_import.import_local",
+    "ssdu.service.Service",
+    "ssdu.service.Service.query_data",
+    "ssdu.literature_store.LiteratureStore",
+    "ssdu.models.Request",
+    "ssdu.store.Store.fetch_dataset",
+    "ssdu.store.Store.open_dataset",
+    "ssdu.store.Store.migrate_dataset",
+    "ssdu.dataset_contract.Dataset",
+    "ssdu.dataset_contract.Dataset.to_arrow",
+    "ssdu.dataset_contract.Dataset.to_pandas",
+    "ssdu.source_coverage.get_source_coverage",
+    "ssdu.conformance.get_conformance_families",
+    "ssdu.conformance.conformance_coverage"
+  ],
+  "schema_models": [
+    "ssdu.contracts.QuerySpec",
+    "ssdu.contracts.QueryResult",
+    "ssdu.collection_models.CollectionSpec",
+    "ssdu.collection_models.CollectionLock",
+    "ssdu.local_import.LocalImportSpec",
+    "ssdu.retrieval_models.PlanInput",
+    "ssdu.retrieval_models.SubmitInput",
+    "ssdu.retrieval_models.JobBudget",
+    "ssdu.dataset_contract.DatasetDescriptor",
+    "ssdu.source_coverage.CoverageMatrix"
+  ],
+  "notebooks": {
+    "examples/nomis.md": "examples/notebooks/nomis.ipynb",
+    "examples/statswales.md": "examples/notebooks/statswales.ipynb",
+    "examples/deprivation.md": "examples/notebooks/deprivation.ipynb"
+  },
+  "four_nation_example": "examples/four_nations.py"
+}

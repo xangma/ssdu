@@ -1,0 +1,41 @@
+schema_version: 1
+name: social-sciences
+description: >-
+  Independent examples of English neighbourhood deprivation, UK claimant counts
+  and Welsh poverty. Each entry retains its own geography, period and definitions.
+entries:
+  deprivation_england:
+    request:
+      provider: deprivation
+      dataset_id: english-indices-of-deprivation-2025
+      params:
+        scope: england
+      max_rows: 100000
+    query:
+      columns: [lsoa_code, local_authority_code, imd_score, imd_rank, imd_decile]
+      sort:
+        - column: lsoa_code
+      limit: 100
+  claimant_count_uk:
+    request:
+      provider: nomis
+      dataset_id: NM_162_1
+      params:
+        geography: "2092957697"
+        date: "2025-01-2025-12"
+      page_size: 5
+      max_rows: 10000
+    query:
+      limit: 100
+  poverty_wales:
+    request:
+      provider: statswales
+      dataset_id: 40ddfa33-9ba8-4278-ac27-1f1b0bc5fc0f
+      params:
+        filters:
+          - YearID: [3Y2025-03-31]
+        lang: en-gb
+      page_size: 10
+      max_rows: 100
+    query:
+      limit: 100

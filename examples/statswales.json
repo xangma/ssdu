@@ -1,0 +1,7 @@
+{
+  "provider": "statswales",
+  "dataset_id": "40ddfa33-9ba8-4278-ac27-1f1b0bc5fc0f",
+  "params": {"filters": [{"YearID": ["3Y2025-03-31"]}], "lang": "en-gb"},
+  "page_size": 10,
+  "max_rows": 100
+}

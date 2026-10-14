@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "id": "40ddfa33-9ba8-4278-ac27-1f1b0bc5fc0f",
+    "published_revision": {
+      "id": "fixture-revision-1",
+      "revision_index": 1,
+      "publish_at": "2025-04-01T00:00:00Z",
+      "metadata": [
+        {
+          "language": "en-GB",
+          "title": "Synthetic income poverty teaching fixture"
+        }
+      ]
+    }
+  },
+  "dimensions": [
+    {
+      "columnName": "Area",
+      "factTableColumn": "AreaID",
+      "values": [
+        {
+          "reference": "001",
+          "description": "Wales"
+        },
+        {
+          "reference": "002",
+          "description": "Cardiff"
+        },
+        {
+          "reference": "003",
+          "description": "Swansea"
+        }
+      ]
+    },
+    {
+      "columnName": "Year",
+      "factTableColumn": "YearID",
+      "values": [
+        {
+          "reference": "2025",
+          "description": "2025"
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "Area": "Wales",
+      "Year": "2025",
+      "Data values": "          22",
+      "Notes": null,
+      "Area_sort": 1
+    },
+    {
+      "Area": "Cardiff",
+      "Year": "2025",
+      "Data values": "*",
+      "Notes": "suppressed",
+      "Area_sort": 2
+    },
+    {
+      "Area": "Swansea",
+      "Year": "2025",
+      "Data values": "001",
+      "Notes": "p",
+      "Area_sort": 3
+    }
+  ]
+}

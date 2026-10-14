@@ -1,0 +1,99 @@
+{
+  "format": "statswales_v2",
+  "request": {
+    "provider": "statswales",
+    "dataset_id": "00000000-0000-4000-8000-000000000001",
+    "params": {
+      "filters": []
+    },
+    "page_size": 2,
+    "max_rows": 20
+  },
+  "metadata": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "published_revision": {
+      "id": "synthetic-revision-1",
+      "revision_index": 1,
+      "publish_at": "2025-01-01T00:00:00Z",
+      "metadata": [
+        {
+          "language": "en-GB",
+          "title": "Invented conformance fixture; not published statistics"
+        }
+      ]
+    }
+  },
+  "dimensions": [
+    {
+      "columnName": "Household",
+      "factTableColumn": "BreakdownID",
+      "values": [
+        {
+          "reference": "ALL",
+          "description": "Invented all groups",
+          "children": [
+            {
+              "reference": "01",
+              "description": "Invented group A"
+            },
+            {
+              "reference": "02",
+              "description": "Invented group B"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "columnName": "Period",
+      "factTableColumn": "YearID",
+      "values": [
+        {
+          "reference": "3Y2025",
+          "description": "Invented three-year period"
+        }
+      ]
+    },
+    {
+      "columnName": "Indicator",
+      "factTableColumn": "MeasureID",
+      "values": [
+        {
+          "reference": "CNT",
+          "description": "Invented count"
+        },
+        {
+          "reference": "PCT",
+          "description": "Invented percentage"
+        },
+        {
+          "reference": "SHR",
+          "description": "Invented composition"
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "Household": "Invented all groups",
+      "Period": "Invented three-year period",
+      "Indicator": "Invented count",
+      "Data values": "   41",
+      "Notes": null
+    },
+    {
+      "Household": "Invented group A",
+      "Period": "Invented three-year period",
+      "Indicator": "Invented percentage",
+      "Data values": "7.25",
+      "Notes": "p"
+    },
+    {
+      "Household": "Invented group B",
+      "Period": "Invented three-year period",
+      "Indicator": "Invented composition",
+      "Data values": "0",
+      "Notes": null
+    }
+  ]
+}

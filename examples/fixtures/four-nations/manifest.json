@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "kind": "synthetic_teaching_fixtures",
+  "contains_publisher_records": false,
+  "notice": "All observations, response titles, table IDs and metadata are independently invented teaching examples. Protocol references document response formats only; the fixtures are not published statistics. Geography examples inherited from the existing teaching suite retain illustrative codes and invented labels.",
+  "nations": {
+    "england": {
+      "provider": "deprivation",
+      "dataset_id": "english-indices-of-deprivation-2025",
+      "scope": "Synthetic English LSOA2021/LAD2024 records in the 2025 deprivation release format; observation time is unspecified except the mid-2022 population column. Values are invented."
+    },
+    "wales": {
+      "provider": "statswales",
+      "dataset_id": "40ddfa33-9ba8-4278-ac27-1f1b0bc5fc0f",
+      "scope": "Synthetic Wales, Cardiff and Swansea rows with native example area IDs 001\u2013003 for 2025; geography boundary versions unspecified. Values are invented."
+    },
+    "scotland": {
+      "provider": "scotland",
+      "dataset_id": "ssdu-synthetic-series",
+      "scope": "Invented Scottish district 001, 2023\u20132024, and count measure; the example URI does not identify an official geography. Values are invented."
+    },
+    "northern_ireland": {
+      "provider": "nisra",
+      "dataset_id": "SYNTH_TS",
+      "scope": "Invented Northern Ireland area N_SYNTH_NI, 2023\u20132024, and count measure. Values are invented."
+    }
+  },
+  "files": [
+    {
+      "path": "fixtures/dataset-contract/deprivation.csv",
+      "nation": "england",
+      "reference": "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025",
+      "sha256": "356ed985994929e3b7fc4c06514797723eeb39b700152b4de92bb31cc22d8493",
+      "bytes": 623,
+      "fixture_kind": "synthetic_teaching_fixtures"
+    },
+    {
+      "path": "fixtures/dataset-contract/statswales.json",
+      "nation": "wales",
+      "reference": "https://api.stats.gov.wales/v2/docs",
+      "sha256": "127e562e530f7ba2ac7d7f8c9dc462e97d47bbc6c48746945b2cf96fbe9e61dd",
+      "bytes": 1337,
+      "fixture_kind": "synthetic_teaching_fixtures"
+    },
+    {
+      "path": "fixtures/four-nations/scotland-metadata.json",
+      "nation": "scotland",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql",
+      "sha256": "b9564dc712c0c5d2cce906e3b4b78d6effb08169e51d6e5cb21baf1386ffae82",
+      "bytes": 3814,
+      "fixture_kind": "synthetic_teaching_fixtures"
+    },
+    {
+      "path": "fixtures/four-nations/scotland-observations.json",
+      "nation": "scotland",
+      "reference": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql",
+      "sha256": "600ca49e2f80cf76cce952cbc6ef25b0ef13036c27598802e48603bce83a0a96",
+      "bytes": 4930,
+      "fixture_kind": "synthetic_teaching_fixtures"
+    },
+    {
+      "path": "fixtures/four-nations/nisra-cube.json",
+      "nation": "northern_ireland",
+      "reference": "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful",
+      "sha256": "ec4108d61f38505f8d8972bfe9a9804e3bf1ff1ce4782e60c6967c40eff60b80",
+      "bytes": 1341,
+      "fixture_kind": "synthetic_teaching_fixtures"
+    }
+  ]
+}

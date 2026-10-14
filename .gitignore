@@ -1,0 +1,32 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+data/
+
+# Local stores, provider responses, bundles and publication staging stay private.
+.env
+.env.*
+!.env.example
+.ipynb_checkpoints/
+*.pyc
+build/
+dist/
+.DS_Store
+benchmarks/
+examples/discovery_review/
+examples/harvest/
+examples/literature/
+examples/validation/
+# Private implementation and validation records are outside the public manual.
+/DEVELOPMENT.md
+/DISCOVERY_RESEARCH.md
+/NEXT_STEPS.md
+/RETRIEVAL_JOBS.md
+/RETRIEVAL_LAYER.md
+/SCOPE.md
+/VALIDATION.md
+# These private acceptance scripts exercise excluded research bundles.
+/tests/test_discovery_adjudication_replay.py
+/tests/test_uk_validation_replay.py

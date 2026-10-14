@@ -1,0 +1,44 @@
+{
+  "kind": "independently_invented_synthetic",
+  "notice": "Response structures exercise the published JSON-stat protocol. All values, table IDs, labels and metadata are invented; no third-party dataset is redistributed.",
+  "references": [
+    "https://json-stat.org/format/",
+    "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful",
+    "https://github.com/CSOIreland/PxStat/wiki/API-Navigation"
+  ],
+  "fixtures": [
+    {
+      "path": "time_series.json",
+      "sha256": "ec4108d61f38505f8d8972bfe9a9804e3bf1ff1ce4782e60c6967c40eff60b80",
+      "bytes": 1341,
+      "matrix": "SYNTH_TS",
+      "kind": "independently_invented_synthetic",
+      "references": [
+        "https://json-stat.org/format/",
+        "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful"
+      ]
+    },
+    {
+      "path": "multidimensional.json",
+      "sha256": "683eb663745437eec176e657c9ececb47eb4166dc5b9ec4d75c5a2a7552fb36a",
+      "bytes": 2126,
+      "matrix": "SYNTH_MULTI",
+      "kind": "independently_invented_synthetic",
+      "references": [
+        "https://json-stat.org/format/",
+        "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful"
+      ]
+    },
+    {
+      "path": "sparse.json",
+      "sha256": "94291aa741afb5003b3cdf20168325843e736ee52707afb264665030852da747",
+      "bytes": 1395,
+      "matrix": "SYNTH_SPARSE",
+      "kind": "independently_invented_synthetic",
+      "references": [
+        "https://json-stat.org/format/",
+        "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,527 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Independently invented synthetic boundary fixtures following documented response schemas. These contain no published data cells or copied provider metadata, are not official statistics and do not certify complete portal coverage. All execution is offline.",
+  "families": {
+    "nomis_category_time_series": {
+      "provider": "nomis",
+      "scope": "Category-by-time counts with leading-zero codes and explicit count units.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://www.nomisweb.co.uk/api/v01/help"
+      ],
+      "payload": "nomis_category_time_series.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 3,
+        "columns": {
+          "value": [
+            13,
+            17,
+            0
+          ],
+          "value_raw": [
+            "13",
+            "17",
+            "0"
+          ],
+          "measure": [
+            "MEASURE=01|MEASURES=20100",
+            "MEASURE=01|MEASURES=20100",
+            "MEASURE=01|MEASURES=20100"
+          ],
+          "geography": [
+            "E00000001",
+            "E00000001",
+            "E00000001"
+          ],
+          "period": [
+            "2025-01",
+            "2025-02",
+            "2025-03"
+          ],
+          "sex": [
+            "01",
+            "02",
+            "01"
+          ],
+          "unit": [
+            "persons",
+            "persons",
+            "persons"
+          ]
+        },
+        "variables": {
+          "MEASURE=01|MEASURES=20100": {
+            "unit": "persons"
+          }
+        },
+        "diagnostics": []
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "nomis_independent_measures": {
+      "provider": "nomis",
+      "scope": "Independent MEASURE/MEASURES identities, leading zeros and representation-specific units.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://www.nomisweb.co.uk/api/v01/help"
+      ],
+      "payload": "nomis_independent_measures.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 3,
+        "columns": {
+          "measure": [
+            "MEASURE=01|MEASURES=20100",
+            "MEASURE=01|MEASURES=20130",
+            "MEASURE=02|MEASURES=20130"
+          ],
+          "value": [
+            1,
+            12.5,
+            0
+          ],
+          "value_raw": [
+            "001",
+            "12.5",
+            "0"
+          ],
+          "sex": [
+            "001",
+            "001",
+            "002"
+          ],
+          "unit": [
+            "persons",
+            null,
+            "percent"
+          ]
+        },
+        "variables": {
+          "MEASURE=01|MEASURES=20100": {
+            "unit": "persons"
+          },
+          "MEASURE=01|MEASURES=20130": {
+            "unit": null
+          },
+          "MEASURE=02|MEASURES=20130": {
+            "unit": "percent"
+          }
+        },
+        "diagnostics": [
+          "unknown_unit"
+        ]
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "nomis_missing_and_ambiguous_metadata": {
+      "provider": "nomis",
+      "scope": "Suppression, empty and malformed numeric tokens; missing codes, omitted dimensions and conflicting unit annotations.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://www.nomisweb.co.uk/api/v01/help"
+      ],
+      "payload": "nomis_missing_and_ambiguous_metadata.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 3,
+        "columns": {
+          "value": [
+            null,
+            null,
+            null
+          ],
+          "value_raw": [
+            "..",
+            "",
+            "1,23"
+          ],
+          "status": [
+            "S",
+            "M",
+            "S"
+          ],
+          "sex": [
+            "001",
+            null,
+            "002"
+          ],
+          "unit": [
+            null,
+            null,
+            null
+          ]
+        },
+        "diagnostics": [
+          "non_numeric_value",
+          "unknown_dimension",
+          "unknown_unit",
+          "unobserved_dimension"
+        ]
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "statswales_hierarchical_multi_measure": {
+      "provider": "statswales",
+      "scope": "Hierarchical category codes, three measure identities and a multi-year period.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://api.stats.gov.wales/docs/?urls.primaryName=API+v2+%28English%29"
+      ],
+      "payload": "statswales_hierarchical_multi_measure.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 3,
+        "columns": {
+          "measure": [
+            "CNT",
+            "PCT",
+            "SHR"
+          ],
+          "value": [
+            41,
+            7.25,
+            0
+          ],
+          "value_raw": [
+            "   41",
+            "7.25",
+            "0"
+          ],
+          "household": [
+            "ALL",
+            "01",
+            "02"
+          ],
+          "period": [
+            "3Y2025",
+            "3Y2025",
+            "3Y2025"
+          ],
+          "unit": [
+            null,
+            null,
+            null
+          ],
+          "notes": [
+            null,
+            "p",
+            null
+          ]
+        },
+        "variables": {
+          "CNT": {
+            "unit": null
+          },
+          "PCT": {
+            "unit": null
+          },
+          "SHR": {
+            "unit": null
+          }
+        },
+        "diagnostics": [
+          "unknown_unit"
+        ]
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "statswales_ambiguous_dimensions": {
+      "provider": "statswales",
+      "scope": "Repeated display labels and unknown areas retain null codes; ambiguous measure identities remain unresolved dimensions.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://api.stats.gov.wales/docs/?urls.primaryName=API+v2+%28English%29"
+      ],
+      "payload": "statswales_ambiguous_dimensions.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 3,
+        "columns": {
+          "area": [
+            "001",
+            null,
+            null
+          ],
+          "indicator": [
+            null,
+            null,
+            null
+          ],
+          "measure": [
+            "Data values",
+            "Data values",
+            "Data values"
+          ],
+          "value": [
+            1234.5,
+            null,
+            0
+          ],
+          "value_raw": [
+            "1,234.5",
+            "*",
+            "0"
+          ],
+          "notes": [
+            null,
+            "suppressed",
+            "provisional"
+          ]
+        },
+        "diagnostics": [
+          "unknown_dimension",
+          "unknown_measure",
+          "unknown_unit",
+          "non_numeric_value"
+        ]
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "statswales_welsh_formatted_cells": {
+      "provider": "statswales",
+      "scope": "Welsh source columns, exact whitespace/scientific notation, malformed groupings and missing-cell notes.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://api.stats.gov.wales/docs/?urls.primaryName=API+v2+%28English%29"
+      ],
+      "payload": "statswales_welsh_formatted_cells.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 3,
+        "columns": {
+          "ardal": [
+            "001",
+            "001",
+            "001"
+          ],
+          "cyfnod": [
+            "2025",
+            "2025",
+            "2025"
+          ],
+          "value": [
+            -125,
+            null,
+            null
+          ],
+          "value_raw": [
+            " -1.25e2 ",
+            "1,23",
+            ""
+          ],
+          "notes": [
+            null,
+            "ansafonol",
+            "dim"
+          ],
+          "status": [
+            "numeric",
+            "non_numeric",
+            "missing"
+          ]
+        },
+        "diagnostics": [
+          "non_numeric_value",
+          "unknown_unit"
+        ]
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "deprivation_file7_measure_types": {
+      "provider": "deprivation",
+      "scope": "File 7 response shape with rank/decile/score/population measures, negative scores and exact decimal tokens.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025"
+      ],
+      "payload": "deprivation_file7_measure_types.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 15,
+        "measure_columns": {
+          "imd_score": {
+            "value": [
+              1.25,
+              2.5,
+              0
+            ],
+            "value_raw": [
+              " 1.2500",
+              "2.5",
+              "0"
+            ]
+          },
+          "imd_rank": {
+            "value": [
+              101,
+              202,
+              303
+            ]
+          },
+          "imd_decile": {
+            "value": [
+              1,
+              2,
+              3
+            ]
+          },
+          "health_deprivation_and_disability_score": {
+            "value": [
+              -1.25,
+              0.25,
+              0
+            ]
+          },
+          "total_population_mid_2022": {
+            "value": [
+              1500,
+              2500,
+              0
+            ]
+          }
+        },
+        "variables": {
+          "imd_score": {
+            "kind": "score"
+          },
+          "imd_rank": {
+            "kind": "rank"
+          },
+          "imd_decile": {
+            "kind": "decile"
+          }
+        },
+        "diagnostics": []
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "deprivation_suppression_and_population": {
+      "provider": "deprivation",
+      "scope": "Synthetic suppressed score and missing secondary score remain distinct from numeric population zeros.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025"
+      ],
+      "payload": "deprivation_suppression_and_population.json",
+      "expected": {
+        "source_rows": 3,
+        "observation_rows": 15,
+        "measure_columns": {
+          "imd_score": {
+            "value": [
+              1.25,
+              null,
+              0
+            ],
+            "value_raw": [
+              " 1.2500",
+              "[c]",
+              "0"
+            ]
+          },
+          "health_deprivation_and_disability_score": {
+            "value": [
+              -1.25,
+              null,
+              0
+            ]
+          },
+          "total_population_mid_2022": {
+            "value": [
+              1500,
+              2500,
+              0
+            ]
+          }
+        },
+        "variables": {
+          "imd_rank": {
+            "kind": "rank"
+          },
+          "imd_decile": {
+            "kind": "decile"
+          }
+        },
+        "diagnostics": [
+          "non_numeric_value"
+        ]
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    },
+    "deprivation_complete_lad_selection": {
+      "provider": "deprivation",
+      "scope": "Complete local-authority selection reuses a national raw parent and preserves every selected source token.",
+      "evidence_kind": "synthetic_boundary",
+      "references": [
+        "https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025"
+      ],
+      "payload": "deprivation_complete_lad_selection.json",
+      "expected": {
+        "source_rows": 2,
+        "observation_rows": 10,
+        "measure_columns": {
+          "imd_score": {
+            "value": [
+              1.25,
+              0
+            ],
+            "value_raw": [
+              " 1.2500",
+              "0"
+            ],
+            "lsoa_code": [
+              "E01000001",
+              "E01000003"
+            ]
+          },
+          "imd_rank": {
+            "value": [
+              101,
+              303
+            ]
+          }
+        },
+        "variables": {
+          "imd_rank": {
+            "kind": "rank"
+          },
+          "imd_decile": {
+            "kind": "decile"
+          }
+        },
+        "diagnostics": []
+      },
+      "provenance": {
+        "statement": "Independently invented fixture. Documentation URLs identify protocol/schema references only; no published records or provider metadata were copied."
+      }
+    }
+  },
+  "files": {
+    "nomis_category_time_series.json": "00ffd42fa50f254866452fc7a6234d47a5791d4c61aa313c154e101212ceb421",
+    "nomis_independent_measures.json": "54055ac454fd472882876462b89ab2473326db9de2cd16f40747bb4795cb04b4",
+    "nomis_missing_and_ambiguous_metadata.json": "fbd89e8f68d2c449c5794be1112787b2f815d9579a4982d7728646391be38c60",
+    "statswales_hierarchical_multi_measure.json": "e9f51d07be8bd93ec07e413f5ff53f9cc75b017c128748484798a65fa7173ec4",
+    "statswales_ambiguous_dimensions.json": "583c65c68028c604a471f842b70f552a6c22fed5170ed5b29031f6c1a3cca555",
+    "statswales_welsh_formatted_cells.json": "25cbc0d5115bb6b370f2c7d03a4835d830ae39914f781bbf5d855d69599361a9",
+    "deprivation_file7_measure_types.json": "eb982480c6e255928fdf2cb328f407514de554d91e52931f40e3f79ea8ddea6a",
+    "deprivation_suppression_and_population.json": "f0a4ebbc32c8b13bde2db53433a46e832f9a721dd2ff3f792cab7e401355e51a",
+    "deprivation_complete_lad_selection.json": "07878bc08c8ce58d4d568aca039ba70c7e7eb6945794c67e3254ad05540dfda7"
+  }
+}

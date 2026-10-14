@@ -1,0 +1,106 @@
+{
+  "format": "nomis_csv",
+  "request": {
+    "provider": "nomis",
+    "dataset_id": "NM_999999_1",
+    "params": {
+      "geography": "999999",
+      "date": "2025-01-2025-03",
+      "sex": [
+        "01",
+        "02"
+      ]
+    },
+    "page_size": 2,
+    "max_rows": 20
+  },
+  "definition": {
+    "structure": {
+      "keyfamilies": {
+        "keyfamily": [
+          {
+            "id": "NM_999999_1",
+            "name": {
+              "value": "Invented conformance fixture; not published statistics"
+            },
+            "components": {
+              "dimension": [
+                {
+                  "conceptref": "GEOGRAPHY"
+                },
+                {
+                  "conceptref": "SEX"
+                },
+                {
+                  "conceptref": "MEASURE"
+                },
+                {
+                  "conceptref": "MEASURES"
+                }
+              ]
+            },
+            "annotations": {
+              "annotation": [
+                {
+                  "annotationtitle": "LastRevised",
+                  "annotationtext": "synthetic-1"
+                },
+                {
+                  "annotationtitle": "Units",
+                  "annotationtext": "persons"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rows": [
+    {
+      "DATE": "2025-01",
+      "GEOGRAPHY_CODE": "E00000001",
+      "GEOGRAPHY_NAME": "Invented area",
+      "SEX_CODE": "01",
+      "SEX_NAME": "Invented group 01",
+      "MEASURE_CODE": "01",
+      "MEASURE_NAME": "Invented count",
+      "MEASURES": "20100",
+      "MEASURES_NAME": "Value",
+      "OBS_VALUE": "13",
+      "OBS_STATUS": "A",
+      "RECORD_COUNT": "3",
+      "RECORD_OFFSET": "0"
+    },
+    {
+      "DATE": "2025-02",
+      "GEOGRAPHY_CODE": "E00000001",
+      "GEOGRAPHY_NAME": "Invented area",
+      "SEX_CODE": "02",
+      "SEX_NAME": "Invented group 02",
+      "MEASURE_CODE": "01",
+      "MEASURE_NAME": "Invented count",
+      "MEASURES": "20100",
+      "MEASURES_NAME": "Value",
+      "OBS_VALUE": "17",
+      "OBS_STATUS": "A",
+      "RECORD_COUNT": "3",
+      "RECORD_OFFSET": "1"
+    },
+    {
+      "DATE": "2025-03",
+      "GEOGRAPHY_CODE": "E00000001",
+      "GEOGRAPHY_NAME": "Invented area",
+      "SEX_CODE": "01",
+      "SEX_NAME": "Invented group 01",
+      "MEASURE_CODE": "01",
+      "MEASURE_NAME": "Invented count",
+      "MEASURES": "20100",
+      "MEASURES_NAME": "Value",
+      "OBS_VALUE": "0",
+      "OBS_STATUS": "A",
+      "RECORD_COUNT": "3",
+      "RECORD_OFFSET": "2"
+    }
+  ]
+}

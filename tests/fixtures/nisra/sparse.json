@@ -1,0 +1,84 @@
+{
+  "version": "2.0",
+  "class": "dataset",
+  "label": "Synthetic conformance example; not published statistics",
+  "id": [
+    "YEAR",
+    "AREA",
+    "STATISTIC"
+  ],
+  "size": [
+    3,
+    1,
+    1
+  ],
+  "dimension": {
+    "YEAR": {
+      "label": "Year",
+      "category": {
+        "index": [
+          "2022",
+          "2023",
+          "2024"
+        ],
+        "label": {
+          "2022": "2022",
+          "2023": "2023",
+          "2024": "2024"
+        }
+      }
+    },
+    "AREA": {
+      "label": "Area",
+      "category": {
+        "label": {
+          "001": "Invented area"
+        }
+      }
+    },
+    "STATISTIC": {
+      "label": "Statistic",
+      "category": {
+        "index": [
+          "RATE"
+        ],
+        "label": {
+          "RATE": "Invented rate"
+        }
+      }
+    }
+  },
+  "value": {
+    "0": null,
+    "2": "001"
+  },
+  "updated": "2024-02-01T00:00:00Z",
+  "role": {
+    "metric": [
+      "STATISTIC"
+    ],
+    "time": [
+      "YEAR"
+    ],
+    "geo": [
+      "AREA"
+    ]
+  },
+  "extension": {
+    "matrix": "SYNTH_SPARSE",
+    "copyright": {
+      "name": "Independently invented SSDU test values"
+    },
+    "ssdu_fixture": "synthetic; no provider data",
+    "status": {
+      "c": "Synthetic confidential",
+      "m": "Synthetic missing",
+      "p": "Synthetic provisional"
+    }
+  },
+  "status": {
+    "0": "c",
+    "1": "m",
+    "2": "p"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "format": "deprivation_csv",
+  "request": {
+    "provider": "deprivation",
+    "dataset_id": "english-indices-of-deprivation-2025",
+    "params": {
+      "scope": "england"
+    },
+    "page_size": 1000,
+    "max_rows": 100000
+  },
+  "csv": "LSOA code (2021),LSOA name (2021),Local Authority District code (2024),Local Authority District name (2024),Index of Multiple Deprivation (IMD) Score,Index of Multiple Deprivation (IMD) Rank (where 1 is most deprived),Index of Multiple Deprivation (IMD) Decile (where 1 is most deprived 10% of LSOAs),Health Deprivation and Disability Score,Total population: mid 2022\r\nE01000001,Invented LSOA A,E09000001,Invented authority A, 1.2500,101,1,-1.25,1500\r\nE01000002,Invented LSOA B,E06000062,Invented authority B,[c],202,2,,2500\r\nE01000003,Invented LSOA C,E09000001,Invented authority A,0,303,3,0,0\r\n"
+}

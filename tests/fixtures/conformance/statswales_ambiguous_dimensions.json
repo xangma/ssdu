@@ -1,0 +1,93 @@
+{
+  "format": "statswales_v2",
+  "request": {
+    "provider": "statswales",
+    "dataset_id": "00000000-0000-4000-8000-000000000001",
+    "params": {
+      "filters": []
+    },
+    "page_size": 2,
+    "max_rows": 20
+  },
+  "metadata": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "published_revision": {
+      "id": "synthetic-revision-1",
+      "revision_index": 1,
+      "publish_at": "2025-01-01T00:00:00Z",
+      "metadata": [
+        {
+          "language": "en-GB",
+          "title": "Invented conformance fixture; not published statistics"
+        }
+      ]
+    }
+  },
+  "dimensions": [
+    {
+      "columnName": "Area",
+      "factTableColumn": "AreaID",
+      "values": [
+        {
+          "reference": "001",
+          "description": "Invented area A"
+        },
+        {
+          "reference": "002",
+          "description": "Repeated"
+        },
+        {
+          "reference": "003",
+          "description": "Repeated"
+        }
+      ]
+    },
+    {
+      "columnName": "Year",
+      "factTableColumn": "YearID",
+      "values": [
+        {
+          "reference": "2025",
+          "description": "2025"
+        }
+      ]
+    },
+    {
+      "columnName": "Indicator",
+      "factTableColumn": "MeasureID",
+      "values": [
+        {
+          "reference": "N1",
+          "description": "Count"
+        },
+        {
+          "reference": "N2",
+          "description": "Count"
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "Area": "Invented area A",
+      "Year": "2025",
+      "Indicator": "Count",
+      "Data values": "1,234.5",
+      "Notes": null
+    },
+    {
+      "Area": "Repeated",
+      "Year": "2025",
+      "Indicator": "Count",
+      "Data values": "*",
+      "Notes": "suppressed"
+    },
+    {
+      "Area": "Unknown",
+      "Year": "2025",
+      "Indicator": "Count",
+      "Data values": "0",
+      "Notes": "provisional"
+    }
+  ]
+}
