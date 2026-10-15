@@ -1,6 +1,6 @@
 import json
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
@@ -28,6 +28,11 @@ class Resource:
     content_type: str
     headers: dict[str, str]
     cache_scope: str | None = None
+    captured_at: str | None = field(default=None, compare=False)
+    checked_at: str | None = field(default=None, compare=False)
+    cache_hit: bool = field(default=False, compare=False)
+    status_code: int = field(default=200, compare=False)
+    revalidated: bool = field(default=False, compare=False)
 
     def json(self) -> Any:
         try:
@@ -40,6 +45,7 @@ class HttpClient:
     """Bounded HTTPS transport recording successful responses for provenance."""
 
     HOSTS = allowed_hosts()
+    conditional_requests = True
 
     def __init__(
         self,
@@ -99,7 +105,7 @@ class HttpClient:
         finally:
             self.cache_scope = previous
 
-    def request(self, method: str, url: str, *, params=None, json=None) -> Resource:
+    def request(self, method: str, url: str, *, params=None, json=None, headers=None) -> Resource:
         parsed = urlparse(url)
         if parsed.scheme != "https" or parsed.hostname not in self.allowed_hosts:
             raise RetrievalError(f"Provider URL is outside the PoC allowlist: {url}")
@@ -116,7 +122,9 @@ class HttpClient:
                 self.attempts += 1
                 try:
                     try:
-                        with self.client.stream(method, url, params=params, json=json) as response:
+                        with self.client.stream(
+                            method, url, params=params, json=json, headers=headers
+                        ) as response:
                             if response.status_code == 429 or response.status_code >= 500:
                                 delay = retry_after_seconds(
                                     response.headers.get("retry-after"),
@@ -128,7 +136,16 @@ class HttpClient:
                                 )
                                 if attempt < self.retries:
                                     continue
-                            response.raise_for_status()
+                            conditional = (
+                                method == "GET"
+                                and headers
+                                and any(
+                                    key.lower() in {"if-none-match", "if-modified-since"}
+                                    for key in headers
+                                )
+                            )
+                            if response.status_code != 304 or not conditional:
+                                response.raise_for_status()
                             body = bytearray()
                             for chunk in response.iter_bytes():
                                 body.extend(chunk)
@@ -162,6 +179,7 @@ class HttpClient:
                                     }
                                 },
                                 cache_scope=self.cache_scope,
+                                status_code=response.status_code,
                             )
                             self.resources.append(resource)
                             return resource

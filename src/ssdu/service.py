@@ -37,6 +37,156 @@ class Service:
         if index_store:
             self.registry.import_store(self.store)
 
+    def _metadata_sync(self):
+        from ssdu.metadata_sync import MetadataSync
+
+        return MetadataSync(self.store.root)
+
+    def plan_metadata_sync(self, spec, *, offline=False, refresh=False, budget=None):
+        """Freeze bounded sync intent locally; only the explicit worker may use providers."""
+        return bounded_result(
+            self._metadata_sync().plan_sync(spec, offline=offline, refresh=refresh, budget=budget)
+        )
+
+    def get_metadata_plan(self, plan_id):
+        return bounded_result(self._metadata_sync().get_plan(plan_id))
+
+    def submit_metadata_plan(self, plan_id, idempotency_key):
+        return bounded_result(self._metadata_sync().submit_plan(plan_id, idempotency_key))
+
+    def get_metadata_job(self, job_id):
+        return bounded_result(self._metadata_sync().get_job(job_id))
+
+    def list_metadata_jobs(self, limit=20, offset=0):
+        return bounded_result(self._metadata_sync().list_jobs(limit, offset))
+
+    def cancel_metadata_job(self, job_id):
+        return bounded_result(self._metadata_sync().cancel_job(job_id))
+
+    def retry_metadata_job(self, job_id):
+        return bounded_result(self._metadata_sync().retry_job(job_id))
+
+    def run_metadata_job(self, job_id=None):
+        """Run one due sync job explicitly. This method is never exposed by REST or MCP."""
+        return bounded_result(self._metadata_sync().run_job(job_id))
+
+    @staticmethod
+    def _metadata_result(value):
+        """Project oversized metadata while preserving full verified Python-store evidence."""
+        try:
+            return bounded_result(value)
+        except ValueError as exc:
+            if str(exc) != "Response exceeds the API output limit":
+                raise
+        # Raw provider documents and code collections belong in immutable snapshots,
+        # not in a tool response. Keep identity, references and freshness visible.
+        for prose_limit, collection_limit in ((8192, 100), (512, 20), (128, 5)):
+            omitted = set()
+
+            def compact(
+                item,
+                path="",
+                depth=0,
+                *,
+                omitted=omitted,
+                prose_limit=prose_limit,
+                collection_limit=collection_limit,
+            ):
+                if depth > 24:
+                    omitted.add(path)
+                    return None
+                if isinstance(item, dict):
+                    result = {}
+                    for key, child in item.items():
+                        child_path = f"{path}.{key}" if path else key
+                        if key in {"source_metadata", "codes", "values", "category", "code_pages"}:
+                            omitted.add(child_path)
+                        else:
+                            result[key] = compact(child, child_path, depth + 1)
+                    return result
+                if isinstance(item, list):
+                    # Never skip requested search/list rows; their pagination stays exact.
+                    cap = len(item) if path in {"items", "rows", "providers"} else collection_limit
+                    if len(item) > cap:
+                        omitted.add(path + "[]")
+                    return [compact(child, path + "[]", depth + 1) for child in item[:cap]]
+                if (
+                    isinstance(item, str)
+                    and len(item) > prose_limit
+                    and path.rsplit(".", 1)[-1]
+                    in {"description", "title", "label", "note", "message", "metadata_note"}
+                ):
+                    omitted.add(path)
+                    return item[:prose_limit]
+                return item
+
+            summary = compact(value)
+            summary.update(metadata_detail="summary", omitted_fields=sorted(omitted))
+            try:
+                return bounded_result(summary)
+            except ValueError as exc:
+                if str(exc) != "Response exceeds the API output limit":
+                    raise
+        raise ValueError("Response exceeds the API output limit")
+
+    def search_metadata(self, query="", provider=None, limit=20, offset=0, include_retired=False):
+        """Search current discovery metadata offline; observation-pinned metadata is separate."""
+        from ssdu.metadata_index import MetadataIndex
+
+        return self._metadata_result(
+            MetadataIndex(self.store.root).search(
+                query,
+                provider=provider,
+                limit=limit,
+                offset=offset,
+                include_retired=include_retired,
+            )
+        )
+
+    def describe_metadata(self, dataset_id, *, snapshot_id=None):
+        from ssdu.metadata_index import MetadataIndex
+
+        index = MetadataIndex(self.store.root)
+        record = (
+            index.get(dataset_id)
+            if snapshot_id is None
+            else index.get(dataset_id, snapshot_id=snapshot_id)
+        )
+        return self._metadata_result(record)
+
+    def metadata_status(self, provider=None, max_age_seconds=86400):
+        from ssdu.metadata_index import MetadataIndex
+
+        return self._metadata_result(
+            MetadataIndex(self.store.root).status(provider, max_age_seconds=max_age_seconds)
+        )
+
+    def list_metadata_snapshots(self, limit=20, offset=0):
+        from ssdu.metadata_store import MetadataStore
+
+        return bounded_result(MetadataStore(self.store.root).list(limit, offset))
+
+    def describe_metadata_snapshot(self, snapshot_id):
+        """Verify a snapshot and return its identity, counts and provider reports, not bulk records."""
+        from ssdu.metadata_store import MetadataStore
+
+        store = MetadataStore(self.store.root)
+        manifest = store.verify(snapshot_id)
+        document = store.read(snapshot_id)
+        return self._metadata_result(
+            {
+                "snapshot_id": manifest["snapshot_id"],
+                "contract_version": manifest["contract_version"],
+                "counts": manifest["counts"],
+                "captured_at": document["captured_at"],
+                "providers": document["providers"],
+                "verified": True,
+                "offline": True,
+                "metadata_detail": "summary",
+                "omitted_fields": ["records", "source_metadata", "raw_resources"],
+            }
+        )
+
     def _retrieval(self):
         from ssdu.retrieval import RetrievalService
 

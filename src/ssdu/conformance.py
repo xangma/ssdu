@@ -191,6 +191,22 @@ CONFORMANCE_FAMILIES = (
         (_LOCAL,),
         "tests/test_records_store.py::test_records_declared_composite_keys_grain_and_validation",
     ),
+    *(
+        ConformanceFamily(
+            f"{provider}_metadata_sync",
+            provider,
+            "Synthetic metadata-only catalogue, descriptions and native codes retain referenced raw evidence in verified immutable snapshots.",
+            (reference,),
+            f"tests/test_metadata_sync.py::test_each_provider_sync_keeps_raw_references_and_metadata_only[{provider}]",
+        )
+        for provider, reference in (
+            ("nomis", _NOMIS),
+            ("statswales", _WALES),
+            ("mhclg", _GOVUK_CONTENT),
+            ("nisra", _PXSTAT),
+            ("scotland", _SCOTLAND),
+        )
+    ),
 )
 
 

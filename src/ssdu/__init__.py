@@ -7,6 +7,9 @@ __all__ = [
     "Dataset",
     "DatasetQuerySpec",
     "LocalImportSpec",
+    "MetadataIndex",
+    "MetadataStore",
+    "MetadataSync",
     "Request",
     "Service",
     "Store",
@@ -16,6 +19,18 @@ __all__ = [
 
 def __getattr__(name):
     """Keep the public SDK convenient without importing storage during package setup."""
+    if name == "MetadataSync":
+        from ssdu.metadata_sync import MetadataSync
+
+        return MetadataSync
+    if name == "MetadataStore":
+        from ssdu.metadata_store import MetadataStore
+
+        return MetadataStore
+    if name == "MetadataIndex":
+        from ssdu.metadata_index import MetadataIndex
+
+        return MetadataIndex
     if name == "Connector":
         from ssdu.connectors import Connector
 

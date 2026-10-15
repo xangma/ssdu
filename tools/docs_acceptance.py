@@ -258,8 +258,8 @@ def main():
     jobs_rest = json.loads((source / "_downloads/openapi-jobs.json").read_text())
     default_mcp = json.loads((source / "_downloads/mcp.json").read_text())
     jobs_mcp = json.loads((source / "_downloads/mcp-jobs.json").read_text())
-    assert len(default_rest["paths"]) == 13 and len(jobs_rest["paths"]) == 19
-    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 20
+    assert len(default_rest["paths"]) == 18 and len(jobs_rest["paths"]) == 30
+    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 32
     assert {
         "/snapshots/{snapshot_id}/dataset": "get",
         "/snapshots/{snapshot_id}/dataset/query": "post",
@@ -267,10 +267,13 @@ def main():
         "/providers/{provider}/datasets": "get",
         "/providers/{provider}/datasets/{dataset_id}": "get",
         "/providers/{provider}/datasets/{dataset_id}/dimensions/{dimension}": "get",
+        "/metadata/datasets": "get",
+        "/metadata/status": "get",
+        "/metadata/snapshots": "get",
     }.items() <= {
         (path, method) for path, methods in default_rest["paths"].items() for method in methods
     }
-    assert len(default_mcp["tools"]) == 12 and len(jobs_mcp["tools"]) == 19
+    assert len(default_mcp["tools"]) == 17 and len(jobs_mcp["tools"]) == 31
     dataset_tools = {
         "describe_snapshot",
         "query_dataset",
@@ -278,6 +281,11 @@ def main():
         "list_provider_datasets",
         "describe_provider_dataset",
         "list_provider_dimension_values",
+        "search_metadata",
+        "describe_metadata",
+        "metadata_status",
+        "list_metadata_snapshots",
+        "describe_metadata_snapshot",
     }
     assert dataset_tools <= {tool["name"] for tool in default_mcp["tools"]}
     assert all(

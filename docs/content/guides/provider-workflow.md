@@ -9,6 +9,9 @@ The common workflow is available for **Nomis, StatsWales, MHCLG, NISRA and
 Scotland**. Their selection codes and supported formats differ; check the
 [coverage matrix](../reference/sources.md) before choosing a source.
 
+To collect descriptions for discovery before choosing a table, see
+[keeping a searchable metadata catalogue](metadata-sync.md).
+
 ## Try the complete example
 
 After [installation](../start/install.md), run from the project folder:

@@ -203,6 +203,7 @@ def references(manifest):
     from ssdu import __version__
     from ssdu.api import create_app
     from ssdu.conformance import conformance_coverage
+    from ssdu.metadata_contract import contract_schema
     from ssdu.source_coverage import get_source_coverage, provider_coverage_markdown
 
     cli = cli_inventory()
@@ -212,6 +213,7 @@ def references(manifest):
     ]
     mcps = [asyncio.run(mcp_inventory(enabled)) for enabled in (False, True)]
     schemas = {name: symbol(name).model_json_schema() for name in manifest["schema_models"]}
+    metadata_schema = contract_schema()
     files = {
         "_downloads/cli.json": json_text(cli),
         "_downloads/openapi.json": json_text(apis[0]),
@@ -219,6 +221,7 @@ def references(manifest):
         "_downloads/mcp.json": json_text(mcps[0]),
         "_downloads/mcp-jobs.json": json_text(mcps[1]),
         "_downloads/schemas.json": json_text(schemas),
+        "_downloads/metadata-contract.json": json_text(metadata_schema),
     }
     text = "# CLI reference\n\nGenerated from the installed CLI parser. Global `--store` precedes the command.\n"
     text += "\n{download}`Parser help inventory <../_downloads/cli.json>`\n"
@@ -242,13 +245,18 @@ def references(manifest):
     files["reference/python.md"] = text
     text = "# Schema reference\n\nGenerated Pydantic JSON Schemas retain bounds, defaults and required fields.\n"
     text += "\n{download}`Complete schema inventory <../_downloads/schemas.json>`\n"
+    text += (
+        "\nThe versioned provider metadata contract describes discovery records and "
+        "their retained evidence. It is separate from the downloaded dataset contract.\n\n"
+        "{download}`Metadata contract JSON Schema <../_downloads/metadata-contract.json>`\n"
+    )
     for name, schema in schemas.items():
         text += f"\n## `{name}`\n" + code(json_text(schema))
     files["reference/schemas.md"] = text
     text = f"# REST reference\n\nPackage version: {__version__}. OpenAPI version label: {apis[0]['info']['version']}.\n"
     text += "\nGenerated from `create_app().openapi()`. `/health` is included. Successful responses with an empty schema have no declared response model; no stronger contract is implied.\n"
     for enabled, api in zip((False, True), apis):
-        label = "Optional local retrieval controls" if enabled else "Default reads"
+        label = "Optional local job controls" if enabled else "Default reads"
         filename = "openapi-jobs.json" if enabled else "openapi.json"
         text += f"\n## {label}\n\n{{download}}`OpenAPI JSON <../_downloads/{filename}>`\n"
         if enabled:
@@ -274,7 +282,7 @@ def references(manifest):
     text += "\nGenerated with the SDK's in-process client from registered tool and resource schemas. No service method is invoked.\n"
     for enabled, mcp in zip((False, True), mcps):
         filename = "mcp-jobs.json" if enabled else "mcp.json"
-        label = "Optional local retrieval controls" if enabled else "Default reads"
+        label = "Optional local job controls" if enabled else "Default reads"
         text += f"\n## {label}\n\n{{download}}`MCP inventory <../_downloads/{filename}>`\n"
         if enabled:
             text += "\nEnable with `ssdu mcp --enable-jobs`. Submission and cancellation change local state; no embedded worker runs.\n"

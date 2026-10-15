@@ -12,7 +12,8 @@
     "guides/dataset-examples.md",
     "guides/four-nations.md",
     "guides/dataset-api.md",
-    "guides/provider-workflow.md"
+    "guides/provider-workflow.md",
+    "guides/metadata-sync.md"
   ],
   "generated_pages": [
     "reference/cli.md",
@@ -32,7 +33,8 @@
     "_downloads/mcp-jobs.json",
     "_downloads/schemas.json",
     "_downloads/source-coverage.json",
-    "_downloads/conformance.json"
+    "_downloads/conformance.json",
+    "_downloads/metadata-contract.json"
   ],
   "downloads": {
     "_downloads/quickstart.py": "examples/documentation_quickstart.py",
@@ -46,7 +48,8 @@
     "_downloads/dataset_api.py": "examples/dataset_api.py",
     "_downloads/research_tutorial.ipynb": "examples/notebooks/research_tutorial.ipynb",
     "_downloads/provider_workflow.py": "examples/provider_workflow.py",
-    "_downloads/national_connectors.py": "examples/national_connectors.py"
+    "_downloads/national_connectors.py": "examples/national_connectors.py",
+    "_downloads/metadata_sync.py": "examples/metadata_sync.py"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -86,7 +89,16 @@
     "ssdu.connectors.Connector.list_dimension_values",
     "ssdu.connectors.Connector.plan_fetch",
     "ssdu.connectors.Connector.fetch",
-    "ssdu.connectors.Connector.fetch_dataset"
+    "ssdu.connectors.Connector.fetch_dataset",
+    "ssdu.metadata_sync.MetadataSync",
+    "ssdu.metadata_sync.MetadataSync.plan_sync",
+    "ssdu.metadata_sync.MetadataSync.run_job",
+    "ssdu.metadata_store.MetadataStore",
+    "ssdu.metadata_store.MetadataStore.export",
+    "ssdu.metadata_store.MetadataStore.import_bundle",
+    "ssdu.metadata_index.MetadataIndex",
+    "ssdu.metadata_index.MetadataIndex.search",
+    "ssdu.metadata_index.MetadataIndex.status"
   ],
   "schema_models": [
     "ssdu.contracts.QuerySpec",
@@ -99,7 +111,11 @@
     "ssdu.retrieval_models.JobBudget",
     "ssdu.dataset_contract.DatasetDescriptor",
     "ssdu.source_coverage.CoverageMatrix",
-    "ssdu.contracts.DatasetQuerySpec"
+    "ssdu.contracts.DatasetQuerySpec",
+    "ssdu.metadata_sync_models.ProviderSync",
+    "ssdu.metadata_sync_models.MetadataSyncSpec",
+    "ssdu.metadata_sync_models.SyncInput",
+    "ssdu.metadata_sync_models.SyncPlan"
   ],
   "notebooks": {
     "examples/nomis.md": "examples/notebooks/nomis.ipynb",

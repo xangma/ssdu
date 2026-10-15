@@ -26,6 +26,8 @@ or downloading official data.
   explain how Nomis, StatsWales and English deprivation tables are represented.
 - **Find and save a provider table:** the [connector workflow](guides/provider-workflow.md)
   follows catalogue browsing through to a collection that reopens offline.
+- **Build a local discovery catalogue:** [metadata synchronisation](guides/metadata-sync.md)
+  saves provider descriptions, reports their coverage and supports offline search.
 - **Work with your own table:** the [dataset API guide](guides/dataset-api.md)
   covers local CSV and Parquet imports, inspection and selection.
 - **Move a saved analysis:** the [offline transfer example](start/quickstart.md)
@@ -70,6 +72,7 @@ start/quickstart
 
 guides/dataset-examples
 guides/provider-workflow
+guides/metadata-sync
 guides/dataset-api
 guides/four-nations
 guides/interfaces

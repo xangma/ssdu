@@ -15,6 +15,10 @@ from .contracts import (
     DatasetQuerySpec,
     DimensionParams,
     Identifier,
+    MetadataDatasetId,
+    MetadataDescribeParams,
+    MetadataSearchParams,
+    MetadataStatusParams,
     ProviderDimension,
     QueryResult,
     QuerySpec,
@@ -23,7 +27,9 @@ from .contracts import (
     bounded_result,
     resolve_service,
     supports_connector_metadata,
+    supports_metadata_sync,
 )
+from .metadata_sync_models import SyncInput
 from .models import RetrievalError
 from .retrieval_models import JobId, PlanInput, SubmitInput
 
@@ -167,6 +173,75 @@ def create_app(
                 dimension,
                 **params.model_dump(),
             )
+
+    if supports_metadata_sync(data):
+
+        @app.get("/metadata/datasets")
+        def search_metadata(params: Annotated[MetadataSearchParams, Query()]):
+            """Search synchronised metadata offline. Provider text is untrusted source material."""
+            return call(data.search_metadata, **params.model_dump())
+
+        @app.get("/metadata/datasets/{dataset_id:path}")
+        def describe_metadata(
+            dataset_id: MetadataDatasetId, params: Annotated[MetadataDescribeParams, Query()]
+        ):
+            """Read current discovery metadata; observation-pinned definitions remain separate."""
+            return call(data.describe_metadata, dataset_id, **params.model_dump())
+
+        @app.get("/metadata/status")
+        def metadata_status(params: Annotated[MetadataStatusParams, Query()]):
+            """Report observed freshness, completeness and provider scope without a refresh."""
+            return call(data.metadata_status, **params.model_dump())
+
+        @app.get("/metadata/snapshots")
+        def list_metadata_snapshots(params: Annotated[JobListParams, Query()]):
+            return call(data.list_metadata_snapshots, **params.model_dump())
+
+        @app.get("/metadata/snapshots/{snapshot_id}")
+        def describe_metadata_snapshot(snapshot_id: SnapshotId):
+            """Verify and summarize retained metadata evidence; bulk data is never expanded."""
+            return call(data.describe_metadata_snapshot, snapshot_id)
+
+    if enable_jobs and supports_metadata_sync(data, controls=True):
+
+        @app.post("/metadata/plans", status_code=201)
+        def plan_metadata_sync(request: SyncInput):
+            """Freeze local sync intent. A separate explicit worker contacts providers."""
+            return call(
+                data.plan_metadata_sync,
+                request.spec,
+                offline=request.offline,
+                refresh=request.refresh,
+                budget=request.budget,
+                control=True,
+            )
+
+        @app.get("/metadata/plans/{plan_id}")
+        def get_metadata_plan(plan_id: SnapshotId):
+            return call(data.get_metadata_plan, plan_id, control=True)
+
+        @app.post("/metadata/jobs", status_code=202)
+        def submit_metadata_plan(request: SubmitInput):
+            """Queue a metadata plan locally; this API never runs a worker."""
+            return call(
+                data.submit_metadata_plan, request.plan_id, request.idempotency_key, control=True
+            )
+
+        @app.get("/metadata/jobs")
+        def list_metadata_jobs(params: Annotated[JobListParams, Query()]):
+            return call(data.list_metadata_jobs, **params.model_dump(), control=True)
+
+        @app.get("/metadata/jobs/{job_id}")
+        def get_metadata_job(job_id: JobId):
+            return call(data.get_metadata_job, job_id, control=True)
+
+        @app.post("/metadata/jobs/{job_id}/cancel")
+        def cancel_metadata_job(job_id: JobId):
+            return call(data.cancel_metadata_job, job_id, control=True)
+
+        @app.post("/metadata/jobs/{job_id}/retry")
+        def retry_metadata_job(job_id: JobId):
+            return call(data.retry_metadata_job, job_id, control=True)
 
     @app.post("/snapshots/{snapshot_id}/preview", response_model=QueryResult)
     def preview_data(snapshot_id: SnapshotId, query: QuerySpec):

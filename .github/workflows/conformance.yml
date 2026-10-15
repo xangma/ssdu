@@ -60,6 +60,8 @@ jobs:
         run: .venv/bin/python examples/provider_workflow.py --output-dir "$RUNNER_TEMP/provider-workflow"
       - name: Discover national cubes and replay their transferred collection offline
         run: .venv/bin/python examples/national_connectors.py --output-dir "$RUNNER_TEMP/national-connectors"
+      - name: Resume five-provider metadata sync and replay a transferred catalogue offline
+        run: .venv/bin/python examples/metadata_sync.py --output-dir "$RUNNER_TEMP/metadata-sync"
       - name: Retain acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -71,4 +73,5 @@ jobs:
             ${{ runner.temp }}/dataset-api/result.json
             ${{ runner.temp }}/provider-workflow/result.json
             ${{ runner.temp }}/national-connectors/result.json
+            ${{ runner.temp }}/metadata-sync/result.json
           if-no-files-found: ignore

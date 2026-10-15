@@ -5,8 +5,10 @@ import hashlib
 import json as jsonlib
 import os
 import tempfile
+import time
 from contextlib import contextmanager
 from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlparse
 
@@ -51,6 +53,7 @@ class CachedClient:
         refresh=False,
         allowed_hosts=None,
         close_client=False,
+        clock=None,
     ):
         if offline and refresh:
             raise ValueError("Offline requests cannot refresh providers")
@@ -65,6 +68,7 @@ class CachedClient:
         self.seen = set()
         self.cache_scope = None
         self._owned = False
+        self.clock = clock or time.time
 
     persistent_cache = True
 
@@ -101,6 +105,42 @@ class CachedClient:
         }
         self.seen.add(hashlib.sha256(_canonical(identity)).hexdigest())
 
+    def _read_capture(self, path, identity):
+        try:
+            document = jsonlib.loads(path.read_bytes())
+            capture_id = document.pop("capture_id")
+            digest = document["body_sha256"]
+            if (
+                not isinstance(digest, str)
+                or len(digest) != 64
+                or any(c not in "0123456789abcdef" for c in digest)
+            ):
+                raise ValueError("Invalid response digest")
+            raw = self.root / "objects" / f"{digest}.bin"
+            if raw.stat().st_size > 25_000_000:
+                raise ValueError("Cached response exceeds byte budget")
+            body = raw.read_bytes()
+            if (
+                capture_id != hashlib.sha256(_canonical(document)).hexdigest()
+                or document["request"] != identity
+                or document["body_sha256"] != hashlib.sha256(body).hexdigest()
+            ):
+                raise ValueError("Capture hash or request mismatch")
+            return Resource(
+                body,
+                document["url"],
+                identity["method"],
+                identity["request_body"],
+                document["content_type"],
+                document["headers"],
+                identity["cache_scope"],
+                captured_at=document.get("captured_at"),
+                checked_at=document.get("checked_at"),
+                cache_hit=True,
+            )
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise RetrievalError("Connector cache verification failed") from exc
+
     def request(self, method, url, *, params=None, json=None):
         full_url = str(httpx.Request(method, url, params=params).url)
         parsed = urlparse(full_url)
@@ -124,37 +164,7 @@ class CachedClient:
             path = self.root / f"{key}.json"
             reuse = path.exists() and (self.offline or (not self.refresh and key not in self.seen))
             if reuse:
-                try:
-                    document = jsonlib.loads(path.read_bytes())
-                    capture_id = document.pop("capture_id")
-                    digest = document["body_sha256"]
-                    if (
-                        not isinstance(digest, str)
-                        or len(digest) != 64
-                        or any(c not in "0123456789abcdef" for c in digest)
-                    ):
-                        raise ValueError("Invalid response digest")
-                    raw = self.root / "objects" / f"{digest}.bin"
-                    if raw.stat().st_size > 25_000_000:
-                        raise ValueError("Cached response exceeds byte budget")
-                    body = raw.read_bytes()
-                    if (
-                        capture_id != hashlib.sha256(_canonical(document)).hexdigest()
-                        or document["request"] != identity
-                        or document["body_sha256"] != hashlib.sha256(body).hexdigest()
-                    ):
-                        raise ValueError("Capture hash or request mismatch")
-                    resource = Resource(
-                        body,
-                        document["url"],
-                        method,
-                        json,
-                        document["content_type"],
-                        document["headers"],
-                        self.cache_scope,
-                    )
-                except (OSError, ValueError, KeyError, TypeError) as exc:
-                    raise RetrievalError("Connector cache verification failed") from exc
+                resource = self._read_capture(path, identity)
             else:
                 if self.offline:
                     raise RetrievalError(
@@ -163,14 +173,49 @@ class CachedClient:
                 if self.client is None:
                     self.client = HttpClient(allowed_hosts=self.allowed_hosts)
                     self._owned = True
-                resource = self.client.request(method, url, params=params, json=json)
-                resource = replace(resource, cache_scope=self.cache_scope)
+                prior = None
+                validators = {}
+                if (
+                    method == "GET"
+                    and path.exists()
+                    and getattr(self.client, "conditional_requests", False)
+                ):
+                    prior = self._read_capture(path, identity)
+                    if prior.headers.get("etag"):
+                        validators["If-None-Match"] = prior.headers["etag"]
+                    elif prior.headers.get("last-modified"):
+                        validators["If-Modified-Since"] = prior.headers["last-modified"]
+                options = {"headers": validators} if validators else {}
+                resource = self.client.request(method, url, params=params, json=json, **options)
+                checked = datetime.fromtimestamp(self.clock(), UTC).isoformat()
+                if resource.status_code == 304:
+                    if prior is None or not validators:
+                        raise RetrievalError(
+                            "Provider returned 304 without verified prior evidence"
+                        )
+                    resource = replace(
+                        prior,
+                        headers={**prior.headers, **resource.headers},
+                        checked_at=checked,
+                        cache_hit=False,
+                        revalidated=True,
+                    )
+                else:
+                    resource = replace(
+                        resource,
+                        cache_scope=self.cache_scope,
+                        captured_at=checked,
+                        checked_at=checked,
+                        cache_hit=False,
+                    )
                 document = {
                     "request": identity,
                     "body_sha256": hashlib.sha256(resource.body).hexdigest(),
                     "url": resource.url,
                     "content_type": resource.content_type,
                     "headers": resource.headers,
+                    "captured_at": resource.captured_at,
+                    "checked_at": resource.checked_at,
                 }
                 document["capture_id"] = hashlib.sha256(_canonical(document)).hexdigest()
                 raw = self.root / "objects" / f"{document['body_sha256']}.bin"

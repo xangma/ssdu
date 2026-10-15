@@ -41,6 +41,12 @@ def main(argv=None):
     from ssdu.connector_cli import add_arguments as add_connector_arguments
 
     add_connector_arguments(connector)
+    metadata = commands.add_parser(
+        "metadata", help="Synchronise provider metadata, inspect freshness and search offline"
+    )
+    from ssdu.metadata_cli import add_arguments as add_metadata_arguments
+
+    add_metadata_arguments(metadata)
     dataset = commands.add_parser("dataset", help="Fetch, inspect or migrate standardized datasets")
     dataset_commands = dataset.add_subparsers(dest="dataset_command", required=True)
     dataset_commands.add_parser("schema", help="Print the versioned dataset descriptor JSON Schema")
@@ -216,6 +222,16 @@ def main(argv=None):
             from ssdu.connector_cli import execute
 
             _print(execute(args))
+            return 0
+        if args.command == "metadata":
+            from ssdu.metadata_cli import execute
+
+            try:
+                _print(execute(args))
+            except KeyboardInterrupt:
+                return 130
+            except KeyError as exc:
+                raise RetrievalError("Metadata dataset, snapshot, plan or job not found") from exc
             return 0
         if args.command == "dataset":
             from ssdu.dataset_contract import DatasetDescriptor

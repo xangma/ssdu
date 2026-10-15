@@ -20,6 +20,8 @@ analysis so you can reproduce it later.
   machine for use offline.
 - Search descriptions already held in your local catalogue. SSDU also provides
   interfaces for applications and AI tools through REST and MCP.
+- Build that catalogue from provider metadata, with resumable refresh jobs,
+  coverage reports and saved versions you can search offline.
 
 SSDU is a Python package with command-line tools. You will need some Python or
 terminal experience; it does not currently provide a point-and-click data portal.
@@ -54,8 +56,8 @@ local, synthetic data.
 
 SSDU has partial coverage of **ONS** through Nomis, the **Welsh Government**
 through StatsWales, the **Scottish Government** through statistics.gov.scot,
-**NISRA** through its Data Portal, and selected **MHCLG** statistics on area
-deprivation in England. The
+**NISRA** through its Data Portal, and selected **MHCLG** statistical
+publications. The
 [provider coverage matrix](https://xangma.github.io/ssdu/reference/sources.html)
 lists the supported datasets, access routes, limits and planned integrations.
 Support for one dataset or service does not mean all of a provider's data are
@@ -73,6 +75,8 @@ currently [research work](https://xangma.github.io/ssdu/research/index.html).
   using invented responses in the same formats as supported sources.
 - [Find and save a provider table](https://xangma.github.io/ssdu/guides/provider-workflow.html)
   with a common catalogue-to-collection workflow and an offline teaching example.
+- [Build a local discovery catalogue](https://xangma.github.io/ssdu/guides/metadata-sync.html)
+  from provider descriptions and check its freshness and completeness.
 - [Inspect and query datasets](https://xangma.github.io/ssdu/guides/dataset-api.html)
   through Python, the command line or an application.
 - [Understand sources and interpretation](https://xangma.github.io/ssdu/concepts/provenance.html)

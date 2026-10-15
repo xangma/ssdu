@@ -23,6 +23,10 @@ ProviderDimension = Annotated[
     str,
     StringConstraints(min_length=1, max_length=2048, pattern=r"^[^\x00-\x1f\x7f]+$"),
 ]
+MetadataDatasetId = Annotated[
+    str, StringConstraints(min_length=1, max_length=2100, pattern=r"^[^\x00-\x1f\x7f]+$")
+]
+MaxMetadataAge = Annotated[StrictInt, Field(ge=0, le=315_360_000)]
 SearchText = Annotated[str, StringConstraints(max_length=512)]
 Limit = Annotated[StrictInt, Field(ge=1, le=100)]
 Offset = Annotated[StrictInt, Field(ge=0, le=100_000)]
@@ -76,6 +80,21 @@ class SearchParams(BaseModel):
     provider: Identifier | None = None
     limit: Annotated[int, Field(ge=1, le=100)] = 20
     offset: Annotated[int, Field(ge=0, le=100_000)] = 0
+
+
+class MetadataSearchParams(SearchParams):
+    include_retired: bool = False
+
+
+class MetadataDescribeParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    snapshot_id: SnapshotId | None = None
+
+
+class MetadataStatusParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider: Identifier | None = None
+    max_age_seconds: Annotated[int, Field(ge=0, le=315_360_000)] = 86400
 
 
 class DimensionParams(BaseModel):
@@ -157,6 +176,30 @@ def supports_connector_metadata(service) -> bool:
             "list_provider_dimension_values",
         )
     )
+
+
+def supports_metadata_sync(service, *, controls=False) -> bool:
+    """Advertise metadata sync only when an injected service supplies every method."""
+    names = (
+        (
+            "plan_metadata_sync",
+            "get_metadata_plan",
+            "submit_metadata_plan",
+            "get_metadata_job",
+            "list_metadata_jobs",
+            "cancel_metadata_job",
+            "retry_metadata_job",
+        )
+        if controls
+        else (
+            "search_metadata",
+            "describe_metadata",
+            "metadata_status",
+            "list_metadata_snapshots",
+            "describe_metadata_snapshot",
+        )
+    )
+    return all(callable(getattr(service, name, None)) for name in names)
 
 
 def resolve_service(store="data", service: DataService | None = None) -> DataService:

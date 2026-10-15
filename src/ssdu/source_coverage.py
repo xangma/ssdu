@@ -563,6 +563,7 @@ SOURCE_COVERAGE = CoverageMatrix(
         ),
     ),
     notes=(
+        "Metadata synchronisation uses the five common connectors. Its freshness and completeness reports describe each configured scope; metadata discovery does not certify data retrieval or cross-source comparability.",
         "Provider coverage groups scoped adapters and releases; it does not certify all datasets from an organisation. Local file imports are separate input support.",
         "Harvested catalogue records and Rich Context/OpenAlex paper–dataset links are discovery metadata, not implemented data retrieval.",
         "Implemented capabilities apply only to each row's stated scope. False means no implemented support claimed; it does not describe the provider's own capabilities.",
