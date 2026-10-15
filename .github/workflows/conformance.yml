@@ -56,6 +56,8 @@ jobs:
         run: .venv/bin/python examples/four_nations.py --output-dir "$RUNNER_TEMP/four-nations"
       - name: Query provider and local datasets through every interface and replay offline
         run: .venv/bin/python examples/dataset_api.py --output-dir "$RUNNER_TEMP/dataset-api"
+      - name: Discover synthetic publications and transfer their collection offline
+        run: .venv/bin/python examples/provider_workflow.py --output-dir "$RUNNER_TEMP/provider-workflow"
       - name: Retain acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -65,4 +67,5 @@ jobs:
             ${{ runner.temp }}/dataset-contract/result.json
             ${{ runner.temp }}/four-nations/result.json
             ${{ runner.temp }}/dataset-api/result.json
+            ${{ runner.temp }}/provider-workflow/result.json
           if-no-files-found: ignore

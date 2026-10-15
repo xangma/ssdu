@@ -26,6 +26,8 @@ class ProviderRegistration:
     transform_version: str
     allowed_hosts: frozenset[str]
     accepts_raw_frame: bool = False
+    workflow: bool = False
+    profile: str = "observations"
 
     def __post_init__(self):
         if not re.fullmatch(r"[a-z][a-z0-9_]*", self.id):
@@ -38,6 +40,8 @@ class ProviderRegistration:
             raise ValueError("Invalid provider normalizer function")
         if not self.transform_id or not re.fullmatch(r"\d+\.\d+\.\d+", self.transform_version):
             raise ValueError("Provider transforms require an identifier and semantic version")
+        if self.profile not in {"observations", "records"}:
+            raise ValueError("Unsupported standardized dataset profile")
         if (
             not isinstance(self.allowed_hosts, frozenset)
             or not self.allowed_hosts
@@ -79,6 +83,12 @@ class ProviderRegistration:
         ]
         if self.normalizer_module != "ssdu.normalization":
             paths.append(root / f"normalization_{self.id}.py")
+        if self.workflow:
+            paths.extend(root / name for name in ("connectors.py", "connector_cache.py"))
+        if self.profile == "records":
+            paths.append(root / "records.py")
+        if self.id == "mhclg":
+            paths.append(root / "distributions.py")
         return tuple(paths)
 
     def implementation_paths(self) -> tuple[Path, ...]:
@@ -130,6 +140,7 @@ REGISTRY = ProviderRegistry(
             "ssdu.nomis.observations",
             "1.0.0",
             frozenset({"www.nomisweb.co.uk"}),
+            workflow=True,
         ),
         ProviderRegistration(
             "statswales",
@@ -137,8 +148,9 @@ REGISTRY = ProviderRegistry(
             "ssdu.normalization",
             "statswales",
             "ssdu.statswales.observations",
-            "1.0.0",
+            "1.1.0",
             frozenset({"api.stats.gov.wales"}),
+            workflow=True,
         ),
         ProviderRegistration(
             "deprivation",
@@ -170,6 +182,20 @@ REGISTRY = ProviderRegistry(
             frozenset({"statistics.gov.scot"}),
             accepts_raw_frame=True,
         ),
+        ProviderRegistration(
+            "mhclg",
+            "ssdu.adapters.mhclg",
+            "ssdu.normalization_mhclg",
+            "normalize",
+            "ssdu.mhclg.records",
+            "1.0.0",
+            frozenset(
+                {"www.gov.uk", "assets.publishing.service.gov.uk", "open-data.communities.gov.uk"}
+            ),
+            accepts_raw_frame=True,
+            workflow=True,
+            profile="records",
+        ),
     )
 )
 
@@ -199,8 +225,6 @@ def _validate_existing_request(request):
     if request.provider == "nomis":
         if not re.fullmatch(r"NM_\d+_\d+", request.dataset_id):
             raise ValueError("Invalid Nomis identifier")
-        if "geography" not in request.params or not ({"date", "time"} & request.params.keys()):
-            raise ValueError("Nomis requires geography and date/time selectors")
         if any(
             not isinstance(key, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", key)
             for key in request.params

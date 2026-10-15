@@ -43,7 +43,7 @@ def test_providers_group_source_routes_without_changing_adapter_identifiers():
         "uk_data_service",
     }
     assert providers["ons"]["source_ids"] == ["nomis", "ons_additional"]
-    assert providers["mhclg"]["source_ids"] == ["deprivation"]
+    assert providers["mhclg"]["source_ids"] == ["mhclg", "deprivation"]
     assert providers["welsh_government"]["source_ids"] == ["statswales"]
     assert providers["scottish_government"]["source_ids"] == ["scotland"]
     assert providers["nisra"]["source_ids"] == ["northern_ireland"]
@@ -115,14 +115,15 @@ def test_provider_table_has_organisations_not_dataset_or_local_import_rows():
     assert all(provider.name in row[0] for provider, row in zip(SOURCE_COVERAGE.providers, rows))
     assert "Local CSV and Parquet" not in markdown
     assert "File 7" not in markdown and "2025" not in markdown
-    assert "area deprivation in England" in rows[2][2]
+    assert "housing" in rows[2][2] and "local-government" in rows[2][2]
     assert "Nomis" in rows[0][2] and "planned" in rows[0][2]
     assert all(provider.overview in markdown for provider in SOURCE_COVERAGE.providers)
     # The overview must not replace the exact, machine-readable support limits.
     deprivation = next(
         row for row in get_source_coverage()["sources"] if row["source_id"] == "deprivation"
     )
-    assert "Only corrected 2025 File 7" in deprivation["limits"][0]
+    assert "Compatibility route" in deprivation["limits"][0]
+    assert "Only corrected 2025 File 7" in " ".join(deprivation["limits"])
 
 
 def test_existing_provider_metadata_without_editorial_overviews_still_loads():
@@ -141,11 +142,11 @@ def test_only_migrated_providers_claim_standardized_datasets():
     }
     assert {rows[source_id]["provider"] for source_id in standardized} == {*provider_ids(), "local"}
     for source_id in standardized:
-        local = source_id == "local_files"
+        records = source_id in {"local_files", "mhclg"}
         assert rows[source_id]["contract_version"] == (
-            RECORDS_CONTRACT_VERSION if local else OBSERVATIONS_CONTRACT_VERSION
+            RECORDS_CONTRACT_VERSION if records else OBSERVATIONS_CONTRACT_VERSION
         )
-        assert rows[source_id]["profiles"] == (["records"] if local else ["observations"])
+        assert rows[source_id]["profiles"] == (["records"] if records else ["observations"])
         assert rows[source_id]["capabilities"]["retained_raw_inputs"]
         assert rows[source_id]["capabilities"]["offline_replay"]
     assert rows["local_files"]["capabilities"]["data_retrieval"]
@@ -261,3 +262,27 @@ def test_four_nation_claims_exclude_unsupported_routes_and_release_pins():
     assert "file/ZIP" in " ".join(scotland["limits"])
     assert "slice-attached" in " ".join(scotland["limits"])
     assert "independently invented" in " ".join(get_source_coverage()["notes"])
+
+
+def test_mhclg_general_records_scope_is_separate_from_legacy_deprivation_semantics():
+    rows = {row["source_id"]: row for row in get_source_coverage()["sources"]}
+    general = rows["mhclg"]
+    assert general["provider"] == "mhclg"
+    assert general["profiles"] == ["records"]
+    assert general["contract_version"] == "1.1.0"
+    assert general["catalogue"]["status"] == general["conformance"]["status"] == "partial"
+    assert "GOV.UK" in general["catalogue"]["scope"]
+    assert "CSVW" in general["retrieval"]["scope"]
+    assert "without inferred statistical semantics" in general["normalization"]["scope"]
+    assert "unsupported metadata" in " ".join(general["limits"])
+    assert "Compatibility" in " ".join(rows["deprivation"]["limits"])
+    assert rows["deprivation"]["profiles"] == ["observations"]
+    assert not general["capabilities"]["provider_historical_release_selection"]
+
+
+def test_nomis_and_statswales_declare_metadata_workflow_before_data_retrieval():
+    rows = {row["source_id"]: row for row in get_source_coverage()["sources"]}
+    for provider in ("nomis", "statswales"):
+        assert "before retrieval" in rows[provider]["catalogue"]["scope"]
+        assert "src/ssdu/connectors.py" in rows[provider]["implementation_paths"]
+    assert "geography and date/time" not in rows["nomis"]["retrieval"]["scope"]

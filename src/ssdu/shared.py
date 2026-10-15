@@ -222,3 +222,42 @@ class SharedDeprivation:
         )
         self.registry.register(self.store, manifest)
         return manifest
+
+    def plan_retained(self, service, native, query, fact, query_service):
+        source = service._cached(deprivation.national_request())
+        if source:
+            frame = self.store.replay(source["product_id"])
+            fact.source_snapshot_id = source["product_id"]
+        else:
+            manifests, _ = self.store._scan_manifests()
+            candidates = [
+                m
+                for m in manifests
+                if m["provider"] == "deprivation"
+                and m["dataset_id"] == deprivation.DATASET_ID
+                and any(r["url"] == deprivation.SOURCE_URL for r in m["resources"])
+            ]
+            if not candidates:
+                return
+            legacy = max(candidates, key=lambda m: (m["created_at"], m["product_id"]))
+            acquisition, _, _ = SharedDeprivation(self.store).inspect_legacy(legacy["product_id"])
+            frame = acquisition.frame
+            fact.legacy_snapshot_id = legacy["product_id"]
+            fact.warnings.append(
+                "The worker will normalise the pinned retained national CSV locally; planning publishes no data snapshot."
+            )
+        if native == deprivation.national_request():
+            selected = frame
+        else:
+            codes = deprivation._selectors(native)
+            selected = frame.loc[frame["local_authority_code"].isin(codes)]
+            if set(codes) - set(frame["local_authority_code"]):
+                raise ValueError("Requested areas are absent from retained data")
+        if len(selected) > native.max_rows:
+            raise ValueError("Area selection exceeds its row budget")
+        fact.action = "derive"
+        fact.known_rows = len(selected)
+        fact.selector_validation = "validated"
+        if source:
+            query_service.query_data(source["product_id"], query)
+            fact.query_validation = "validated"

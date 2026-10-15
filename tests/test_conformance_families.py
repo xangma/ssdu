@@ -199,7 +199,7 @@ def test_family_coverage_is_detached_and_has_three_shapes_per_existing_provider(
     first = conformance_coverage()
     first["families"][0]["scope"] = "changed"
     assert conformance_coverage()["families"][0]["scope"] != "changed"
-    for provider in ("nomis", "statswales", "deprivation"):
+    for provider in ("nomis", "statswales", "deprivation", "mhclg"):
         families = get_conformance_families(provider)
         assert len(families) >= 3
         assert len({item.scope for item in families}) == len(families)

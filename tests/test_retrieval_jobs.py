@@ -99,6 +99,8 @@ def test_missing_offline_and_bad_selectors_are_blocked(tmp_path, no_http):
     assert online["ready"] and online["estimated_requests"] is None
     assert online["entries"]["nomis"]["selector_validation"] == "pending"
     del spec["entries"]["nomis"]["request"]["params"]["geography"]
+    assert service.plan_retrieval(spec)["ready"]
+    spec["entries"]["nomis"]["request"]["params"]["invalid selector"] = "x"
     assert not service.plan_retrieval(spec)["ready"]
 
 

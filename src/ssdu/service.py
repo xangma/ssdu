@@ -75,6 +75,36 @@ class Service:
     def describe_dataset(self, dataset_id):
         return bounded_result(self.registry.get(dataset_id))
 
+    def list_provider_datasets(self, provider, query="", limit=20, offset=0):
+        """Browse retained provider catalogue pages without network requests."""
+        from ssdu.connectors import Connector
+
+        return bounded_result(
+            Connector(provider, self.store).list_datasets(
+                query, limit=limit, offset=offset, offline=True
+            )
+        )
+
+    def describe_provider_dataset(self, provider, dataset_id):
+        """Describe retained upstream metadata; acquisition is explicitly separate."""
+        from ssdu.connectors import Connector
+
+        return bounded_result(
+            Connector(provider, self.store).describe_dataset(dataset_id, offline=True)
+        )
+
+    def list_provider_dimension_values(
+        self, provider, dataset_id, dimension, search="", limit=20, offset=0
+    ):
+        """Return retained provider code lists, including values absent from snapshots."""
+        from ssdu.connectors import Connector
+
+        return bounded_result(
+            Connector(provider, self.store).list_dimension_values(
+                dataset_id, dimension, search=search, limit=limit, offset=offset, offline=True
+            )
+        )
+
     def _manifest(self, snapshot_id):
         if not isinstance(snapshot_id, str) or not re.fullmatch(r"[0-9a-f]{64}", snapshot_id):
             raise ValueError("Use a full snapshot SHA-256 identifier")

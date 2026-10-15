@@ -19,7 +19,6 @@ from pathlib import Path
 import httpx
 from pydantic import TypeAdapter
 
-from ssdu.adapters import deprivation
 from ssdu.collections import Collections
 from ssdu.http import HttpClient, ProviderRetry, Resource
 from ssdu.models import Request, RetrievalError
@@ -34,7 +33,6 @@ from ssdu.retrieval_models import (
     SubmitInput,
 )
 from ssdu.service import Service
-from ssdu.shared import SharedDeprivation
 from ssdu.store import Store, _atomic_json, canonical
 
 logger = logging.getLogger(__name__)
@@ -156,45 +154,6 @@ class RetrievalService:
             else None
         )
 
-    def _plan_local_deprivation(self, native, query, fact, query_service):
-        source = self._cached(deprivation.national_request())
-        if source:
-            frame = self.store.replay(source["product_id"])
-            fact.source_snapshot_id = source["product_id"]
-        else:
-            manifests, _ = self.store._scan_manifests()
-            candidates = [
-                m
-                for m in manifests
-                if m["provider"] == "deprivation"
-                and m["dataset_id"] == deprivation.DATASET_ID
-                and any(r["url"] == deprivation.SOURCE_URL for r in m["resources"])
-            ]
-            if not candidates:
-                return
-            legacy = max(candidates, key=lambda m: (m["created_at"], m["product_id"]))
-            acquisition, _, _ = SharedDeprivation(self.store).inspect_legacy(legacy["product_id"])
-            frame = acquisition.frame
-            fact.legacy_snapshot_id = legacy["product_id"]
-            fact.warnings.append(
-                "The worker will normalise the pinned retained national CSV locally; planning publishes no data snapshot."
-            )
-        if native == deprivation.national_request():
-            selected = frame
-        else:
-            codes = deprivation._selectors(native)
-            selected = frame.loc[frame["local_authority_code"].isin(codes)]
-            if set(codes) - set(frame["local_authority_code"]):
-                raise ValueError("Requested areas are absent from retained data")
-        if len(selected) > native.max_rows:
-            raise ValueError("Area selection exceeds its row budget")
-        fact.action = "derive"
-        fact.known_rows = len(selected)
-        fact.selector_validation = "validated"
-        if source:
-            query_service.query_data(source["product_id"], query)
-            fact.query_validation = "validated"
-
     def plan_retrieval(self, spec, *, offline=False, refresh=False, budget=None):
         request = PlanInput.model_validate(
             {
@@ -226,8 +185,12 @@ class RetrievalService:
                     manifest = None if refresh else self._cached(native)
                     if manifest:
                         fact.action = "cached"
-                    elif native.provider == "deprivation" and not refresh:
-                        self._plan_local_deprivation(native, entry.query, fact, query_service)
+                    elif not refresh:
+                        planner = getattr(
+                            get_provider(native.provider).adapter(), "plan_retained", None
+                        )
+                        if planner is not None:
+                            planner(self, native, entry.query, fact, query_service)
                     if fact.action == "blocked":
                         fact.action = "fetch"
                         fact.warnings.append(
@@ -439,7 +402,7 @@ class RetrievalService:
         with self._db() as db:
             self._check_running(db, job_id)
 
-    def _client(self, job_id, name, epoch, budget):
+    def _client(self, job_id, name, epoch, budget, *, provider=None, refresh=False):
         progress = self.get_job(job_id)
         kwargs = {
             "max_requests": max(1, budget.max_requests - progress["requests"]),
@@ -448,6 +411,16 @@ class RetrievalService:
             "on_bytes": lambda count: self._consume(job_id, budget, bytes_count=count),
         }
         client = self.client_factory(**kwargs) if self.client_factory else HttpClient(**kwargs)
+        if provider is not None and get_provider(provider).workflow:
+            from ssdu.connector_cache import CachedClient
+
+            client = CachedClient(
+                self.store.root,
+                client=client,
+                refresh=refresh,
+                allowed_hosts=get_provider(provider).allowed_hosts,
+                close_client=True,
+            )
         return CheckpointClient(self, job_id, name, epoch, client)
 
     def _acquire(self, job_id, name, fact, entry, plan, epoch):
@@ -464,20 +437,22 @@ class RetrievalService:
             return self.store.verify(fact.snapshot_id)
         native = Request(**entry.request.model_dump())
         if fact.action == "derive":
-            source_id = fact.source_snapshot_id
-            if fact.legacy_snapshot_id:
-                source = SharedDeprivation(self.store).source_from_legacy(fact.legacy_snapshot_id)
-                source_id = source["product_id"]
-                if native == deprivation.national_request():
-                    return source
-            return SharedDeprivation(self.store).fetch(
-                native, offline=True, source_snapshot_id=source_id
-            )
+            derive = getattr(get_provider(native.provider).adapter(), "derive_retained", None)
+            if derive is None:
+                raise RetrievalError("Provider has no retained derivation handler")
+            return derive(self.store, native, fact)
         if not plan.input.refresh:
             cached = self._cached(native)
             if cached:
                 return cached
-        with self._client(job_id, name, epoch, plan.input.budget) as client:
+        with self._client(
+            job_id,
+            name,
+            epoch,
+            plan.input.budget,
+            provider=native.provider,
+            refresh=plan.input.refresh,
+        ) as client:
             return self.store.fetch(
                 native, offline=plan.input.offline, refresh=plan.input.refresh, client=client
             )
@@ -687,6 +662,8 @@ class RetrievalService:
 class CheckpointClient:
     """Replay a verified successful HTTP prefix, preserving adapter consistency checks."""
 
+    persistent_cache = True
+
     def __init__(self, service, job_id, entry, epoch, client):
         self.service, self.job_id, self.client = service, job_id, client
         self.root = service.root / "checkpoints" / job_id / entry / str(epoch)
@@ -706,11 +683,24 @@ class CheckpointClient:
     def post(self, url, *, json):
         return self.request("POST", url, json=json)
 
+    @contextmanager
+    def scope(self, token):
+        with self.client.scope(token):
+            yield self
+
     def request(self, method, url, *, params=None, json=None):
         self.service._check_cancel(self.job_id)
         # Positional replay distinguishes the adapter's before/after revision checks.
         key = hashlib.sha256(
-            canonical({"method": method, "url": url, "params": params, "json": json})
+            canonical(
+                {
+                    "method": method,
+                    "url": url,
+                    "params": params,
+                    "json": json,
+                    "cache_scope": getattr(self.client, "cache_scope", None),
+                }
+            )
         ).hexdigest()
         path = self.root / f"{self.position:05d}.json"
         raw = path.with_suffix(".bin")
@@ -732,6 +722,7 @@ class CheckpointClient:
                 doc["request_body"],
                 doc["content_type"],
                 doc["headers"],
+                doc.get("cache_scope"),
             )
         else:
             resource = self.client.request(method, url, params=params, json=json)
@@ -743,6 +734,7 @@ class CheckpointClient:
                 "request_body": resource.request_body,
                 "content_type": resource.content_type,
                 "headers": resource.headers,
+                "cache_scope": resource.cache_scope,
             }
             doc["capture_id"] = hashlib.sha256(canonical(doc)).hexdigest()
             fd, filename = tempfile.mkstemp(dir=self.root, prefix=".raw-")
@@ -756,5 +748,8 @@ class CheckpointClient:
                 _atomic_json(path, doc)
             finally:
                 temporary.unlink(missing_ok=True)
+        replayed = getattr(self.client, "mark_replayed", None)
+        if replayed is not None:
+            replayed(resource)
         self.resources.append(resource)
         return resource

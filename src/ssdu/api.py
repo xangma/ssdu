@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .contracts import (
     Column,
+    ConnectorSearchParams,
     DataService,
     DatasetQuerySpec,
     DimensionParams,
@@ -20,6 +21,7 @@ from .contracts import (
     SnapshotId,
     bounded_result,
     resolve_service,
+    supports_connector_metadata,
 )
 from .models import RetrievalError
 from .retrieval_models import JobId, PlanInput, SubmitInput
@@ -134,6 +136,36 @@ def create_app(
         dataset_id: Identifier, dimension: Column, params: Annotated[DimensionParams, Query()]
     ):
         return call(data.list_dimension_values, dataset_id, dimension, **params.model_dump())
+
+    if supports_connector_metadata(data):
+
+        @app.get("/providers/{provider}/datasets")
+        def list_provider_datasets(
+            provider: Identifier, params: Annotated[ConnectorSearchParams, Query()]
+        ):
+            """Browse retained provider catalogue metadata; never contact the provider."""
+            return call(data.list_provider_datasets, provider, **params.model_dump())
+
+        @app.get("/providers/{provider}/datasets/{dataset_id}")
+        def describe_provider_dataset(provider: Identifier, dataset_id: Identifier):
+            """Inspect a retained provider dataset definition without fetching data."""
+            return call(data.describe_provider_dataset, provider, dataset_id)
+
+        @app.get("/providers/{provider}/datasets/{dataset_id}/dimensions/{dimension}")
+        def list_provider_dimension_values(
+            provider: Identifier,
+            dataset_id: Identifier,
+            dimension: Column,
+            params: Annotated[DimensionParams, Query()],
+        ):
+            """Page retained provider dimension codes; metadata must be acquired separately."""
+            return call(
+                data.list_provider_dimension_values,
+                provider,
+                dataset_id,
+                dimension,
+                **params.model_dump(),
+            )
 
     @app.post("/snapshots/{snapshot_id}/preview", response_model=QueryResult)
     def preview_data(snapshot_id: SnapshotId, query: QuerySpec):

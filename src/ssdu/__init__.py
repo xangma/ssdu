@@ -3,6 +3,7 @@
 __version__ = "0.3.0"
 
 __all__ = [
+    "Connector",
     "Dataset",
     "DatasetQuerySpec",
     "LocalImportSpec",
@@ -15,6 +16,10 @@ __all__ = [
 
 def __getattr__(name):
     """Keep the public SDK convenient without importing storage during package setup."""
+    if name == "Connector":
+        from ssdu.connectors import Connector
+
+        return Connector
     if name == "Dataset":
         from ssdu.dataset_contract import Dataset
 

@@ -158,7 +158,9 @@ def test_offline_miss_and_invalid_policy_never_contact_provider(
         store.fetch(request, offline=True)
     with pytest.raises(ValueError, match="cannot refresh"):
         store.fetch(request, offline=True, refresh=True)
-    assert fixture_adapter.calls == 0
+    # Offline derivation can enter the adapter, but the response cache forbids HTTP
+    # and a missing response must not publish a partial snapshot.
+    assert store.list() == []
 
 
 def test_rebuild_preserves_valid_explicit_pointer_and_all_snapshot_bytes(tmp_path, fixture_adapter):

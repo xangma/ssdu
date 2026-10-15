@@ -35,6 +35,8 @@ _JSONSTAT = "https://json-stat.org/format/"
 _PXSTAT = "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful"
 _SCOTLAND = "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql"
 _LOCAL = "https://github.com/xangma/ssdu/blob/main/docs/content/concepts/dataset-contract.md"
+_GOVUK_CONTENT = "https://content-api.publishing.service.gov.uk/"
+_CSVW = "https://www.w3.org/TR/tabular-metadata/"
 
 CONFORMANCE_FAMILIES = (
     _family(
@@ -132,6 +134,27 @@ CONFORMANCE_FAMILIES = (
         "Linked-data missing or suppressed cells retain source status and notes.",
         (_SCOTLAND,),
         "tests/test_scotland.py::test_suppression_status_and_notes_are_retained",
+    ),
+    ConformanceFamily(
+        "mhclg_csv_records",
+        "mhclg",
+        "Unrelated publication CSV layouts preserve literal source cells without inferred geography, measures or missingness.",
+        (_GOVUK_CONTENT,),
+        "tests/test_mhclg.py::test_general_csv_publications_preserve_source_cells",
+    ),
+    ConformanceFamily(
+        "mhclg_csvw_declared_records",
+        "mhclg",
+        "Supported CSVW types, primary keys and null tokens preserve typed records alongside original CSV lexemes.",
+        (_GOVUK_CONTENT, _CSVW),
+        "tests/test_mhclg.py::test_csvw_explicit_types_keys_nulls_and_source_lexemes",
+    ),
+    ConformanceFamily(
+        "mhclg_publication_release_replay",
+        "mhclg",
+        "Changed publication revisions and distribution identities retain the earlier records contract for offline replay.",
+        (_GOVUK_CONTENT,),
+        "tests/test_mhclg.py::test_revision_attachment_changes_and_offline_contract_replay",
     ),
     ConformanceFamily(
         "local_typed_csv",

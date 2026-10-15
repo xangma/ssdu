@@ -6,7 +6,7 @@
     {
       "path": ".github/workflows/conformance.yml",
       "kind": "configuration",
-      "sha256": "df819253498bdaf2e4a333790dfb8a99e21d82387a340bb89e3630f44242f347",
+      "sha256": "e1b0e4d63725f8c0321024ae3fc9ae53fe280d04b3eeb783956839d72420bcc4",
       "review": "Author-owned deterministic CI configuration; no captured data or secrets."
     },
     {
@@ -36,7 +36,7 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "54e136b194c8ea956d9add8893a7f8c35b5beb723ec2c708691c3d9c2d7347cf",
+      "sha256": "ecff0a29eaa6bdc5d5ae4b8c2dd192c2d4c63288508d05a1fc4e9ac7f70314c5",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -100,9 +100,15 @@
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
+      "path": "docs/content/guides/provider-workflow.md",
+      "kind": "documentation",
+      "sha256": "19ea8f24c564a59b4464f0c00ef92f119087e98138188f466729357892aaa9bd",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "08f308b00b95d4898bd2282c15547d3171693955fd8f745ad1e62105a39aec07",
+      "sha256": "39d378961fb010c2b71a8a5cd9ae2705af1d567ed7c9003f13bd9bb910838328",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -126,7 +132,7 @@
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "c91569852ebe917fea0cf7cb83ccce190a5904817d3379dbf4293309fb88872e",
+      "sha256": "0aacb885107af33595b9f7da649f56c9e9e6a10827c6c326fcde29079b07e1cb",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -286,6 +292,12 @@
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
     },
     {
+      "path": "examples/provider_workflow.py",
+      "kind": "source",
+      "sha256": "0ac5776c6937936f94785ee84fdd0242bba9dfa5157833f2bb315f81006eb2e8",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
       "path": "examples/retrieval_jobs.py",
       "kind": "source",
       "sha256": "37c0e8414dc902fb3d7bcc59d76ff6650bb3dcfe3fd386544c4aac627331731a",
@@ -312,7 +324,7 @@
     {
       "path": "src/ssdu/__init__.py",
       "kind": "source",
-      "sha256": "258dc330e071bd9cfa25573b2cb75682d2b6ac9c6c166828f0e470134415f153",
+      "sha256": "85f975c393281becf44c032845dd6999f602902d8edfe049f32e88aeb2741428",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -324,8 +336,14 @@
     {
       "path": "src/ssdu/adapters/deprivation.py",
       "kind": "source",
-      "sha256": "6b70d95e020798c1959f22deace78fb12d9bc16462af507e686e67700665ee73",
+      "sha256": "aba63ce3cc2e6bba676ae2b43aba3f13b971fadeb844c3c00c15da28d0953155",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/mhclg.py",
+      "kind": "source",
+      "sha256": "2c070395665744cc6745f1421445c5d00e1ff4b844cec2add10357ec7633b817",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "src/ssdu/adapters/nisra.py",
@@ -336,7 +354,7 @@
     {
       "path": "src/ssdu/adapters/nomis.py",
       "kind": "source",
-      "sha256": "07126f14daaac8cc6f864f2ca7265292e767ebd1ee42d3e91a24b021bbc01041",
+      "sha256": "ba13747d30a3ce9a68ecca6b9f9accb57aae7ec69ab00b4dc7bcd86e24f16136",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -348,13 +366,13 @@
     {
       "path": "src/ssdu/adapters/statswales.py",
       "kind": "source",
-      "sha256": "f1443a4eda17fdf3013774daf440e800db2e665b5e1f52f224c1eb36dc64ec8a",
+      "sha256": "1798825aca2fc81a74708fb432f0b567ea3515ea20de52c75f45383476a25891",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/api.py",
       "kind": "source",
-      "sha256": "8e61116870568babe7d9380beb8541ee921d032883f28a6439a2d7e1fc03f97f",
+      "sha256": "e908f8b3b419318d686f9da812e51b1248920787bcea0c43dd5b2617b8188a26",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -366,7 +384,7 @@
     {
       "path": "src/ssdu/cli.py",
       "kind": "source",
-      "sha256": "b558947cfa33d06c6a7bda04bee0a5fb04e3b48ece0f6d8389ca5dd96409ecec",
+      "sha256": "7f8d3dfc1e2a1e7811ef149aeabaf877f0528537e4bd57e24c202908f11ac548",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -384,13 +402,31 @@
     {
       "path": "src/ssdu/conformance.py",
       "kind": "source",
-      "sha256": "d948d9326b631f6448ba258ad43acc3e4196686a802eec4cf83add1cf6c36116",
+      "sha256": "3e892e63fae19bfab8ee08e6a1e591015928c6aa2bb8ad47908672fcb971b41f",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/connector_cache.py",
+      "kind": "source",
+      "sha256": "2b23142ae881788cb4db3c6caac3d573e069e2827a9db7b9444fcb0de5a0ca90",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
+      "path": "src/ssdu/connector_cli.py",
+      "kind": "source",
+      "sha256": "082f14d6761147685c9bdcab025f0c1b0eb9fbb2091be2cbbaad77804d009600",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
+      "path": "src/ssdu/connectors.py",
+      "kind": "source",
+      "sha256": "7990ef0748fa7299c5f04206cf6513359026db31252d8224112341d37dd30fda",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "src/ssdu/contracts.py",
       "kind": "source",
-      "sha256": "a34b0e823f90525a618920fcba8a9f68d9bf2b35e77530b7a9d1b2ab01752f68",
+      "sha256": "fa9a887b9cfaea108149085b1697e7c6ca79654b69b391309d28bc0c6b165685",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -442,6 +478,12 @@
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
+      "path": "src/ssdu/distributions.py",
+      "kind": "source",
+      "sha256": "73a3e120cdd1e9a90c443bae74628a1b4c6dfbfcbf5cb47178a6befe4423183e",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
       "path": "src/ssdu/harvest.py",
       "kind": "source",
       "sha256": "194776cdf85662073afc311f3a2fb679eb71d8206f3e18292a72738ca7be77d2",
@@ -456,7 +498,7 @@
     {
       "path": "src/ssdu/http.py",
       "kind": "source",
-      "sha256": "6100e4c1de775538ef214381c352331e413adec3af5410dd46a768494e10241e",
+      "sha256": "76affe38dad01521bbb00482cc7bdfaa36e285b086584dae82b10f83d91d9d7d",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -504,7 +546,7 @@
     {
       "path": "src/ssdu/mcp_server.py",
       "kind": "source",
-      "sha256": "e2d01cc5423b04b872cd8dd1aa533c8298e1b97f089d805d5ccc313ab1cb5848",
+      "sha256": "c83dd0d5318be6a9e58f9a2d78005446189a09bd8861a09e5c62e78fac07bb72",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -516,8 +558,14 @@
     {
       "path": "src/ssdu/normalization.py",
       "kind": "source",
-      "sha256": "ccf2f185e0d3a5101f7edf4f04461a1d3ecd6200edf0d0044af2a8505361065b",
+      "sha256": "208f1076e545be7b65899dcc26caaa927f33a608126b538054e98703676fef90",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/normalization_mhclg.py",
+      "kind": "source",
+      "sha256": "6685fc385f1d673fb96a4ed34da874cf3bac38044dedcc59cdc1bac446e2b9d4",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "src/ssdu/normalization_nisra.py",
@@ -540,7 +588,7 @@
     {
       "path": "src/ssdu/providers.py",
       "kind": "source",
-      "sha256": "9d2ab8e51ff5b9910e691e71eaa2ba20c8adafd91e79ea56340765d3c7144353",
+      "sha256": "ed17169361e0eef0fe6cbb60e8dd792e0f974be3ae27bc5c52139f210439cced",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -564,7 +612,7 @@
     {
       "path": "src/ssdu/retrieval.py",
       "kind": "source",
-      "sha256": "7fcd3258353b0ceee460c3c62b69839b4c6fa98ce6540bebcf1a6510f9fa47fd",
+      "sha256": "1384158c6dc3a74fd6dab801bc0950cae268899277c021bfba483ed4bbb14925",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -588,25 +636,25 @@
     {
       "path": "src/ssdu/service.py",
       "kind": "source",
-      "sha256": "997127d68a884eaf277de2529a3a31e012e77e1ff0431206330754132e6d43e0",
+      "sha256": "30bd29de58f3da42a5ddd4a45408d63d374e641d7fb011512856fe6b91e1e434",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/shared.py",
       "kind": "source",
-      "sha256": "9f5e9c6b90fac5df91e66d046c64dd01ad93ceb125b4d25872f5061a20a7e4df",
+      "sha256": "5fb0e9b53858da41ed506423076c66102ead0c35ea3c9e33868d8ffb72edab8f",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/source_coverage.py",
       "kind": "source",
-      "sha256": "e77f240f2f8f04a206c18bdea7f9ea2da9fb123687931a0a69853eb41f3d5b2e",
+      "sha256": "a571c86579c43866932dd1cc1575c02da08997e8c00ce83c4f4365dab2e8d4fc",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/store.py",
       "kind": "source",
-      "sha256": "c6b0efbe7ebb376955585b18d732e56f21b4f298cb513de59a7f633d2b19a287",
+      "sha256": "47b564b7a54f64f6298a559e8aac17d69ac86385853394fffe9cf192dd1944c5",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -780,7 +828,7 @@
     {
       "path": "tests/test_adapter_conformance.py",
       "kind": "source",
-      "sha256": "ebb5833ff4cfa8ef0866dd0003910be6fb0ab6d529ed7d0339d1cbeead9bf3bd",
+      "sha256": "cacf7f6bd6c3fb38119923bd8b176293fe5c443d0c58fdda92051f402cd7c171",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -840,8 +888,26 @@
     {
       "path": "tests/test_conformance_families.py",
       "kind": "source",
-      "sha256": "64d2d6a10b903b3f8ee313a09f99c74db57d8eb457f13c00136eaede9be95809",
+      "sha256": "4f08c677badbaa1316a0dd20615f1f8e02f4604248e9f484e9de6f20c1441267",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_connector_cache.py",
+      "kind": "source",
+      "sha256": "b2d64a2dc71909d5636ad5041d210b06478e0952139a75a9f74f38a7d038e83c",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
+      "path": "tests/test_connector_providers.py",
+      "kind": "source",
+      "sha256": "85e0d6904d41b47a0ebf90e90190b90d06718855ff4eaafcd12bb83c16842b0e",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
+      "path": "tests/test_connector_transports.py",
+      "kind": "source",
+      "sha256": "80e0ce9cdc3f6fe5d7e8cf7c5e70571d4354bc99cab6f8c0a2d59d8ed17b8dde",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "tests/test_contract_cli.py",
@@ -1012,6 +1078,12 @@
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
+      "path": "tests/test_mhclg.py",
+      "kind": "source",
+      "sha256": "2034324c61dd54ac93adcee771822b8e3332d2a2d9f4591a573097d240eea1d8",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
       "path": "tests/test_nisra.py",
       "kind": "source",
       "sha256": "6f6287bf54a9f73a871f98f4705e77b71a6c1209207e28b9f6a0a5d4a50eab9b",
@@ -1044,8 +1116,14 @@
     {
       "path": "tests/test_provider_registration.py",
       "kind": "source",
-      "sha256": "ab017db81bde68a6ed018c2ee7fddaf11cd86a6e025e23b5cb9e627d943040ad",
+      "sha256": "e31a896d177442c635335385842f0819624925a035b6cf316d042535765a0df5",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_provider_workflow_example.py",
+      "kind": "source",
+      "sha256": "d93938f8f5c6233b0448958bdacfc46d1593b7fa6b8cdafc075c2aeb1dbdcc07",
+      "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "tests/test_publication.py",
@@ -1086,7 +1164,7 @@
     {
       "path": "tests/test_retrieval_jobs.py",
       "kind": "source",
-      "sha256": "532d756a2664360c47e76c2d8210c61169f1afe259e5afdc6be60da604d99902",
+      "sha256": "d5cc559242e579f4007d50c5fd81113234e71916754d49e7e3b6ee23c17ae07a",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1146,7 +1224,7 @@
     {
       "path": "tests/test_source_coverage.py",
       "kind": "source",
-      "sha256": "dbdf2f0bb3c1ebe1f2a8b9df166dc7bc1856c66afcaf0f6605e228ce5b7c351b",
+      "sha256": "f4747990ad74f2424136e37f1a5cffe103dec3196b7743884a035a30330ec6e2",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1158,7 +1236,7 @@
     {
       "path": "tests/test_store.py",
       "kind": "source",
-      "sha256": "c6f154ea4d39b8a1c2ac4cdc73b0dd633bdf98a6415a0ed46de6b0f7f1fc8aa3",
+      "sha256": "ff100398e6fa32d83671bce6e2942d7c9fffb6f9c0d296e7fac82c30556268b7",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1223,6 +1301,9 @@
       "tests/test_collection_publication.py",
       "tests/test_collections.py",
       "tests/test_conformance_families.py",
+      "tests/test_connector_cache.py",
+      "tests/test_connector_providers.py",
+      "tests/test_connector_transports.py",
       "tests/test_contract_cli.py",
       "tests/test_contract_service.py",
       "tests/test_contract_transports.py",
@@ -1251,12 +1332,14 @@
       "tests/test_literature_validation.py",
       "tests/test_local_import.py",
       "tests/test_mcp.py",
+      "tests/test_mhclg.py",
       "tests/test_nisra.py",
       "tests/test_nomis.py",
       "tests/test_provider_harvest.py",
       "tests/test_provider_migration.py",
       "tests/test_provider_normalization.py",
       "tests/test_provider_registration.py",
+      "tests/test_provider_workflow_example.py",
       "tests/test_publication.py",
       "tests/test_rate_limit.py",
       "tests/test_records_contract.py",

@@ -71,6 +71,8 @@ currently [research work](https://xangma.github.io/ssdu/research/index.html).
 
 - [Work with provider examples](https://xangma.github.io/ssdu/guides/dataset-examples.html)
   using invented responses in the same formats as supported sources.
+- [Find and save a provider table](https://xangma.github.io/ssdu/guides/provider-workflow.html)
+  with a common catalogue-to-collection workflow and an offline teaching example.
 - [Inspect and query datasets](https://xangma.github.io/ssdu/guides/dataset-api.html)
   through Python, the command line or an application.
 - [Understand sources and interpretation](https://xangma.github.io/ssdu/concepts/provenance.html)

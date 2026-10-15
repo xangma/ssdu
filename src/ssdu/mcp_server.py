@@ -25,6 +25,7 @@ from .contracts import (
     SnapshotId,
     bounded_result,
     resolve_service,
+    supports_connector_metadata,
 )
 from .models import RetrievalError
 from .retrieval_models import IdempotencyKey, JobBudget, JobId, PlanInput
@@ -138,6 +139,53 @@ def create_mcp_server(
             list_snapshot_dimension_values,
         )
     ]
+
+    if supports_connector_metadata(data):
+
+        def list_provider_datasets(
+            provider: Identifier,
+            query: SearchText = "",
+            limit: Limit = 20,
+            offset: Offset = 0,
+        ) -> dict[str, Any]:
+            """Browse cached provider catalogue metadata; no provider request is made."""
+            return call(
+                data.list_provider_datasets, provider, query=query, limit=limit, offset=offset
+            )
+
+        def describe_provider_dataset(
+            provider: Identifier, dataset_id: Identifier
+        ) -> dict[str, Any]:
+            """Inspect a cached provider definition and available selections, not a snapshot."""
+            return call(data.describe_provider_dataset, provider, dataset_id)
+
+        def list_provider_dimension_values(
+            provider: Identifier,
+            dataset_id: Identifier,
+            dimension: Column,
+            search: SearchText = "",
+            limit: Limit = 20,
+            offset: Offset = 0,
+        ) -> dict[str, Any]:
+            """Page cached provider selection codes; missing metadata requires explicit acquisition."""
+            return call(
+                data.list_provider_dimension_values,
+                provider,
+                dataset_id,
+                dimension,
+                search=search,
+                limit=limit,
+                offset=offset,
+            )
+
+        functions.extend(
+            (fn, annotations)
+            for fn in (
+                list_provider_datasets,
+                describe_provider_dataset,
+                list_provider_dimension_values,
+            )
+        )
 
     if enable_jobs:
 

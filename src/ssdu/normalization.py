@@ -415,6 +415,24 @@ def statswales(acquisition: Acquisition, request: Request | None = None) -> Data
         for name in ("Data values", "Data value", "Data Values", "Gwerthoedd data")
         if name in frame
     ]
+    if not candidates:
+        # Filters explicitly identify dimension columns. A table with exactly
+        # one other payload column has an unambiguous cell-value field even
+        # when its heading differs from the usual translated API label.
+        dimension_columns = {
+            column
+            for dim in native
+            for column in (dim.get("columnName"), dim.get("factTableColumn"))
+            if isinstance(column, str)
+        }
+        excluded = dimension_columns | {name + "__code" for name in dimension_columns}
+        candidates = [
+            name
+            for name in frame
+            if name not in excluded
+            and name not in {"Notes", "Nodiadau"}
+            and not name.endswith("_sort")
+        ]
     if len(candidates) != 1 and len(frame):
         raise RetrievalError("Unsupported or ambiguous StatsWales data-value schema")
     value_column = candidates[0] if candidates else "Data values"

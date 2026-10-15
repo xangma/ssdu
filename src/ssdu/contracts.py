@@ -81,6 +81,13 @@ class DimensionParams(BaseModel):
     offset: Annotated[int, Field(ge=0, le=100_000)] = 0
 
 
+class ConnectorSearchParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    query: SearchText = ""
+    limit: Annotated[int, Field(ge=1, le=100)] = 20
+    offset: Annotated[int, Field(ge=0, le=100_000)] = 0
+
+
 class QueryResult(BaseModel):
     model_config = ConfigDict(extra="allow", allow_inf_nan=False)
     rows: Annotated[list[dict[str, Any]], Field(max_length=100)]
@@ -114,6 +121,38 @@ class DataService(Protocol):
     ) -> dict: ...
 
     def get_provenance(self, snapshot_id: str) -> dict: ...
+
+
+class ConnectorMetadataService(Protocol):
+    """Optional cached-only extension for provider catalogue and selection metadata."""
+
+    def list_provider_datasets(
+        self, provider: str, query: str = "", limit: int = 20, offset: int = 0
+    ) -> dict: ...
+
+    def describe_provider_dataset(self, provider: str, dataset_id: str) -> dict: ...
+
+    def list_provider_dimension_values(
+        self,
+        provider: str,
+        dataset_id: str,
+        dimension: str,
+        search: str = "",
+        limit: int = 20,
+        offset: int = 0,
+    ) -> dict: ...
+
+
+def supports_connector_metadata(service) -> bool:
+    """Keep older injected services usable without advertising unavailable methods."""
+    return all(
+        callable(getattr(service, name, None))
+        for name in (
+            "list_provider_datasets",
+            "describe_provider_dataset",
+            "list_provider_dimension_values",
+        )
+    )
 
 
 def resolve_service(store="data", service: DataService | None = None) -> DataService:

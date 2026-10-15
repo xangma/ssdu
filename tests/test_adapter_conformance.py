@@ -63,7 +63,9 @@ def test_adapter_common_contract_values_codes_cache_and_provenance(
     assert contract["source"]["release"]
     assert contract["source"]["raw_inputs"]
     assert contract["transform"]["id"]
-    assert contract["transform"]["version"] == "1.0.0"
+    from ssdu.providers import get_provider
+
+    assert contract["transform"]["version"] == get_provider(provider).transform_version
     assert contract["quality"]["completeness"] == "complete"
     assert all(
         str(dataset.to_arrow().schema.field(dim["column"]).type) == "string"

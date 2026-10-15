@@ -1,4 +1,5 @@
 import json
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
@@ -26,6 +27,7 @@ class Resource:
     request_body: Any
     content_type: str
     headers: dict[str, str]
+    cache_scope: str | None = None
 
     def json(self) -> Any:
         try:
@@ -53,6 +55,7 @@ class HttpClient:
         on_bytes=None,
     ):
         self.resources: list[Resource] = []
+        self.cache_scope = None
         self.max_bytes = max_bytes
         self.retries = retries
         self.max_requests = max_requests
@@ -86,6 +89,15 @@ class HttpClient:
 
     def post(self, url: str, *, json: Any) -> Resource:
         return self.request("POST", url, json=json)
+
+    @contextmanager
+    def scope(self, token):
+        """Label data requests with their resolved release, leaving metadata unscoped."""
+        previous, self.cache_scope = self.cache_scope, token
+        try:
+            yield self
+        finally:
+            self.cache_scope = previous
 
     def request(self, method: str, url: str, *, params=None, json=None) -> Resource:
         parsed = urlparse(url)
@@ -149,6 +161,7 @@ class HttpClient:
                                         "x-ratelimit-reset",
                                     }
                                 },
+                                cache_scope=self.cache_scope,
                             )
                             self.resources.append(resource)
                             return resource

@@ -74,14 +74,16 @@ def test_fixed_provider_inventory_and_backwards_compatible_adapter_alias():
     import ssdu.store as store_module
 
     assert (
-        PROVIDERS == provider_ids() == ("nomis", "statswales", "deprivation", "nisra", "scotland")
+        PROVIDERS
+        == provider_ids()
+        == ("nomis", "statswales", "deprivation", "nisra", "scotland", "mhclg")
     )
     assert DEFAULT_PROVIDERS == ("nomis", "statswales", "deprivation")
     assert store_module.adapter is adapter
     assert adapter("nomis").__name__ == "ssdu.adapters.nomis"
     for provider in provider_ids():
         registration = get_provider(provider)
-        assert registration.transform_version == "1.0.0"
+        assert registration.transform_version == ("1.1.0" if provider == "statswales" else "1.0.0")
         paths = registration.implementation_paths()
         assert all(path.is_absolute() for path in paths)
         assert paths[0].name == f"{provider}.py"

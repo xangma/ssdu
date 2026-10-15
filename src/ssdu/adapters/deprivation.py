@@ -204,3 +204,52 @@ def from_resource(request: Request, resource, *, national=False) -> Acquisition:
 
     acquired.dataset = normalize(acquired, request, source_cells)
     return acquired
+
+
+def retained_fetch(store, request, **kwargs):
+    """Compatibility recipe for previously published deprivation requests."""
+    from ssdu.shared import SharedDeprivation
+
+    return SharedDeprivation(store).fetch(request, **kwargs)
+
+
+def plan_retained(service, native, query, fact, query_service):
+    from ssdu.shared import SharedDeprivation
+
+    return SharedDeprivation(service.store).plan_retained(
+        service, native, query, fact, query_service
+    )
+
+
+def derive_retained(store, native, fact):
+    from ssdu.shared import SharedDeprivation
+
+    shared = SharedDeprivation(store)
+    source_id = fact.source_snapshot_id
+    if fact.legacy_snapshot_id:
+        source = shared.source_from_legacy(fact.legacy_snapshot_id)
+        source_id = source["product_id"]
+        if native == national_request():
+            return source
+    return shared.fetch(native, offline=True, source_snapshot_id=source_id)
+
+
+def normalization_source(store, manifest):
+    """Retain the old File 7 interpretation solely for historical compatibility."""
+    pending, seen = [manifest], set()
+    while pending:
+        current = pending.pop()
+        if current["product_id"] in seen:
+            continue
+        seen.add(current["product_id"])
+        for resource in current["resources"]:
+            if resource["url"] == SOURCE_URL:
+                path = store.path(current["product_id"]) / resource["file"]
+                return pd.read_csv(
+                    BytesIO(path.read_bytes()),
+                    dtype=str,
+                    keep_default_na=False,
+                    encoding="utf-8-sig",
+                )
+        pending.extend(store.verify(parent) for parent in current.get("parent_snapshot_ids", []))
+    return None

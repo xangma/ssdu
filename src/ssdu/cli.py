@@ -35,6 +35,12 @@ def main(argv=None):
     parser.add_argument("--store", default="data", help="Local snapshot directory (default: data)")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("sources", help="Show implemented source coverage and planned integrations")
+    connector = commands.add_parser(
+        "connector", help="Discover provider datasets and resolve selections with cached metadata"
+    )
+    from ssdu.connector_cli import add_arguments as add_connector_arguments
+
+    add_connector_arguments(connector)
     dataset = commands.add_parser("dataset", help="Fetch, inspect or migrate standardized datasets")
     dataset_commands = dataset.add_subparsers(dest="dataset_command", required=True)
     dataset_commands.add_parser("schema", help="Print the versioned dataset descriptor JSON Schema")
@@ -205,6 +211,11 @@ def main(argv=None):
             from ssdu.source_coverage import get_source_coverage
 
             _print(get_source_coverage())
+            return 0
+        if args.command == "connector":
+            from ssdu.connector_cli import execute
+
+            _print(execute(args))
             return 0
         if args.command == "dataset":
             from ssdu.dataset_contract import DatasetDescriptor

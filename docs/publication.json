@@ -11,7 +11,8 @@
     "concepts/dataset-contract.md",
     "guides/dataset-examples.md",
     "guides/four-nations.md",
-    "guides/dataset-api.md"
+    "guides/dataset-api.md",
+    "guides/provider-workflow.md"
   ],
   "generated_pages": [
     "reference/cli.md",
@@ -43,7 +44,8 @@
     "_downloads/four_nations.py": "examples/four_nations.py",
     "_downloads/four-nations.yaml": "examples/collections/four-nations.yaml",
     "_downloads/dataset_api.py": "examples/dataset_api.py",
-    "_downloads/research_tutorial.ipynb": "examples/notebooks/research_tutorial.ipynb"
+    "_downloads/research_tutorial.ipynb": "examples/notebooks/research_tutorial.ipynb",
+    "_downloads/provider_workflow.py": "examples/provider_workflow.py"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -76,7 +78,14 @@
     "ssdu.service.Service.query_dataset",
     "ssdu.service.Service.list_snapshot_dimension_values",
     "ssdu.contracts.DatasetQuerySpec",
-    "ssdu.local_import.LocalImportSpec"
+    "ssdu.local_import.LocalImportSpec",
+    "ssdu.connectors.Connector",
+    "ssdu.connectors.Connector.list_datasets",
+    "ssdu.connectors.Connector.describe_dataset",
+    "ssdu.connectors.Connector.list_dimension_values",
+    "ssdu.connectors.Connector.plan_fetch",
+    "ssdu.connectors.Connector.fetch",
+    "ssdu.connectors.Connector.fetch_dataset"
   ],
   "schema_models": [
     "ssdu.contracts.QuerySpec",

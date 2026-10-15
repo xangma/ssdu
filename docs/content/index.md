@@ -24,6 +24,8 @@ or downloading official data.
 
 - **Try different sources:** the [provider examples](guides/dataset-examples.md)
   explain how Nomis, StatsWales and English deprivation tables are represented.
+- **Find and save a provider table:** the [connector workflow](guides/provider-workflow.md)
+  follows catalogue browsing through to a collection that reopens offline.
 - **Work with your own table:** the [dataset API guide](guides/dataset-api.md)
   covers local CSV and Parquet imports, inspection and selection.
 - **Move a saved analysis:** the [offline transfer example](start/quickstart.md)
@@ -67,6 +69,7 @@ start/quickstart
 :hidden:
 
 guides/dataset-examples
+guides/provider-workflow
 guides/dataset-api
 guides/four-nations
 guides/interfaces

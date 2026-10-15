@@ -202,8 +202,8 @@ SOURCE_COVERAGE = CoverageMatrix(
         ProviderCoverage(
             provider_id="mhclg",
             name="Ministry of Housing, Communities and Local Government (MHCLG)",
-            overview="Selected statistics on area deprivation in England.",
-            source_ids=("deprivation",),
+            overview="Selected housing, communities and local-government statistical tables.",
+            source_ids=("mhclg", "deprivation"),
             source_urls=(
                 "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
             ),
@@ -237,10 +237,11 @@ SOURCE_COVERAGE = CoverageMatrix(
             provider="nomis",
             status="implemented",
             catalogue=_stage(
-                "implemented", "Dataset search, definitions and native dimension codes."
+                "implemented",
+                "Cached catalogue browsing, dataset definitions and native dimension values before retrieval.",
             ),
             retrieval=_stage(
-                "implemented", "Bounded CSV API selections with geography and date/time."
+                "implemented", "Metadata-validated native selectors and bounded CSV pagination."
             ),
             normalization=_stage(
                 "implemented", "Observation profile for retained API columns and values."
@@ -253,18 +254,21 @@ SOURCE_COVERAGE = CoverageMatrix(
             contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(f.family_id for f in get_conformance_families("nomis")),
             capabilities=_network_capabilities(),
-            access="Public API; application caching and shared per-provider request limiting.",
+            access="Public API; application caching and shared per-host request limiting.",
             limits=(
                 "Native selectors remain dataset-specific and must be inspected before retrieval.",
                 "Request max_rows is at most 100,000; page_size is at most 10,000.",
                 "Revision and row counts are checked around paginated retrieval.",
                 "Historical replay uses retained snapshots, not arbitrary provider release selection.",
                 "Validation is scoped to exercised dataset structures; all Nomis families are not certified.",
+                "Catalogue pages reuse the bounded complete metadata response; whole-portal semantic coverage is not claimed.",
             ),
             source_urls=("https://www.nomisweb.co.uk/api/v01/help",),
             implementation_paths=(
                 "src/ssdu/adapters/nomis.py",
+                "src/ssdu/connectors.py",
                 "tests/test_nomis.py",
+                "tests/test_connector_providers.py",
                 "tests/test_conformance_families.py",
             ),
         ),
@@ -275,7 +279,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             status="implemented",
             catalogue=_stage(
                 "partial",
-                "Published catalogue capture; detailed dataset filters are sampled or inspected on demand.",
+                "Paginated catalogue browsing and cached dataset/filter inspection before retrieval; metadata format coverage remains scoped.",
             ),
             retrieval=_stage(
                 "implemented", "UUID datasets through filtered, bounded v2 pagination."
@@ -294,7 +298,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 f.family_id for f in get_conformance_families("statswales")
             ),
             capabilities=_network_capabilities(),
-            access="Public v2 API; application caching and shared per-provider request limiting.",
+            access="Public v2 API; application caching and shared per-host request limiting.",
             limits=(
                 "Request max_rows is at most 100,000; page_size is at most 10,000.",
                 "Published revision is observed and checked, not a provider-side historical release pin.",
@@ -306,13 +310,59 @@ SOURCE_COVERAGE = CoverageMatrix(
             ),
             implementation_paths=(
                 "src/ssdu/adapters/statswales.py",
+                "src/ssdu/connectors.py",
                 "tests/test_statswales.py",
+                "tests/test_connector_providers.py",
                 "tests/test_conformance_families.py",
             ),
         ),
         SourceCoverage(
+            source_id="mhclg",
+            name="MHCLG statistical publications and tabular files",
+            provider="mhclg",
+            status="implemented",
+            catalogue=_stage(
+                "partial",
+                "Paginated GOV.UK statistical-publication discovery for MHCLG and supported predecessors; cached publication and attachment metadata.",
+            ),
+            retrieval=_stage(
+                "implemented",
+                "Selected CSV distributions and supported CSVW metadata resolved from publication attachments; retained resource bytes are reused.",
+            ),
+            normalization=_stage(
+                "implemented",
+                "Records profile preserves source cells; supported CSVW declarations supply types, keys and field metadata without inferred statistical semantics.",
+            ),
+            conformance=_stage(
+                "partial",
+                "Synthetic publication/file families cover literal CSV records, supported CSVW declarations and release/distribution changes with offline replay; no whole-provider certification.",
+            ),
+            profiles=("records",),
+            contract_version=RECORDS_CONTRACT_VERSION,
+            conformance_family_ids=tuple(f.family_id for f in get_conformance_families("mhclg")),
+            capabilities=_network_capabilities(),
+            access="Public GOV.UK metadata and allowlisted HTTPS files through shared cached, rate-limited requests.",
+            limits=(
+                "GOV.UK statistical publications only; not every MHCLG service, historical publication or download format is integrated.",
+                "CSV and a bounded CSVW subset only; unsupported metadata and file formats fail explicitly.",
+                "Publication updates and resource hashes identify retained releases; arbitrary provider historical release selection is not claimed.",
+                "Records do not infer geography, measures, units or comparability; versioned semantic transforms remain separate.",
+            ),
+            source_urls=(
+                "https://docs.publishing.service.gov.uk/repos/search-api/using-the-search-api.html",
+                "https://content-api.publishing.service.gov.uk/",
+                "https://www.w3.org/TR/tabular-metadata/",
+            ),
+            implementation_paths=(
+                "src/ssdu/adapters/mhclg.py",
+                "src/ssdu/distributions.py",
+                "src/ssdu/normalization_mhclg.py",
+                "tests/test_mhclg.py",
+            ),
+        ),
+        SourceCoverage(
             source_id="deprivation",
-            name="English deprivation 2025, corrected File 7",
+            name="Deprivation compatibility adapter",
             provider="deprivation",
             status="implemented",
             catalogue=_stage(
@@ -337,6 +387,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             capabilities=_network_capabilities(),
             access="Public official download; one cached national parent supports local selections.",
             limits=(
+                "Compatibility route for existing requests and snapshots; use the MHCLG connector for new publication/file retrieval.",
                 "Only corrected 2025 File 7 is supported; other files, editions and UK nations are outside scope.",
                 "LSOA 2021 and local-authority 2024 geographies are explicit.",
                 "Comparability across editions or differing boundary vintages is not established.",
@@ -505,7 +556,7 @@ SOURCE_COVERAGE = CoverageMatrix(
         ),
         PlannedAdapterFamily(
             family_id="file_download",
-            scope="Pinned remote files with explicit parser, schema, licence and transformation contracts.",
+            scope="Additional remote-file formats and publishers beyond the MHCLG CSV/CSVW route; explicit parser, schema, licence and transformation contracts remain required.",
         ),
     ),
     notes=(

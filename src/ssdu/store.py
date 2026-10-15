@@ -2,7 +2,6 @@
 
 import fcntl
 import hashlib
-import io
 import json
 import os
 import platform
@@ -319,28 +318,11 @@ class Store:
         return dataset
 
     def _normalization_raw_frame(self, manifest):
-        """Locate retained File 7 bytes in a verified lineage for lossless normalization."""
-        if manifest["provider"] != "deprivation":
+        """Read original interpretation inputs through the registered provider recipe."""
+        if manifest["provider"] not in PROVIDERS:
             return None
-        from ssdu.adapters.deprivation import SOURCE_URL
-
-        pending, seen = [manifest], set()
-        while pending:
-            current = pending.pop()
-            if current["product_id"] in seen:
-                continue
-            seen.add(current["product_id"])
-            for resource in current["resources"]:
-                if resource["url"] == SOURCE_URL:
-                    path = self.path(current["product_id"]) / resource["file"]
-                    return pd.read_csv(
-                        io.BytesIO(path.read_bytes()),
-                        dtype=str,
-                        keep_default_na=False,
-                        encoding="utf-8-sig",
-                    )
-            pending.extend(self.verify(parent) for parent in current.get("parent_snapshot_ids", []))
-        return None
+        reader = getattr(adapter(manifest["provider"]), "normalization_source", None)
+        return reader(self, manifest) if reader is not None else None
 
     def migrate_dataset(self, snapshot_id: str):
         """Normalize historical evidence offline; publish a new immutable derived snapshot."""
@@ -359,8 +341,10 @@ class Store:
             transform_id, transform_version = TRANSFORM_ID, TRANSFORM_VERSION
         elif provider in PROVIDERS:
             registration = get_provider(provider)
-            contract_version = CONTRACT_VERSION
-            profile = "observations"
+            profile = registration.profile
+            contract_version = (
+                RECORDS_CONTRACT_VERSION if profile == "records" else CONTRACT_VERSION
+            )
             transform_id, transform_version = (
                 registration.transform_id,
                 registration.transform_version,
@@ -485,12 +469,25 @@ class Store:
             recovered = self._recover_cached(request, key)
             if recovered:
                 return recovered
-        if request.provider == "deprivation":
-            from ssdu.shared import SharedDeprivation
+        registration = get_provider(request.provider)
+        retained_fetch = getattr(adapter(request.provider), "retained_fetch", None)
+        if retained_fetch is not None:
+            return retained_fetch(self, request, refresh=refresh, offline=offline, client=client)
+        if registration.workflow:
+            from ssdu.connector_cache import CachedClient, seed_from_snapshots
 
-            return SharedDeprivation(self).fetch(
-                request, refresh=refresh, offline=offline, client=client
-            )
+            if offline:
+                seed_from_snapshots(self, provider=request.provider)
+            if getattr(client, "persistent_cache", False) and not offline:
+                return self._acquire(request, key, client)
+            with CachedClient(
+                self.root,
+                client=client,
+                refresh=refresh,
+                offline=offline,
+                allowed_hosts=registration.allowed_hosts,
+            ) as cached_client:
+                return self._acquire(request, key, cached_client)
         if offline:
             raise RetrievalError("No retained snapshot for this exact request; fetch online once")
         if client is None:
@@ -545,6 +542,7 @@ class Store:
                         "request_body": resource.request_body,
                         "content_type": resource.content_type,
                         "response_headers": resource.headers,
+                        **({"cache_scope": resource.cache_scope} if resource.cache_scope else {}),
                     }
                 )
             dataset = acquisition.dataset
