@@ -123,6 +123,47 @@ def test_describe_is_metadata_only_and_dimensions_keep_native_uri_ids(tmp_path):
     assert descriptor["references"][0]["url"].startswith("https://guides.statistics.gov.scot/")
 
 
+@pytest.mark.parametrize("dataset_id", ["Ssdu-Synthetic-Events", "6-ssdu-synthetic-events"])
+def test_native_slug_case_survives_discovery_description_and_cached_replay(tmp_path, dataset_id):
+    metadata, _ = fixtures()
+    metadata = json.loads(json.dumps(metadata).replace(DATASET, dataset_id))
+    calls = []
+
+    def handler(request):
+        query = request.url.params["query"]
+        calls.append(query)
+        if "AS ?kind" in query:
+            assert f"<{scotland.BASE}{dataset_id}>" in query
+            return httpx.Response(200, json=metadata)
+        assert query.startswith("SELECT ?dataset")
+        return httpx.Response(
+            200,
+            json=document(
+                ["dataset", "title"],
+                [
+                    {
+                        "dataset": term(scotland.BASE + dataset_id, "uri"),
+                        "title": term("Invented mixed-case event series"),
+                    }
+                ],
+            ),
+        )
+
+    with http(tmp_path, handler) as client:
+        connector = Connector("scotland", tmp_path / "store", client=client)
+        page = connector.list_datasets(limit=2)
+        identity = page["items"][0]["id"]
+        assert identity == dataset_id
+        scotland.validate_request(Request("scotland", identity))
+        descriptor = connector.describe_dataset(identity)
+        assert descriptor["dataset_id"] == dataset_id
+        assert descriptor["source_url"] == scotland.BASE + dataset_id
+        with patch.object(HttpClient, "request", side_effect=AssertionError("Offline HTTP")):
+            assert connector.list_datasets(limit=2, offline=True) == page
+            assert connector.describe_dataset(identity, offline=True) == descriptor
+    assert len(calls) == 2
+
+
 def test_member_pages_are_dataset_scoped_and_preserve_unknown_labels(tmp_path):
     calls = []
     with http(tmp_path, responder(calls)) as client:

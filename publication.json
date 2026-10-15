@@ -378,7 +378,7 @@
     {
       "path": "src/ssdu/adapters/scotland.py",
       "kind": "source",
-      "sha256": "f55efd302bbbf641db0e55350fe3a09d9913d230fa6392a18659cd988ba29f54",
+      "sha256": "3a95d94c182a01a5a550e69ea08f596dc8b0377287f07d917a638a7a6db19f9a",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -972,7 +972,7 @@
     {
       "path": "tests/test_connector_scotland.py",
       "kind": "source",
-      "sha256": "014b55f14c5b72ae844e4dd776a8f3a82288944c5a36f30e4eacd49091b5ccc0",
+      "sha256": "c06314fe510192a7bd0a96911f7cb4c8e3f6f67c5dd12142778c09c628f7c7e0",
       "review": "Author-owned common connector example or independently invented synthetic protocol and offline replay tests; no captured provider data or metadata."
     },
     {

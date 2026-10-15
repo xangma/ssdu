@@ -56,7 +56,8 @@ def _uri(value):
 
 
 def _dataset_id(value):
-    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,159}", value):
+    # Native RDF dataset paths are case-sensitive; preserve their exact slug.
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]{0,159}", value):
         raise RetrievalError("Scotland dataset_id must be a native dataset slug")
     return value
 
