@@ -116,6 +116,32 @@ def test_network_guard_is_effective():
         socket.create_connection(("localhost", 80))
 
 
+def test_generated_references_include_real_connector_capabilities_without_opening_store(
+    monkeypatch,
+):
+    from ssdu.service import Service
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Reference generation opened a data service")
+
+    monkeypatch.setattr(Service, "__init__", forbidden)
+    with docs.offline():
+        generated = docs.references(docs.inventory())
+    for filename in ("openapi.json", "openapi-jobs.json"):
+        api = json.loads(generated[f"_downloads/{filename}"])
+        assert len([path for path in api["paths"] if path.startswith("/providers/")]) == 3
+    expected = {
+        "list_provider_datasets",
+        "describe_provider_dataset",
+        "list_provider_dimension_values",
+    }
+    for filename in ("mcp.json", "mcp-jobs.json"):
+        inventory = json.loads(generated[f"_downloads/{filename}"])
+        assert expected <= {tool["name"] for tool in inventory["tools"]}
+    with pytest.raises(AssertionError, match="must not execute"):
+        docs.ReferenceService().describe_provider_dataset("mhclg", "synthetic")
+
+
 @pytest.fixture
 def notebook(publication, monkeypatch):
     helper = docs.docs_notebooks

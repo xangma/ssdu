@@ -157,13 +157,27 @@ def cli_inventory():
     return result
 
 
+class ReferenceService:
+    """Expose actual Service capabilities while forbidding data access in a build."""
+
+    def __getattr__(self, name):
+        from ssdu.service import Service
+
+        if callable(getattr(Service, name, None)):
+            return self.unavailable
+        raise AttributeError(name)
+
+    def unavailable(self, *args, **kwargs):
+        raise AssertionError("Reference generation must not execute service operations")
+
+
 async def mcp_inventory(enable_jobs=False):
     from mcp import Client
 
     from ssdu.mcp_server import create_mcp_server
 
     # Registration/listing must never read a store or call service methods.
-    server = create_mcp_server(service=object(), enable_jobs=enable_jobs)
+    server = create_mcp_server(service=ReferenceService(), enable_jobs=enable_jobs)
     async with Client(server) as client:
         tools = await client.list_tools()
         templates = await client.list_resource_templates()
@@ -193,7 +207,8 @@ def references(manifest):
 
     cli = cli_inventory()
     apis = [
-        create_app(service=object(), enable_jobs=enabled).openapi() for enabled in (False, True)
+        create_app(service=ReferenceService(), enable_jobs=enabled).openapi()
+        for enabled in (False, True)
     ]
     mcps = [asyncio.run(mcp_inventory(enabled)) for enabled in (False, True)]
     schemas = {name: symbol(name).model_json_schema() for name in manifest["schema_models"]}

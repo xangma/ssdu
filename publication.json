@@ -1008,7 +1008,7 @@
     {
       "path": "tests/test_documentation.py",
       "kind": "source",
-      "sha256": "92d095cf0b259269e922e4e8db4471aa9d538ce90ae598003986b90344afc498",
+      "sha256": "9036f52309d6d7e69e60b75d67564258a0144ac615f6ec48313b748269b7e30d",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1260,7 +1260,7 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "5d68edf73f0ac277dc53a4a8ee91b3940a86c29f3c4ce8c7423af32cce237d8d",
+      "sha256": "4008ac7360800f2564fb272245c7f0f14a28ea2313a3109e36b9c971b7ed6099",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
