@@ -417,7 +417,10 @@ class RetrievalService:
             client = CachedClient(
                 self.store.root,
                 client=client,
-                refresh=refresh,
+                # An explicit retry discards a failed entry's HTTP epoch as well
+                # as positional checkpoints. A cube may have rejected changed
+                # data before reaching its final metadata check.
+                refresh=refresh or epoch > 0,
                 allowed_hosts=get_provider(provider).allowed_hosts,
                 close_client=True,
             )

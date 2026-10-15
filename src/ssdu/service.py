@@ -86,12 +86,29 @@ class Service:
         )
 
     def describe_provider_dataset(self, provider, dataset_id):
-        """Describe retained upstream metadata; acquisition is explicitly separate."""
+        """Describe cached metadata; large definitions retain compact dimension summaries."""
         from ssdu.connectors import Connector
 
-        return bounded_result(
-            Connector(provider, self.store).describe_dataset(dataset_id, offline=True)
+        description = Connector(provider, self.store).describe_dataset(dataset_id, offline=True)
+        try:
+            return bounded_result(description)
+        except ValueError as exc:
+            if str(exc) != "Response exceeds the API output limit":
+                raise
+        # Native code lists can be large and appear both in per-dimension and
+        # provider metadata. Keep them in the verified response cache; code-list
+        # methods page them without expanding the public output budget.
+        summary = {key: value for key, value in description.items() if key != "source_metadata"}
+        summary["dimensions"] = [
+            {key: value for key, value in dimension.items() if key != "source_metadata"}
+            for dimension in description.get("dimensions", [])
+        ]
+        summary["metadata_detail"] = "summary"
+        summary["omitted_fields"] = ["source_metadata", "dimensions[].source_metadata"]
+        summary["metadata_note"] = (
+            "Raw metadata remains cached for Python inspection; browse category codes with list_provider_dimension_values."
         )
+        return bounded_result(summary)
 
     def list_provider_dimension_values(
         self, provider, dataset_id, dimension, search="", limit=20, offset=0

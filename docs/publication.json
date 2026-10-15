@@ -45,7 +45,8 @@
     "_downloads/four-nations.yaml": "examples/collections/four-nations.yaml",
     "_downloads/dataset_api.py": "examples/dataset_api.py",
     "_downloads/research_tutorial.ipynb": "examples/notebooks/research_tutorial.ipynb",
-    "_downloads/provider_workflow.py": "examples/provider_workflow.py"
+    "_downloads/provider_workflow.py": "examples/provider_workflow.py",
+    "_downloads/national_connectors.py": "examples/national_connectors.py"
   },
   "python_symbols": [
     "ssdu.store.Store",

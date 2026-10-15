@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
@@ -30,6 +32,15 @@ SEARCH_URL = "https://ws-data.nisra.gov.uk/public/api.jsonrpc"
 DEFAULT_ID = "WDTHS"
 MATRIX = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 UNKNOWN_LICENCE = "Not stated in NISRA API metadata; consult source terms"
+COLLECTION_URL = f"{BASE}/PxStat.Data.Cube_API.ReadCollection"
+MAX_CATALOGUE_ITEMS = 100_000
+MAX_METADATA_CATEGORIES = 100_000
+REFERENCES = [
+    {
+        "title": "PxStat RESTful cube and collection API",
+        "url": "https://github.com/CSOIreland/PxStat/wiki/API-Cube-RESTful",
+    }
+]
 
 
 def _licence_reference(copyright):
@@ -127,6 +138,178 @@ def interpretation(cube, dataset_id, *, max_cells):
     }
 
 
+def _matrix(dataset_id):
+    if not isinstance(dataset_id, str) or not MATRIX.fullmatch(dataset_id):
+        raise RetrievalError("NISRA dataset_id must be a native uppercase matrix code")
+    return dataset_id
+
+
+def _window(limit, offset):
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("limit must be an integer from 1 to 100")
+    if type(offset) is not int or not 0 <= offset <= 100_000:
+        raise ValueError("offset must be an integer from 0 to 100000")
+
+
+def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict:
+    """Page a complete, byte-bounded live collection without downloading values.
+
+    PxStat ReadCollection returns all live matrices without native pagination.
+    Filtering and deterministic pagination apply locally to that collection, not
+    to the older keyword-search helper's first 25 results.
+    """
+    _window(limit, offset)
+    if not isinstance(query, str) or len(query) > 512:
+        raise ValueError("NISRA catalogue query must be a string of at most 512 characters")
+    collection = client.get(COLLECTION_URL).json()
+    if not isinstance(collection, dict) or collection.get("error") is not None:
+        raise RetrievalError("Malformed NISRA collection response")
+    # The documented API envelope and NISRA's direct JSON-stat response are both
+    # supported. Neither representation contains observation values.
+    collection = collection.get("data", collection)
+    if (
+        not isinstance(collection, dict)
+        or collection.get("class") != "collection"
+        or collection.get("version") != "2.0"
+        or not isinstance(collection.get("link"), dict)
+        or not isinstance(collection["link"].get("item"), list)
+    ):
+        raise RetrievalError("Malformed NISRA JSON-stat collection")
+    items = collection["link"]["item"]
+    if len(items) > MAX_CATALOGUE_ITEMS:
+        raise RetrievalError("NISRA collection exceeds the bounded catalogue item limit")
+    rows, seen = [], set()
+    query = query.strip().casefold()
+    for item in items:
+        if (
+            not isinstance(item, dict)
+            or not isinstance(item.get("extension"), dict)
+            or not isinstance(item.get("label"), str)
+            or not item["label"]
+        ):
+            raise RetrievalError("Malformed NISRA collection entry")
+        identity = _matrix(item["extension"].get("matrix"))
+        if identity in seen:
+            raise RetrievalError("NISRA collection contains duplicate matrix codes")
+        seen.add(identity)
+        if not query or query in identity.casefold() or query in item["label"].casefold():
+            rows.append({"id": identity, "title": item["label"], "provider": "nisra"})
+    rows.sort(key=lambda row: row["id"])
+    return {
+        "items": rows[offset : offset + limit],
+        "total": len(rows),
+        "next_offset": offset + limit if offset + limit < len(rows) else None,
+        "scope": "provider",
+        "pagination": "local_over_complete_live_collection",
+        "complete_catalogue": True,
+        "catalogue_total": len(items),
+    }
+
+
+def _metadata(dataset_id, client):
+    dataset_id = _matrix(dataset_id)
+    metadata = client.get(f"{BASE}/PxStat.Data.Cube_API.ReadMetadata/{dataset_id}/en").json()
+    # Description is useful even when the cube is too large to retrieve. Bound
+    # metadata categories separately from observation cardinality; never expand
+    # the product of dimensions here.
+    sizes = metadata.get("size") if isinstance(metadata, dict) else None
+    if (
+        not isinstance(sizes, list)
+        or not 1 <= len(sizes) <= 64
+        or any(type(size) is not int or size < 1 for size in sizes)
+        or sum(sizes) > MAX_METADATA_CATEGORIES
+    ):
+        raise RetrievalError("NISRA metadata exceeds supported axis/category bounds")
+    return interpretation(metadata, dataset_id, max_cells=math.prod(sizes))
+
+
+def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
+    """Inspect release and native dimensions before acquiring any observations."""
+    cube = _metadata(dataset_id, client)
+    axes, codes, cells = cube_axes(cube, max_cells=math.prod(cube["size"]))
+    return {
+        "provider": "nisra",
+        "dataset_id": dataset_id,
+        "title": cube["label"],
+        "dimensions": [
+            {
+                "id": axis,
+                "label": cube["dimension"][axis].get("label", axis),
+                "selector": axis,
+                "value_count": len(codes[axis]),
+                "source_metadata": cube["dimension"][axis],
+            }
+            for axis in axes
+        ],
+        "release": {
+            "kind": "observed_published_revision",
+            "updated": cube["updated"],
+            "metadata_sha256": _digest(cube),
+            "requested_revision_pinned": False,
+        },
+        "capabilities": {
+            "dimension_values": True,
+            "server_side_selection": False,
+            "selection_syntax": "selectors: {native_axis: [native_code, ...]}; language=en",
+            "selection_method": "complete_bounded_cube_then_native_code_local_selection",
+            "historical_release_selection": False,
+            "metadata_languages": ["en"],
+            "retrieval_languages": ["en"],
+            "max_full_cube_cells": MAX_CUBE_CELLS,
+            "within_retrieval_cell_limit": cells <= MAX_CUBE_CELLS,
+            "page_size_paginates_provider": False,
+        },
+        "full_cube_cells": cells,
+        "source_url": f"{BASE}/PxStat.Data.Cube_API.ReadMetadata/{dataset_id}/en",
+        "references": REFERENCES,
+        "source_metadata": cube,
+    }
+
+
+def list_dimension_values(
+    dataset_id: str, dimension: str, client: HttpClient, *, search="", limit=20, offset=0
+) -> dict:
+    """Page native category order from metadata, including TLIST(...) axes."""
+    _window(limit, offset)
+    if not isinstance(search, str) or len(search) > 512 or not isinstance(dimension, str):
+        raise ValueError("NISRA dimension and bounded search must be strings")
+    cube = _metadata(dataset_id, client)
+    _, codes, _ = cube_axes(cube, max_cells=math.prod(cube["size"]))
+    if dimension not in codes:
+        raise ValueError(f"Unknown NISRA dimension: {dimension}")
+    labels = cube["dimension"][dimension]["category"].get("label", {})
+    query = search.strip().casefold()
+    rows = [
+        {"value": code, "label": labels.get(code, code)}
+        for code in codes[dimension]
+        if not query or query in code.casefold() or query in labels.get(code, code).casefold()
+    ]
+    return {
+        "items": rows[offset : offset + limit],
+        "total": len(rows),
+        "next_offset": offset + limit if offset + limit < len(rows) else None,
+        "scope": "provider",
+    }
+
+
+def validate_selection(request: Request, descriptor: dict) -> None:
+    """Validate retained metadata and selection without downloading a cube."""
+    validate_request(request)
+    if (
+        not isinstance(descriptor, dict)
+        or descriptor.get("provider") != "nisra"
+        or descriptor.get("dataset_id") != request.dataset_id
+    ):
+        raise RetrievalError("NISRA descriptor identifies a different dataset")
+    limit = request.params.get("max_cube_cells", MAX_CUBE_CELLS)
+    cube = descriptor.get("source_metadata")
+    interpretation(cube, request.dataset_id, max_cells=limit)
+    _, codes, _ = cube_axes(cube, max_cells=limit)
+    count = selected_size(codes, request.params.get("selectors", {}))
+    if count > request.max_rows:
+        raise RetrievalError(f"NISRA selection has {count} rows; max_rows={request.max_rows}")
+
+
 def search(query: str, client: HttpClient):
     """A keyword-bounded server search; return at most 25 matches."""
     if not isinstance(query, str) or not 2 <= len(query.strip()) <= 200:
@@ -171,7 +354,12 @@ def fetch(request: Request, client: HttpClient):
     if count > request.max_rows:
         raise RetrievalError(f"NISRA selection has {count} rows; max_rows={request.max_rows}")
     data_url = f"{BASE}/PxStat.Data.Cube_API.ReadDataset/{request.dataset_id}/JSON-stat/2.0/en"
-    cube = client.get(data_url).json()
+    token = _digest(
+        {"provider": "nisra", "dataset_id": request.dataset_id, "interpretation": identity}
+    )
+    scope = client.scope(token) if hasattr(client, "scope") else nullcontext()
+    with scope:
+        cube = client.get(data_url).json()
     if interpretation(cube, request.dataset_id, max_cells=limit) != identity:
         raise RetrievalError("NISRA cube metadata or release changed during retrieval")
     frame = frame_from_cube(cube, selectors, max_cells=limit)

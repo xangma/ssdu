@@ -19,6 +19,10 @@ Identifier = Annotated[
 ]
 SnapshotId = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
 Column = Annotated[str, StringConstraints(min_length=1, max_length=200)]
+ProviderDimension = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=2048, pattern=r"^[^\x00-\x1f\x7f]+$"),
+]
 SearchText = Annotated[str, StringConstraints(max_length=512)]
 Limit = Annotated[StrictInt, Field(ge=1, le=100)]
 Offset = Annotated[StrictInt, Field(ge=0, le=100_000)]

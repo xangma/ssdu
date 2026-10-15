@@ -4,6 +4,7 @@ import json
 import socket
 import sys
 from types import SimpleNamespace
+from urllib.parse import quote
 
 import anyio
 import httpx
@@ -110,6 +111,211 @@ def test_provider_rest_mcp_metadata_parity_and_read_only_tools(no_provider_netwo
                 assert not result.is_error
                 assert result.structured_content == response.json()
                 assert response.json()["offline"] is True
+
+    anyio.run(exercise)
+
+
+@pytest.mark.parametrize(
+    "provider,dataset_id,dimension",
+    [
+        ("nisra", "SYNTH_TS", "TLIST(A1)"),
+        ("scotland", "synthetic-series", "http://purl.org/linked-data/sdmx/2009/dimension#refArea"),
+        ("scotland", "synthetic-series", "https://example.invalid/" + "x" * 300),
+    ],
+)
+def test_native_provider_dimensions_round_trip_rest_and_mcp(
+    no_provider_network, provider, dataset_id, dimension
+):
+    service = MetadataService()
+    api = TestClient(create_app(service=service))
+    path = f"/providers/{provider}/datasets/{dataset_id}/dimensions/{quote(dimension, safe='')}"
+    response = api.get(path)
+    assert response.status_code == 200, response.text
+    assert service.calls[-1][3] == dimension
+
+    async def exercise():
+        async with Client(create_mcp_server(service=service)) as client:
+            result = await client.call_tool(
+                "list_provider_dimension_values",
+                {"provider": provider, "dataset_id": dataset_id, "dimension": dimension},
+            )
+            assert not result.is_error
+            assert result.structured_content == response.json()
+            assert service.calls[-1][3] == dimension
+
+    anyio.run(exercise)
+
+
+@pytest.mark.parametrize("dimension", ["x" * 2049, "invalid\x00dimension"])
+def test_native_provider_dimensions_remain_bounded(no_provider_network, dimension):
+    service = MetadataService()
+    response = TestClient(create_app(service=service)).get(
+        "/providers/scotland/datasets/synthetic-series/dimensions/" + quote(dimension, safe="")
+    )
+    assert response.status_code == 422
+    assert service.calls == []
+
+    async def exercise():
+        async with Client(create_mcp_server(service=service)) as client:
+            result = await client.call_tool(
+                "list_provider_dimension_values",
+                {"provider": "scotland", "dataset_id": "synthetic-series", "dimension": dimension},
+            )
+            assert result.is_error
+            assert service.calls == []
+
+    anyio.run(exercise)
+
+
+def test_percent_escaped_native_uri_is_preserved_by_asgi_transport(no_provider_network):
+    service = MetadataService()
+    dimension = "https://example.invalid/dimension/a%2Fb%20c#kind"
+    path = "/providers/scotland/datasets/synthetic-series/dimensions/" + quote(dimension, safe="")
+
+    async def exercise():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(service=service)),
+            base_url="https://local.invalid",
+        ) as client:
+            response = await client.get(path)
+            assert response.status_code == 200, response.text
+            assert service.calls[-1][3] == dimension
+
+    anyio.run(exercise)
+
+
+def test_large_cached_provider_description_keeps_summary_and_paged_codes(tmp_path, monkeypatch):
+    from test_nisra import client_for, load_fixture
+
+    from ssdu import Connector
+
+    cube = load_fixture()
+    axis = cube["id"][-1]
+    codes = [f"SYNTH_{index:05d}" for index in range(4000)]
+    cube["size"][-1] = len(codes)
+    cube["dimension"][axis]["category"] = {
+        "index": {code: index for index, code in enumerate(codes)},
+        "label": {
+            code: f"Invented geography category {index:05d}" for index, code in enumerate(codes)
+        },
+    }
+    dataset_id = cube["extension"]["matrix"]
+    transport, _ = client_for(cube)
+    with transport:
+        connector = Connector("nisra", root=tmp_path, client=transport)
+        description = connector.describe_dataset(dataset_id)
+    assert len(json.dumps(description).encode()) > 256_000
+    assert description["full_cube_cells"] <= 100_000
+
+    def denied(*args, **kwargs):
+        pytest.fail("Large cached metadata unexpectedly contacted a provider")
+
+    monkeypatch.setattr(HttpClient, "request", denied)
+    service = Service(tmp_path, index_store=False)
+    api = TestClient(create_app(service=service))
+    response = api.get(f"/providers/nisra/datasets/{dataset_id}")
+    assert response.status_code == 200, response.text
+    summary = response.json()
+    assert len(response.content) <= 256_000
+    assert summary["metadata_detail"] == "summary"
+    assert "source_metadata" in summary["omitted_fields"]
+    for name in ("provider", "dataset_id", "title", "release", "capabilities", "references"):
+        assert summary[name] == description[name]
+    assert [dimension["id"] for dimension in summary["dimensions"]] == cube["id"]
+    assert summary["dimensions"][-1]["value_count"] == len(codes)
+    assert all("source_metadata" not in dimension for dimension in summary["dimensions"])
+    # Paging keeps every choice reachable without dropping the cached native metadata.
+    values = api.get(
+        f"/providers/nisra/datasets/{dataset_id}/dimensions/{axis}",
+        params={"limit": 2, "offset": 3998},
+    ).json()
+    assert [item["value"] for item in values["items"]] == codes[-2:]
+    assert values["total"] == len(codes) and values["next_offset"] is None
+    assert connector.describe_dataset(dataset_id, offline=True) == description
+
+    async def exercise():
+        async with Client(create_mcp_server(service=service)) as client:
+            result = await client.call_tool(
+                "describe_provider_dataset", {"provider": "nisra", "dataset_id": dataset_id}
+            )
+            assert not result.is_error and result.structured_content == summary
+
+    anyio.run(exercise)
+
+
+@pytest.mark.parametrize("provider", ["nisra", "scotland"])
+def test_national_provider_metadata_cache_replays_through_cli_rest_and_mcp(
+    tmp_path, monkeypatch, capsys, provider
+):
+    from ssdu import Connector
+
+    if provider == "nisra":
+        from test_nisra import client_for, load_fixture
+
+        cube = load_fixture()
+        dataset_id = cube["extension"]["matrix"]
+        dimension = "TLIST(A1)"
+        transport, _ = client_for(cube)
+    else:
+        from test_connector_scotland import DATASET, responder
+
+        from ssdu.adapters.scotland import AREA
+
+        dataset_id, dimension = DATASET, AREA
+        transport = HttpClient(transport=httpx.MockTransport(responder([])))
+    with transport:
+        connector = Connector(provider, root=tmp_path, client=transport)
+        description = connector.describe_dataset(dataset_id)
+        values = connector.list_dimension_values(dataset_id, dimension, limit=1)
+    assert values["items"]
+
+    def denied(*args, **kwargs):
+        pytest.fail("Cached provider metadata contacted the network")
+
+    monkeypatch.setattr(HttpClient, "request", denied)
+    monkeypatch.setattr(socket.socket, "connect", denied)
+    monkeypatch.setattr(socket.socket, "connect_ex", denied)
+    monkeypatch.setattr(socket, "create_connection", denied)
+    service = Service(tmp_path, index_store=False)
+    api = TestClient(create_app(service=service))
+    assert api.get(f"/providers/{provider}/datasets/{dataset_id}").json() == description
+    path = f"/providers/{provider}/datasets/{dataset_id}/dimensions/{quote(dimension, safe='')}"
+    assert api.get(path, params={"limit": 1}).json() == values
+    assert (
+        main(
+            [
+                "--store",
+                str(tmp_path),
+                "connector",
+                "values",
+                provider,
+                dataset_id,
+                dimension,
+                "--limit",
+                "1",
+                "--offline",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out) == values
+
+    async def exercise():
+        async with Client(create_mcp_server(service=service)) as client:
+            result = await client.call_tool(
+                "describe_provider_dataset", {"provider": provider, "dataset_id": dataset_id}
+            )
+            assert not result.is_error and result.structured_content == description
+            result = await client.call_tool(
+                "list_provider_dimension_values",
+                {
+                    "provider": provider,
+                    "dataset_id": dataset_id,
+                    "dimension": dimension,
+                    "limit": 1,
+                },
+            )
+            assert not result.is_error and result.structured_content == values
 
     anyio.run(exercise)
 

@@ -12,6 +12,7 @@ import hashlib
 import json
 import re
 from collections import defaultdict
+from contextlib import nullcontext
 
 import pandas as pd
 
@@ -54,13 +55,23 @@ def _uri(value):
     return value
 
 
+def _dataset_id(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,159}", value):
+        raise RetrievalError("Scotland dataset_id must be a native dataset slug")
+    return value
+
+
+def _window(limit, offset):
+    if type(limit) is not int or not 1 <= limit <= 1000:
+        raise ValueError("limit must be an integer from 1 to 1000")
+    if type(offset) is not int or not 0 <= offset <= 1_000_000:
+        raise ValueError("offset must be an integer from 0 to 1000000")
+
+
 def validate_request(request: Request) -> None:
     if request.provider != "scotland":
         raise RetrievalError("Scotland adapter received a different provider")
-    if not isinstance(request.dataset_id, str) or not re.fullmatch(
-        r"[a-z0-9][a-z0-9-]{0,159}", request.dataset_id
-    ):
-        raise RetrievalError("Scotland dataset_id must be a native dataset slug")
+    _dataset_id(request.dataset_id)
     if not isinstance(request.params, dict):
         raise RetrievalError("Scotland params must be an object")
     unknown = set(request.params) - {"dimensions", "expected_modified"}
@@ -131,6 +142,7 @@ def _bindings(resource, required):
 
 def metadata_query(dataset_id):
     """Deterministic, bounded dataset and DSD interpretation dependency query."""
+    _dataset_id(dataset_id)
     return f"""SELECT DISTINCT ?kind ?property ?value ?label ?attachment ?required WHERE {{
 {{ BIND("dataset" AS ?kind) <{BASE}{dataset_id}> ?property ?value }}
 UNION {{
@@ -303,6 +315,203 @@ FILTER(CONTAINS(LCASE(STR(?title)), LCASE({literal})))
     return result
 
 
+def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict:
+    """Page linked observation cubes, with one deterministic title per dataset.
+
+    A lookahead row establishes continuation without enumerating the catalogue.
+    File/ZIP publications and cubes without declared dimensions and measures are
+    outside this connector. Detailed component compatibility is checked on describe.
+    """
+    _window(limit, offset)
+    if not isinstance(query, str) or len(query) > 512:
+        raise ValueError("Scotland catalogue query must be at most 512 characters")
+    literal = json.dumps(query, ensure_ascii=True)
+    sparql = f"""SELECT ?dataset (MIN(STR(?name)) AS ?title) WHERE {{
+?dataset <{QB}structure> ?structure .
+?structure <{QB}component>/<{QB}dimension> ?dimension ;
+           <{QB}component>/<{QB}measure> ?measure .
+OPTIONAL {{
+VALUES ?titleProperty {{ <{DCT}title> <{RDFS}label> }}
+?dataset ?titleProperty ?sourceTitle .
+FILTER(LANG(?sourceTitle) = "" || LANGMATCHES(LANG(?sourceTitle), "en"))
+}}
+BIND(COALESCE(STR(?sourceTitle), STR(?dataset)) AS ?name)
+FILTER(CONTAINS(LCASE(?name), LCASE({literal})))
+}} GROUP BY ?dataset ORDER BY ?dataset LIMIT {limit + 1} OFFSET {offset}"""
+    rows = _bindings(client.get(ENDPOINT, params={"query": sparql}), {"dataset", "title"})
+    if len(rows) > limit + 1:
+        raise RetrievalError("Scotland catalogue exceeds requested page bound")
+    items, seen = [], set()
+    for row in rows:
+        uri = row["dataset"]["value"]
+        if (
+            row["dataset"]["type"] != "uri"
+            or not uri.startswith(BASE)
+            or row["title"]["type"] not in {"literal", "typed-literal"}
+        ):
+            raise RetrievalError(
+                "Scotland catalogue contains unsupported dataset identity or title"
+            )
+        identity = _dataset_id(uri.removeprefix(BASE))
+        if identity in seen:
+            raise RetrievalError("Scotland catalogue repeats a dataset")
+        seen.add(identity)
+        items.append({"id": identity, "title": row["title"]["value"], "provider": "scotland"})
+    return {
+        "items": items[:limit],
+        "total": None,
+        "next_offset": offset + limit if len(items) > limit else None,
+        "pagination": "provider_offset_with_lookahead",
+        "catalogue_scope": "linked_cubes_with_declared_dimensions_and_measures",
+        "compatibility": "component attachment and shape verified by describe_dataset",
+    }
+
+
+def _definition(dataset_id, client):
+    rows = _bindings(
+        client.get(ENDPOINT, params={"query": metadata_query(dataset_id)}),
+        {"kind", "property", "value"},
+    )
+    return rows, _structure(rows)
+
+
+def _canonical_metadata(rows):
+    # RDF result order and repeated identical statements have no semantic meaning.
+    return sorted({_digest(row) for row in rows})
+
+
+def _scope_identity(dataset_id, rows):
+    return _digest(
+        {"provider": "scotland", "dataset_id": dataset_id, "metadata": _canonical_metadata(rows)}
+    )
+
+
+def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
+    """Inspect dataset and data-structure metadata without retrieving observations."""
+    rows, structure = _definition(dataset_id, client)
+    title = _single(
+        structure["dataset"],
+        DCT + "title",
+        default=_single(structure["dataset"], RDFS + "label", default=dataset_id),
+    )
+    return {
+        "provider": "scotland",
+        "dataset_id": dataset_id,
+        "title": title,
+        "dimensions": [
+            {
+                "id": _uri(prop),
+                "label": item["label"],
+                "selector": prop,
+                "code_type": "absolute_http_uri",
+            }
+            for prop, item in sorted(structure["properties"].items())
+            if item["kind"] == "dimension"
+        ],
+        "release": {
+            "kind": "observed_snapshot",
+            "modified": _single(structure["dataset"], DCT + "modified"),
+            "issued": _single(structure["dataset"], DCT + "issued"),
+            "metadata_sha256": _digest(_canonical_metadata(rows)),
+            "historical_revision_addressable": False,
+            "revision_status": "metadata_checked_unpinned",
+        },
+        "capabilities": {
+            "dimension_values": True,
+            "dimension_values_scope": "observed_dataset_members",
+            "server_side_selection": True,
+            "selection_syntax": "dimensions maps dimension URIs to lists of member URIs",
+            "unspecified_dimensions": "all observed members",
+            "historical_release_selection": False,
+            "formats": ["linked_rdf_observation_cube"],
+            "unsupported": ["file", "zip", "slice_attached_components"],
+            "max_observations": 100_000,
+            "max_response_cells": MAX_CELLS,
+            "metadata_row_limit": MAX_METADATA_ROWS,
+            "observation_strategy": "single_atomic_bounded_response",
+        },
+        "source_url": BASE + dataset_id,
+        "references": [
+            {
+                "title": "Scotland SPARQL API guidance",
+                "url": "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql",
+            },
+            {
+                "title": "Scotland file dataset API guidance",
+                "url": "https://guides.statistics.gov.scot/article/41-api-access-for-file-datasets-not-linked-data",
+            },
+        ],
+        "source_metadata": {"bindings": rows, "structure": structure},
+    }
+
+
+def list_dimension_values(
+    dataset_id: str, dimension: str, client: HttpClient, *, search="", limit=20, offset=0
+) -> dict:
+    """Page URI members observed in this cube; this is not a full external codelist.
+
+    Only membership predicates and labels are queried, never measure values. The
+    grouped English/unlabelled label prevents multilingual duplicate code rows.
+    """
+    _window(limit, offset)
+    _dataset_id(dataset_id)
+    _uri(dimension)
+    if not isinstance(search, str) or len(search) > 512:
+        raise ValueError("Scotland dimension search must be at most 512 characters")
+    metadata, structure = _definition(dataset_id, client)
+    if structure["properties"].get(dimension, {}).get("kind") != "dimension":
+        raise RetrievalError(f"Unknown Scotland dimension selector: {dimension}")
+    literal = json.dumps(search, ensure_ascii=True)
+    sparql = f"""SELECT ?value (MIN(STR(?sourceLabel)) AS ?label) WHERE {{
+?observation <{QB}dataSet> <{BASE}{dataset_id}> ; <{dimension}> ?value .
+FILTER(isIRI(?value))
+OPTIONAL {{ ?value <{RDFS}label> ?sourceLabel .
+FILTER(LANG(?sourceLabel) = "" || LANGMATCHES(LANG(?sourceLabel), "en")) }}
+FILTER(CONTAINS(LCASE(STR(?value)), LCASE({literal})) ||
+       CONTAINS(LCASE(COALESCE(STR(?sourceLabel), "")), LCASE({literal})))
+}} GROUP BY ?value ORDER BY ?value LIMIT {limit + 1} OFFSET {offset}"""
+    scope = getattr(client, "scope", lambda token: nullcontext())
+    with scope(_scope_identity(dataset_id, metadata)):
+        rows = _bindings(client.get(ENDPOINT, params={"query": sparql}), {"value"})
+    if len(rows) > limit + 1:
+        raise RetrievalError("Scotland dimension codes exceed requested page bound")
+    items, seen = [], set()
+    for row in rows:
+        if row["value"]["type"] != "uri":
+            raise RetrievalError("Scotland dimension members must use URI codes")
+        value = _uri(row["value"]["value"])
+        if value in seen:
+            raise RetrievalError("Scotland dimension codes repeat a member")
+        seen.add(value)
+        items.append({"value": value, "label": row.get("label", {}).get("value") or None})
+    return {
+        "items": items[:limit],
+        "total": None,
+        "next_offset": offset + limit if len(items) > limit else None,
+        "scope": "provider",
+        "value_scope": "observed_dataset_members",
+        "completeness": "not_an_external_vocabulary",
+        "pagination": "provider_offset_with_lookahead",
+    }
+
+
+def validate_selection(request: Request, descriptor: dict) -> None:
+    """Check native dimension URI selectors against retained structural metadata."""
+    validate_request(request)
+    if (
+        descriptor.get("provider") != "scotland"
+        or descriptor.get("dataset_id") != request.dataset_id
+    ):
+        raise RetrievalError("Scotland descriptor identifies a different dataset")
+    available = {item["id"] for item in descriptor.get("dimensions", [])}
+    unknown = set(request.params.get("dimensions", {})) - available
+    if unknown:
+        raise RetrievalError(f"Unknown Scotland dimension selector: {sorted(unknown)}")
+    expected = request.params.get("expected_modified")
+    if expected is not None and expected != descriptor.get("release", {}).get("modified"):
+        raise RetrievalError("Scotland modified timestamp does not match requested release")
+
+
 def fetch(request: Request, client: HttpClient) -> Acquisition:
     validate_request(request)
     before = _bindings(
@@ -316,17 +525,19 @@ def fetch(request: Request, client: HttpClient) -> Acquisition:
     modified = _single(structure["dataset"], DCT + "modified")
     if request.params.get("expected_modified") not in {None, modified}:
         raise RetrievalError("Scotland modified timestamp does not match requested release")
-    rows = _bindings(
-        client.get(ENDPOINT, params={"query": observations_query(request)}),
-        {"obs", "property", "value"},
-    )
+    scope = getattr(client, "scope", lambda token: nullcontext())
+    with scope(_scope_identity(request.dataset_id, before)):
+        rows = _bindings(
+            client.get(ENDPOINT, params={"query": observations_query(request)}),
+            {"obs", "property", "value"},
+        )
     frame, labels = _frame(rows, structure, request)
     after = _bindings(
         client.get(ENDPOINT, params={"query": metadata_query(request.dataset_id)}),
         {"kind", "property", "value"},
     )
     # RDF set order is irrelevant; preserve all distinct interpretation terms.
-    canonical = lambda values: sorted({_digest(row) for row in values})
+    canonical = _canonical_metadata
     if canonical(before) != canonical(after):
         raise RetrievalError("Scotland dataset metadata or structure changed during retrieval")
     title = _single(

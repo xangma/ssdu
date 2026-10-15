@@ -15,6 +15,7 @@ from .contracts import (
     DatasetQuerySpec,
     DimensionParams,
     Identifier,
+    ProviderDimension,
     QueryResult,
     QuerySpec,
     SearchParams,
@@ -151,11 +152,11 @@ def create_app(
             """Inspect a retained provider dataset definition without fetching data."""
             return call(data.describe_provider_dataset, provider, dataset_id)
 
-        @app.get("/providers/{provider}/datasets/{dataset_id}/dimensions/{dimension}")
+        @app.get("/providers/{provider}/datasets/{dataset_id}/dimensions/{dimension:path}")
         def list_provider_dimension_values(
             provider: Identifier,
             dataset_id: Identifier,
-            dimension: Column,
+            dimension: ProviderDimension,
             params: Annotated[DimensionParams, Query()],
         ):
             """Page retained provider dimension codes; metadata must be acquired separately."""

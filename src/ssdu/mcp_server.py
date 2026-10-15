@@ -19,6 +19,7 @@ from .contracts import (
     Identifier,
     Limit,
     Offset,
+    ProviderDimension,
     QueryResult,
     QuerySpec,
     SearchText,
@@ -162,7 +163,7 @@ def create_mcp_server(
         def list_provider_dimension_values(
             provider: Identifier,
             dataset_id: Identifier,
-            dimension: Column,
+            dimension: ProviderDimension,
             search: SearchText = "",
             limit: Limit = 20,
             offset: Offset = 0,

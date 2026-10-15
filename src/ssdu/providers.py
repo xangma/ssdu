@@ -171,6 +171,7 @@ REGISTRY = ProviderRegistry(
             "1.0.0",
             frozenset({"ws-data.nisra.gov.uk"}),
             accepts_raw_frame=True,
+            workflow=True,
         ),
         ProviderRegistration(
             "scotland",
@@ -181,6 +182,7 @@ REGISTRY = ProviderRegistry(
             "1.0.0",
             frozenset({"statistics.gov.scot"}),
             accepts_raw_frame=True,
+            workflow=True,
         ),
         ProviderRegistration(
             "mhclg",

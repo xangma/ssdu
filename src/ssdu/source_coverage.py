@@ -456,7 +456,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             status="implemented",
             catalogue=_stage(
                 "partial",
-                "Title search over linked cubes with a declared structure, at most 25 results; file datasets and exhaustive inventory are excluded.",
+                "Paged linked-cube catalogue, pre-download descriptions and URI member codes through the common cached connector workflow; file datasets are excluded.",
             ),
             retrieval=_stage(
                 "implemented",
@@ -468,7 +468,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             ),
             conformance=_stage(
                 "partial",
-                "Three registered synthetic linked-cube shapes: series, multiple measures and suppressed cells; no whole-portal certification.",
+                "Registered synthetic linked-cube shapes and connector discovery, release checks and offline replay; no whole-portal certification.",
             ),
             profiles=("observations",),
             contract_version=OBSERVATIONS_CONTRACT_VERSION,
@@ -479,6 +479,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Linked RDF cubes only; file/ZIP routes and slice-attached components are unsupported.",
                 "Native URI/code selectors and request budgets remain dataset-specific.",
                 "Metadata is checked around retrieval; provider historical release pinning is not claimed.",
+                "Dimension code pages enumerate observed dataset members, not a complete external vocabulary.",
                 "Fixture certification covers declared shapes, not every Scottish table or cross-nation comparability.",
             ),
             source_urls=(
@@ -489,6 +490,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "src/ssdu/adapters/scotland.py",
                 "src/ssdu/normalization_scotland.py",
                 "tests/test_scotland.py",
+                "tests/test_connector_scotland.py",
             ),
         ),
         SourceCoverage(
@@ -498,7 +500,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             status="implemented",
             catalogue=_stage(
                 "partial",
-                "Server keyword search returns at most 25 results; no exhaustive catalogue or paginated search claim.",
+                "Bounded English PxStat collection catalogue with deterministic local pagination, dataset descriptions and native code lists through the common cached connector workflow.",
             ),
             retrieval=_stage(
                 "implemented",
@@ -510,7 +512,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             ),
             conformance=_stage(
                 "partial",
-                "Three registered synthetic JSON-stat shapes: dense time series, multidimensional measures and sparse/status cells.",
+                "Registered synthetic JSON-stat shapes and connector discovery, pre-download selection validation, release checks and offline replay.",
             ),
             profiles=("observations",),
             contract_version=OBSERVATIONS_CONTRACT_VERSION,
@@ -519,7 +521,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             access="Public PxStat JSON-stat API through shared cached, rate-limited HTTP requests.",
             limits=(
                 "NISRA Data Portal only; the separate Census Flexible Table Builder and record data are unsupported.",
-                "Complete cubes are bounded to 100,000 cells before selection; larger cubes are unsupported.",
+                "Retrieval downloads complete cubes bounded to 100,000 cells before selection; larger cubes remain metadata-only within metadata bounds.",
                 "English metadata only; native dimension codes are preserved rather than harmonized across nations.",
                 "The selected result must fit max_rows; arbitrary provider historical releases are not addressable.",
                 "Fixture certification covers declared shapes, not all NISRA datasets.",
@@ -532,6 +534,7 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "src/ssdu/adapters/nisra.py",
                 "src/ssdu/normalization_nisra.py",
                 "tests/test_nisra.py",
+                "tests/test_connector_nisra.py",
             ),
         ),
         _planned(

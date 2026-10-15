@@ -6,7 +6,7 @@
     {
       "path": ".github/workflows/conformance.yml",
       "kind": "configuration",
-      "sha256": "e1b0e4d63725f8c0321024ae3fc9ae53fe280d04b3eeb783956839d72420bcc4",
+      "sha256": "99f24e64de1a401efd2ecb57f4f4aec2f110c0c4249170a0f7937d31fd5f46ff",
       "review": "Author-owned deterministic CI configuration; no captured data or secrets."
     },
     {
@@ -102,7 +102,7 @@
     {
       "path": "docs/content/guides/provider-workflow.md",
       "kind": "documentation",
-      "sha256": "19ea8f24c564a59b4464f0c00ef92f119087e98138188f466729357892aaa9bd",
+      "sha256": "b9686f3e432700cef5367ee11567078863bdd9fb592a7a2f7a35a5d547648920",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
@@ -132,7 +132,7 @@
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "0aacb885107af33595b9f7da649f56c9e9e6a10827c6c326fcde29079b07e1cb",
+      "sha256": "a301eeb1aebe0677d0fa1135bf7ac7ab2b7a7d7e092dbe7eed1747de6c832052",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -262,6 +262,12 @@
       "review": "Author-owned executable example; any fixture payloads require their own explicit approval."
     },
     {
+      "path": "examples/national_connectors.py",
+      "kind": "source",
+      "sha256": "1945a8ab573b0f57bdf5ac7ed34c90e751341c1d9b7ff0a3b3eab4c6b62f92ac",
+      "review": "Author-owned common connector example or independently invented synthetic protocol and offline replay tests; no captured provider data or metadata."
+    },
+    {
       "path": "examples/nomis.json",
       "kind": "request_specification",
       "sha256": "f8df2fc080a82526acd1200c0b43a59b4b918b48848e03ce21fb04153b12009a",
@@ -348,7 +354,7 @@
     {
       "path": "src/ssdu/adapters/nisra.py",
       "kind": "source",
-      "sha256": "ce50fbfd69344beb923900d7ca8bd4a2418e23d4f3d01373dbb87d24e6c483a4",
+      "sha256": "4693b283b9184b0d533540004edd19366e15498cadec368bd30b88482bdc2e24",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -360,7 +366,7 @@
     {
       "path": "src/ssdu/adapters/scotland.py",
       "kind": "source",
-      "sha256": "2529e0db9e0cd03f6978797866be7d31022e6baa957be86011936c7a2864ee41",
+      "sha256": "f55efd302bbbf641db0e55350fe3a09d9913d230fa6392a18659cd988ba29f54",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -372,7 +378,7 @@
     {
       "path": "src/ssdu/api.py",
       "kind": "source",
-      "sha256": "e908f8b3b419318d686f9da812e51b1248920787bcea0c43dd5b2617b8188a26",
+      "sha256": "6f1d21b6b5d29efbcdcf520aa463b711089456cb6c965f5c6e45e48ae505388d",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -402,7 +408,7 @@
     {
       "path": "src/ssdu/conformance.py",
       "kind": "source",
-      "sha256": "3e892e63fae19bfab8ee08e6a1e591015928c6aa2bb8ad47908672fcb971b41f",
+      "sha256": "0f02a4126eba58cb5e49701f0cc090ad9d322a5be15a02fa1e46a097cb9efe13",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -426,7 +432,7 @@
     {
       "path": "src/ssdu/contracts.py",
       "kind": "source",
-      "sha256": "fa9a887b9cfaea108149085b1697e7c6ca79654b69b391309d28bc0c6b165685",
+      "sha256": "482235d97be579f80d38df4718bd9f683baf39d55b748aacdaeba2abe37e8ad4",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -546,7 +552,7 @@
     {
       "path": "src/ssdu/mcp_server.py",
       "kind": "source",
-      "sha256": "c83dd0d5318be6a9e58f9a2d78005446189a09bd8861a09e5c62e78fac07bb72",
+      "sha256": "c154baaacb0f623670bd5df0e3570f04948364b39185087e039ecfb36d8e5d9d",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -588,7 +594,7 @@
     {
       "path": "src/ssdu/providers.py",
       "kind": "source",
-      "sha256": "ed17169361e0eef0fe6cbb60e8dd792e0f974be3ae27bc5c52139f210439cced",
+      "sha256": "bb062c02b6ebbadbf9d12aec452e4af52a34cf4a6a2a9f5531c61458b9b0200c",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -612,7 +618,7 @@
     {
       "path": "src/ssdu/retrieval.py",
       "kind": "source",
-      "sha256": "1384158c6dc3a74fd6dab801bc0950cae268899277c021bfba483ed4bbb14925",
+      "sha256": "bf99904167fa77bcf46228ce5c108e968757e341d911f0e0ee40d53cd762d69e",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -636,7 +642,7 @@
     {
       "path": "src/ssdu/service.py",
       "kind": "source",
-      "sha256": "30bd29de58f3da42a5ddd4a45408d63d374e641d7fb011512856fe6b91e1e434",
+      "sha256": "15e6a2e624a7599fb6e10d21d77e2768f7920660b685407b1387038a110935da",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -648,7 +654,7 @@
     {
       "path": "src/ssdu/source_coverage.py",
       "kind": "source",
-      "sha256": "a571c86579c43866932dd1cc1575c02da08997e8c00ce83c4f4365dab2e8d4fc",
+      "sha256": "3b0a0b380c8c31fe7aa62b4d0abd5de4bbfef87131a8eb45f7cdef24bf972bf9",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -898,15 +904,33 @@
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
+      "path": "tests/test_connector_jobs.py",
+      "kind": "source",
+      "sha256": "e3f872c50725f0525dd581d5999de349a36e5a20dc56c14b14376edf1eef4a82",
+      "review": "Author-owned common connector example or independently invented synthetic protocol and offline replay tests; no captured provider data or metadata."
+    },
+    {
+      "path": "tests/test_connector_nisra.py",
+      "kind": "source",
+      "sha256": "8844a0bfb23ca980ddfff8a5bd13fcdd6210f0730933cdb1837757d108652a4b",
+      "review": "Author-owned common connector example or independently invented synthetic protocol and offline replay tests; no captured provider data or metadata."
+    },
+    {
       "path": "tests/test_connector_providers.py",
       "kind": "source",
       "sha256": "85e0d6904d41b47a0ebf90e90190b90d06718855ff4eaafcd12bb83c16842b0e",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
+      "path": "tests/test_connector_scotland.py",
+      "kind": "source",
+      "sha256": "014b55f14c5b72ae844e4dd776a8f3a82288944c5a36f30e4eacd49091b5ccc0",
+      "review": "Author-owned common connector example or independently invented synthetic protocol and offline replay tests; no captured provider data or metadata."
+    },
+    {
       "path": "tests/test_connector_transports.py",
       "kind": "source",
-      "sha256": "80e0ce9cdc3f6fe5d7e8cf7c5e70571d4354bc99cab6f8c0a2d59d8ed17b8dde",
+      "sha256": "de1a45842bf031a863fc7a82bef6c48f1757a3d37126c61834ab2c10c8679dc3",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
@@ -1082,6 +1106,12 @@
       "kind": "source",
       "sha256": "2034324c61dd54ac93adcee771822b8e3332d2a2d9f4591a573097d240eea1d8",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
+    },
+    {
+      "path": "tests/test_national_connectors_example.py",
+      "kind": "source",
+      "sha256": "7d55d8635be97521249cdd9b26333f0b945cf404859705d336ea070a3ef7c852",
+      "review": "Author-owned common connector example or independently invented synthetic protocol and offline replay tests; no captured provider data or metadata."
     },
     {
       "path": "tests/test_nisra.py",
@@ -1302,7 +1332,10 @@
       "tests/test_collections.py",
       "tests/test_conformance_families.py",
       "tests/test_connector_cache.py",
+      "tests/test_connector_jobs.py",
+      "tests/test_connector_nisra.py",
       "tests/test_connector_providers.py",
+      "tests/test_connector_scotland.py",
       "tests/test_connector_transports.py",
       "tests/test_contract_cli.py",
       "tests/test_contract_service.py",
@@ -1333,6 +1366,7 @@
       "tests/test_local_import.py",
       "tests/test_mcp.py",
       "tests/test_mhclg.py",
+      "tests/test_national_connectors_example.py",
       "tests/test_nisra.py",
       "tests/test_nomis.py",
       "tests/test_provider_harvest.py",

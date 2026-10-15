@@ -5,8 +5,8 @@ figures next month. SSDU's `Connector` takes you from a provider's catalogue to 
 saved dataset. You can inspect its description before downloading values, then
 keep the result in a collection that can travel to another computer.
 
-The common workflow is available for **Nomis, StatsWales and MHCLG**. Their
-selection codes and supported formats differ; check the
+The common workflow is available for **Nomis, StatsWales, MHCLG, NISRA and
+Scotland**. Their selection codes and supported formats differ; check the
 [coverage matrix](../reference/sources.md) before choosing a source.
 
 ## Try the complete example
@@ -43,7 +43,8 @@ the collection. A lockfile alone identifies those files but does not carry them.
 
 ## Use the same steps with a provider
 
-Create a connector using `"nomis"`, `"statswales"` or `"mhclg"`:
+Create a connector using `"nomis"`, `"statswales"`, `"mhclg"`, `"nisra"` or
+`"scotland"`:
 
 ```python
 from ssdu import Connector, Request
@@ -83,10 +84,57 @@ same_dataset = provider.fetch_dataset(request, offline=True)
 ```
 
 `dataset_id` and `selection` above come from the metadata you inspected; the
-complete teaching script below supplies concrete examples. Nomis and StatsWales
-can return statistical observations with dimensions and measures. An ordinary
-MHCLG CSV is retained as records, preserving its column names and source text.
+complete teaching scripts supply concrete examples. Nomis, StatsWales, NISRA
+and Scotland can return statistical observations with dimensions and measures.
+An ordinary MHCLG CSV is retained as records, preserving its column names and source text.
 SSDU does not guess units or make different tables comparable.
+
+## Try Northern Ireland and Scotland
+
+This second example follows the same steps for two invented tables: workshop
+attendance in Northern Ireland and community events in Scotland. The measures
+are unrelated; putting them in one collection does not make them comparable.
+
+```sh
+uv run --frozen --offline python examples/national_connectors.py --output-dir data/national-connectors
+```
+
+It browses each catalogue, reads the dataset description and available years,
+selects one year, inspects the plan and saves a dataset. It then checks that
+the catalogue, description and year codes reopen offline. Finally it exports
+both datasets as one collection, moves the original store aside and verifies
+the collection in a fresh store with HTTP and network connections blocked.
+All responses are invented in memory; no provider is contacted.
+
+Look for `"status": "passed"`, `"provider_network_requests": 0` and
+`"fresh_store_replayed_offline": true`. The output includes `result.json` and
+`invented-national-connectors.ssdu.zip`. You can also run the
+{download}`self-contained script <../_downloads/national_connectors.py>`
+from another folder after installing SSDU.
+
+The method names stay the same, while the provider's codes are preserved:
+
+| Provider | Example year dimension | Example selection |
+| --- | --- | --- |
+| NISRA | `TLIST(A1)` | `{"selectors": {"TLIST(A1)": ["2024"]}}` |
+| Scotland | `http://purl.org/linked-data/sdmx/2009/dimension#refPeriod` | `{"dimensions": {dimension_uri: [year_uri]}}` |
+
+For Scotland, the example year URI is
+`http://reference.data.gov.uk/id/year/2024`. Use codes returned by
+`list_dimension_values`; do not replace them with labels from a chart. Scottish
+code lists contain members observed in that dataset, rather than every possible
+member of an external geography or time vocabulary.
+
+NISRA currently retrieves the complete English-language cube before selecting
+rows locally, with a limit of 100,000 cells. A small selection therefore cannot
+make an oversized cube downloadable. Scotland supports linked-data observation
+cubes using bounded, selected queries; file/ZIP publications and slice-attached
+components are not yet supported. The dataset description reports these limits
+before you retrieve values.
+
+These services do not offer historical release selection through this workflow.
+SSDU checks metadata during acquisition and retains the result; use that saved
+snapshot or a collection lock to reproduce it later.
 
 ## Keep the version you used
 
@@ -101,6 +149,10 @@ information needed for replay; it does not promise to include every catalogue
 search page you previously browsed. See
 [offline transfer](../start/quickstart.md) and
 [sources and interpretation](../concepts/provenance.md).
+
+REST and MCP summarise large dataset descriptions. Browse the available codes
+a page at a time with `list_provider_dimension_values`; Python can also inspect
+the complete cached metadata.
 
 ## Read the complete script
 

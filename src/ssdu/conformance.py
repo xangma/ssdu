@@ -122,6 +122,20 @@ CONFORMANCE_FAMILIES = (
         "tests/test_scotland.py::test_series_preserves_uri_codes_and_raw_lexemes",
     ),
     ConformanceFamily(
+        "nisra_connector_workflow",
+        "nisra",
+        "Paged collection metadata, native code lists and validated selections use shared cached retrieval and replay offline.",
+        (_PXSTAT, _JSONSTAT),
+        "tests/test_connector_nisra.py::test_nisra_connector_workflow_metadata_selection_fetch_and_offline",
+    ),
+    ConformanceFamily(
+        "scotland_connector_workflow",
+        "scotland",
+        "Linked-cube catalogue pages, native URI member codes and metadata-scoped acquisition replay from a transferred store offline.",
+        (_SCOTLAND,),
+        "tests/test_connector_scotland.py::test_common_workflow_cache_and_fresh_store_snapshot_replay_are_offline",
+    ),
+    ConformanceFamily(
         "scotland_multiple_measures",
         "scotland",
         "Wide and measureType RDF observations preserve separate measure identities.",
