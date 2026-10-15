@@ -1266,7 +1266,7 @@
     {
       "path": "tools/docs_acceptance.py",
       "kind": "source",
-      "sha256": "488b27ffcfbd4126394e99b6069006a2ff7f9c9d0e05b68c5ec5b894aa70095b",
+      "sha256": "fe92b5f002dbc1ae5b5c6b788ea385e76df40595bdae9435712b3030f351c17f",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
