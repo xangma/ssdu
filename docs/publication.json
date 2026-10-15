@@ -20,6 +20,7 @@
     "reference/rest.md",
     "reference/mcp.md",
     "reference/sources.md",
+    "reference/dataset-support.md",
     "reference/conformance.md"
   ],
   "generated_assets": [

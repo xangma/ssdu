@@ -54,8 +54,8 @@ local, synthetic data.
 
 SSDU has partial coverage of **ONS** through Nomis, the **Welsh Government**
 through StatsWales, the **Scottish Government** through statistics.gov.scot,
-**NISRA** through its Data Portal, and **MHCLG** through a specific English
-deprivation release. The
+**NISRA** through its Data Portal, and selected **MHCLG** statistics on area
+deprivation in England. The
 [provider coverage matrix](https://xangma.github.io/ssdu/reference/sources.html)
 lists the supported datasets, access routes, limits and planned integrations.
 Support for one dataset or service does not mean all of a provider's data are

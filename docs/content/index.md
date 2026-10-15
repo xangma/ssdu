@@ -93,6 +93,7 @@ reference/schemas
 reference/rest
 reference/mcp
 reference/sources
+reference/dataset-support
 reference/conformance
 ```
 

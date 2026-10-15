@@ -36,13 +36,13 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "ce89b4c5b341e85841c354f8d62f3e134b5c0414a8b4a886e9f5f21ceebcdb1b",
+      "sha256": "54e136b194c8ea956d9add8893a7f8c35b5beb723ec2c708691c3d9c2d7347cf",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
       "path": "docs/README.md",
       "kind": "documentation",
-      "sha256": "9c86365e716d2bc0648aa27245a73c90ac6f7d83a1c6423a1ef7e4a71a219b9e",
+      "sha256": "b532cebfdd2aeba717bd2f578fc40a215a17cb90bf0fa2c66d9d588ec1a18672",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -102,7 +102,7 @@
     {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "774e46dc3b1653f7b490e1d5e07f5b3efe94942682f6f37151f8a8e0e11d83ea",
+      "sha256": "08f308b00b95d4898bd2282c15547d3171693955fd8f745ad1e62105a39aec07",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -126,7 +126,7 @@
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "f4358c955e50f36136e4b0834180700494ac80f4871bed3ca95fbab286d0584a",
+      "sha256": "c91569852ebe917fea0cf7cb83ccce190a5904817d3379dbf4293309fb88872e",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -600,7 +600,7 @@
     {
       "path": "src/ssdu/source_coverage.py",
       "kind": "source",
-      "sha256": "094a85c1838aad17c1d3b327efe6ce7fab8a94a8e11a51f796999a53274fe4b9",
+      "sha256": "e77f240f2f8f04a206c18bdea7f9ea2da9fb123687931a0a69853eb41f3d5b2e",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -1146,7 +1146,7 @@
     {
       "path": "tests/test_source_coverage.py",
       "kind": "source",
-      "sha256": "fbfef01386550fc02025c042da85c3f9611952dd0afa7f765f213fe00923d206",
+      "sha256": "dbdf2f0bb3c1ebe1f2a8b9df166dc7bc1856c66afcaf0f6605e228ce5b7c351b",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1182,7 +1182,7 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "5dd8494e2af21b46b0d423e9d9e7662f28e5a5beb787b5c1a57420a6f7bd16d0",
+      "sha256": "5d68edf73f0ac277dc53a4a8ee91b3940a86c29f3c4ce8c7423af32cce237d8d",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {

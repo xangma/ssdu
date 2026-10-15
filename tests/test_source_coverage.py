@@ -108,23 +108,30 @@ def test_provider_table_has_organisations_not_dataset_or_local_import_rows():
     markdown = provider_coverage_markdown()
     assert markdown == provider_coverage_markdown()
     lines = markdown.splitlines()
-    assert lines[0] == (
-        "| Provider | SSDU coverage | Available data or access routes | Gaps and plans |"
-    )
+    assert lines[0] == ("| Provider | SSDU coverage | Coverage overview |")
     assert len(lines) == len(SOURCE_COVERAGE.providers) + 2
     rows = [line.split(" | ") for line in lines[2:]]
     assert [row[1] for row in rows] == ["Partial"] * 5 + ["Planned"]
     assert all(provider.name in row[0] for provider, row in zip(SOURCE_COVERAGE.providers, rows))
     assert "Local CSV and Parquet" not in markdown
-    assert all("English deprivation 2025" not in row[0] for row in rows)
-    assert "English deprivation 2025, corrected File 7" in rows[2][2]
-    assert "Nomis" in rows[0][2] and "Additional ONS APIs" in rows[0][3]
-    assert "None yet." in rows[-1][2]
-    assert rows[0][2] == "Nomis"
-    assert SOURCE_COVERAGE.sources[0].retrieval.scope not in markdown
-    assert SOURCE_COVERAGE.sources[0].limits[0] in rows[0][3]
-    assert SOURCE_COVERAGE.sources[0].limits[1] not in rows[0][3]
-    assert ".;" not in markdown
+    assert "File 7" not in markdown and "2025" not in markdown
+    assert "area deprivation in England" in rows[2][2]
+    assert "Nomis" in rows[0][2] and "planned" in rows[0][2]
+    assert all(provider.overview in markdown for provider in SOURCE_COVERAGE.providers)
+    # The overview must not replace the exact, machine-readable support limits.
+    deprivation = next(
+        row for row in get_source_coverage()["sources"] if row["source_id"] == "deprivation"
+    )
+    assert "Only corrected 2025 File 7" in deprivation["limits"][0]
+
+
+def test_existing_provider_metadata_without_editorial_overviews_still_loads():
+    matrix = get_source_coverage()
+    matrix["schema_version"] = "1.2.0"
+    for provider in matrix["providers"]:
+        del provider["overview"]
+    restored = CoverageMatrix.model_validate(matrix)
+    assert all(provider.overview == "" for provider in restored.providers)
 
 
 def test_only_migrated_providers_claim_standardized_datasets():

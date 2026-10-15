@@ -36,6 +36,11 @@ an input method outside the provider matrix. Provider coverage is partial whenev
 any bound access scope is implemented; it never certifies a whole organisation.
 Keep existing adapter IDs and source-level capabilities intact when changing
 provider presentation.
+Keep provider `overview` text at the level of broad topics or access services.
+The public `reference/sources` page must not list release editions, file numbers,
+request budgets or other dataset-level implementation details. Those belong in
+the generated `reference/dataset-support` page and the machine-readable scope
+metadata. The two pages use the same coverage registry.
 The family conformance reference comes from `ssdu.conformance`. Acceptance also
 runs the approved four-nation example and checks durable recovery, cache reuse
 and fresh-process transfer/replay with network and original-store reads blocked.

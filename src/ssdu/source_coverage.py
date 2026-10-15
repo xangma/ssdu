@@ -8,7 +8,7 @@ from ssdu.conformance import get_conformance_families
 from ssdu.dataset_contract import CONTRACT_VERSION as OBSERVATIONS_CONTRACT_VERSION
 from ssdu.dataset_contract import RECORDS_CONTRACT_VERSION
 
-COVERAGE_SCHEMA_VERSION = "1.2.0"
+COVERAGE_SCHEMA_VERSION = "1.3.0"
 DATASET_CONTRACT_VERSION = RECORDS_CONTRACT_VERSION
 StageStatus = Literal["implemented", "partial", "planned", "not_in_scope"]
 
@@ -106,6 +106,7 @@ class ProviderCoverage(BaseModel):
     name: str = Field(min_length=1)
     source_ids: tuple[str, ...] = Field(min_length=1)
     source_urls: tuple[str, ...] = ()
+    overview: str = Field(default="", max_length=2000)
 
 
 class CoverageMatrix(BaseModel):
@@ -187,18 +188,21 @@ SOURCE_COVERAGE = CoverageMatrix(
         ProviderCoverage(
             provider_id="ons",
             name="Office for National Statistics (ONS)",
+            overview="Selected statistics through Nomis; wider ONS access is planned.",
             source_ids=("nomis", "ons_additional"),
             source_urls=("https://www.ons.gov.uk/",),
         ),
         ProviderCoverage(
             provider_id="welsh_government",
             name="Welsh Government",
+            overview="Selected Welsh statistics through StatsWales.",
             source_ids=("statswales",),
             source_urls=("https://www.gov.wales/",),
         ),
         ProviderCoverage(
             provider_id="mhclg",
             name="Ministry of Housing, Communities and Local Government (MHCLG)",
+            overview="Selected statistics on area deprivation in England.",
             source_ids=("deprivation",),
             source_urls=(
                 "https://www.gov.uk/government/organisations/ministry-of-housing-communities-local-government",
@@ -207,18 +211,21 @@ SOURCE_COVERAGE = CoverageMatrix(
         ProviderCoverage(
             provider_id="scottish_government",
             name="Scottish Government",
+            overview="Selected Scottish official statistics through statistics.gov.scot.",
             source_ids=("scotland",),
             source_urls=("https://www.gov.scot/",),
         ),
         ProviderCoverage(
             provider_id="nisra",
             name="Northern Ireland Statistics and Research Agency (NISRA)",
+            overview="Selected Northern Ireland statistics through the NISRA Data Portal.",
             source_ids=("northern_ireland",),
             source_urls=("https://www.nisra.gov.uk/",),
         ),
         ProviderCoverage(
             provider_id="uk_data_service",
             name="UK Data Service",
+            overview="Research data and surveys; integration is planned.",
             source_ids=("uk_data_service",),
             source_urls=("https://ukdataservice.ac.uk/",),
         ),
@@ -544,32 +551,22 @@ def source_coverage_markdown() -> str:
 
 
 def provider_coverage_markdown() -> str:
-    """Render providers with coverage derived from their scoped adapter/release entries."""
+    """Render broad provider coverage; exact dataset and release support is separate."""
 
     def cell(value: str) -> str:
         return value.replace("|", "\\|").replace("\n", " ")
 
     sources = {source.source_id: source for source in SOURCE_COVERAGE.sources}
     lines = [
-        "| Provider | SSDU coverage | Available data or access routes | Gaps and plans |",
-        "|---|---|---|---|",
+        "| Provider | SSDU coverage | Coverage overview |",
+        "|---|---|---|",
     ]
     for provider in SOURCE_COVERAGE.providers:
         bound = [sources[source_id] for source_id in provider.source_ids]
         available = [source for source in bound if source.status == "implemented"]
-        planned = [source for source in bound if source.status == "planned"]
         title = cell(provider.name)
         if provider.source_urls:
             title = f"[{title}]({provider.source_urls[0]})"
         status = "Partial" if available else "Planned"
-        supported = "; ".join(cell(source.name) for source in available) or "None yet."
-        limits = " ".join(
-            [f"Planned: {cell(source.name)}." for source in planned]
-            + [
-                cell(source.limits[0].partition(". ")[0]).rstrip(".") + "."
-                for source in available
-                if source.limits
-            ]
-        )
-        lines.append(f"| {title} | {status} | {supported} | {limits} |")
+        lines.append(f"| {title} | {status} | {cell(provider.overview)} |")
     return "\n".join(lines) + "\n"

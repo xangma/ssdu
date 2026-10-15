@@ -287,10 +287,6 @@ def references(manifest):
         "that SSDU supports. **Partial** means that the selections described here are "
         "supported; it does not mean that every dataset from that provider is available. "
         "**Planned** means that retrieval has not been implemented.\n\n"
-        "A provider, an access service and a dataset are different things. For example, "
-        "MHCLG is the provider; the English Indices of Deprivation are a dataset series; "
-        "the corrected 2025 File 7 is the specific release file currently supported. "
-        "Nomis is an access service for ONS data.\n\n"
         "Provider names identify the organisation responsible for the service or "
         "publication. Portals can include data from other publishers, so check each "
         "dataset's recorded source and terms.\n\n"
@@ -300,7 +296,23 @@ def references(manifest):
         "\nStart with the [guided tutorial](../start/research-tutorial.md) to learn the "
         "common workflow. The [provider examples](../guides/dataset-examples.md) explain "
         "how different sources represent values. Planned integrations have no promised "
-        "delivery date. Local file imports are described separately below.\n\n"
+        "delivery date.\n\n"
+        "## Local file imports\n\n"
+        "You can also import your own CSV and Parquet tables. This is a separate input "
+        "method: you supply the files, descriptions and rights information.\n\n"
+        "## Before choosing a dataset\n\n"
+        "The overview describes broad coverage, rather than every available dataset. "
+        "Check the [dataset and adapter support reference](dataset-support.md) for "
+        "exact releases, formats and retrieval limits. Keep the source's definitions, "
+        "dates, units and geographical boundaries with any data you use.\n"
+    )
+    files["reference/sources.md"] = text
+    text = (
+        "# Dataset and adapter support\n\n"
+        "This technical reference records the exact selections, formats and limits "
+        "implemented in SSDU. For a high-level view of organisations and services, "
+        "use [data provider coverage](sources.md). Support for a listed selection "
+        "does not establish coverage of every dataset from that provider.\n\n"
     )
     source_rows = {source["source_id"]: source for source in coverage["sources"]}
     provider_sources = set()
@@ -346,7 +358,7 @@ def references(manifest):
     text += "\n### Planned adapter families\n\n"
     for family in coverage["planned_adapter_families"]:
         text += f"- `{family['family_id']}` ({family['status']}): {family['scope']}\n"
-    files["reference/sources.md"] = text
+    files["reference/dataset-support.md"] = text
     conformance = conformance_coverage()
     files["_downloads/conformance.json"] = json_text(conformance)
     text = "# Family conformance\n\nGenerated from SSDU's registered semantic test families. "
