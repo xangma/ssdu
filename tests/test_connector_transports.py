@@ -184,15 +184,18 @@ def test_percent_escaped_native_uri_is_preserved_by_asgi_transport(no_provider_n
     anyio.run(exercise)
 
 
-def test_large_cached_provider_description_keeps_summary_and_paged_codes(tmp_path, monkeypatch):
+@pytest.mark.parametrize("role", ["geo", "time", "metric"])
+def test_large_cached_provider_description_keeps_summary_and_paged_codes(
+    tmp_path, monkeypatch, role
+):
     from test_nisra import client_for, load_fixture
 
     from ssdu import Connector
 
     cube = load_fixture()
-    axis = cube["id"][-1]
+    axis = cube["role"][role][0]
     codes = [f"SYNTH_{index:05d}" for index in range(4000)]
-    cube["size"][-1] = len(codes)
+    cube["size"][cube["id"].index(axis)] = len(codes)
     cube["dimension"][axis]["category"] = {
         "index": {code: index for index, code in enumerate(codes)},
         "label": {
@@ -222,8 +225,19 @@ def test_large_cached_provider_description_keeps_summary_and_paged_codes(tmp_pat
     for name in ("provider", "dataset_id", "title", "release", "capabilities", "references"):
         assert summary[name] == description[name]
     assert [dimension["id"] for dimension in summary["dimensions"]] == cube["id"]
-    assert summary["dimensions"][-1]["value_count"] == len(codes)
+    assert next(d for d in summary["dimensions"] if d["id"] == axis)["value_count"] == len(codes)
     assert all("source_metadata" not in dimension for dimension in summary["dimensions"])
+    field = {
+        "geo": "coverage.spatial.areas",
+        "time": "coverage.temporal.periods",
+        "metric": "measures",
+    }[role]
+    assert field + "[]" in summary["omitted_fields"]
+    members = summary
+    for name in field.split("."):
+        members = members[name]
+    assert len(members) < len(codes)
+    assert "dimensions[].source_metadata" in summary["omitted_fields"]
     # Paging keeps every choice reachable without dropping the cached native metadata.
     values = api.get(
         f"/providers/nisra/datasets/{dataset_id}/dimensions/{axis}",

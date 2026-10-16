@@ -52,8 +52,18 @@ def nomis_definition():
                     {
                         "id": DATASETS["nomis"],
                         "name": {"value": TITLES["nomis"]},
+                        "description": {
+                            "lang": "en",
+                            "value": "<p>Invented workshop roles for a classroom catalogue.</p>",
+                        },
                         "components": {
-                            "dimension": [{"conceptref": "OCCUPATION", "codelist": "CL_OCC"}]
+                            "dimension": [{"conceptref": "OCCUPATION", "codelist": "CL_OCC"}],
+                            "primarymeasure": {"conceptref": "OBS_VALUE"},
+                            # A declared time axis supplies no observed time extent.
+                            "timedimension": {"conceptref": "TIME"},
+                        },
+                        "annotations": {
+                            "annotation": [{"annotationtitle": "Units", "annotationtext": "People"}]
                         },
                     }
                 ]
@@ -67,6 +77,10 @@ def nisra_metadata():
         "version": "2.0",
         "class": "dataset",
         "label": TITLES["nisra"],
+        "note": [
+            "<p>Invented attendance definitions for classroom exercises.</p>",
+            "Listed periods are available categories; observations are absent.",
+        ],
         "id": ["STATISTIC", "TLIST(A1)"],
         "size": [1, 2],
         "dimension": {
@@ -85,7 +99,13 @@ def nisra_metadata():
         },
         "updated": "2026-01-01T00:00:00Z",
         "role": {"metric": ["STATISTIC"], "time": ["TLIST(A1)"]},
-        "extension": {"matrix": DATASETS["nisra"]},
+        "extension": {
+            "matrix": DATASETS["nisra"],
+            "copyright": {
+                "name": "Invented teaching owner",
+                "href": "https://example.invalid/ssdu/invented-cube-terms",
+            },
+        },
     }
 
 
@@ -102,8 +122,10 @@ def scotland_metadata():
         {"kind": term("dataset"), "property": term(DCT + key, "uri"), "value": term(value)}
         for key, value in {
             "title": TITLES["scotland"],
+            "description": "<p>Invented event definitions for a metadata lesson.</p>",
             "modified": "2026-01-01T00:00:00Z",
             "license": "https://example.invalid/ssdu/invented-fixtures",
+            "accessRights": "Invented terms require permission before redistribution.",
         }.items()
     ]
     rows.append(
@@ -174,7 +196,15 @@ def fixture_response(request):
                     "id": DATASETS["statswales"],
                     "published_revision": {
                         "id": "invented-revision-1",
-                        "metadata": [{"language": "en-GB", "title": TITLES["statswales"]}],
+                        "metadata": [
+                            {
+                                "language": "en-GB",
+                                "title": TITLES["statswales"],
+                                "summary": "<p>Invented travel modes for a metadata lesson.</p>",
+                            }
+                        ],
+                        "coverage_start_date": "2023-01-01",
+                        "coverage_end_date": "2024-12-31",
                     },
                 },
             )
@@ -215,6 +245,13 @@ def fixture_response(request):
                         ]
                     },
                     "details": {
+                        "licence": "https://example.invalid/ssdu/invented-publication-terms",
+                        "national_applicability": {
+                            "invented-region": {
+                                "applicable": True,
+                                "label": "Invented Teaching Region",
+                            }
+                        },
                         "attachments": [
                             {
                                 "id": "invented-csv",
@@ -222,7 +259,7 @@ def fixture_response(request):
                                 "url": "https://assets.publishing.service.gov.uk/media/ssdu-invented/housing.csv",
                                 "content_type": "text/csv",
                             }
-                        ]
+                        ],
                     },
                 },
             )
@@ -299,6 +336,39 @@ class TeachingInterruption(BaseException):
     """Model stopping a process after some provider metadata has been retained."""
 
 
+def mapped_records(document):
+    """Compare mapped values and their native evidence independently of job IDs."""
+    return {
+        row["provider"]: {
+            **{
+                field: row.get(field)
+                for field in ("description", "measures", "coverage", "licence", "access")
+            },
+            "mapping_version": row["mapping_version"],
+            "mapping": row["source_metadata"]["mapping"],
+        }
+        for row in document["records"]
+    }
+
+
+def field_availability(document):
+    """Summarize assertions; category/axis coverage never implies observed extents."""
+    result = {}
+    for row in document["records"]:
+        coverage = row.get("coverage") or {}
+        evidence = row["source_metadata"]["mapping"]["evidence"]
+        result[row["provider"]] = {
+            "description": bool(row.get("description")),
+            "measure_count": len(row.get("measures", [])),
+            "spatial_scope": (coverage.get("spatial") or {}).get("scope"),
+            "temporal_scope": (coverage.get("temporal") or {}).get("scope"),
+            "licence_asserted": any(item["field"] == "licence" for item in evidence),
+            "metadata_url": bool((row.get("access") or {}).get("metadata_url")),
+            "data_access": (row.get("access") or {}).get("data_access"),
+        }
+    return result
+
+
 def run(output_dir):
     output = Path(output_dir).resolve()
     if output.exists() and any(output.iterdir()):
@@ -367,6 +437,16 @@ def run(output_dir):
         assert manifest["counts"] == {"providers": 5, "records": 5}
         assert {row["provider"] for row in document["records"]} == set(DATASETS)
         assert all(row["references"] and row["raw_resources"] for row in document["records"])
+        for row in document["records"]:
+            mapping = row["source_metadata"]["mapping"]
+            assert mapping["version"] == row["mapping_version"] == "1.1.0"
+            assert mapping["evidence"]
+            assert all(
+                item["resource_paths"]
+                and set(item["resource_paths"]).issubset(row["raw_resources"])
+                for item in mapping["evidence"]
+            )
+            assert row["access"]["data_access"] == "not_asserted"
 
         # Compare both views at the same instant; freshness ages change over time.
         index_clock = datetime.now(UTC)
@@ -403,11 +483,14 @@ def run(output_dir):
             )
             replay = offline_sync.run_job(offline_job["job_id"])
             assert replay["status"] == "succeeded", replay
-            replay_document = fresh_store.read(replay["result"]["snapshot_id"])
+            replay_snapshot_id = replay["result"]["snapshot_id"]
+            fresh_store.verify(replay_snapshot_id)
+            replay_document = fresh_store.read(replay_snapshot_id)
             assert {
                 (row["provider"], row["native_id"], row["title"])
                 for row in replay_document["records"]
             } == {(row["provider"], row["native_id"], row["title"]) for row in document["records"]}
+            assert mapped_records(replay_document) == mapped_records(document)
         assert len(calls) == request_count
 
     receipt = {
@@ -416,6 +499,7 @@ def run(output_dir):
         "providers": sorted(DATASETS),
         "records": len(document["records"]),
         "snapshot_id": snapshot_id,
+        "offline_snapshot_id": replay_snapshot_id,
         "contract_version": document["contract_version"],
         "job_id": job_id,
         "interruption_resumed": True,
@@ -425,8 +509,10 @@ def run(output_dir):
         "observation_requests": 0,
         "search_results": matches["total"],
         "provider_reports": document["providers"],
+        "normalized_field_availability": field_availability(document),
         "freshness": status["providers"],
         "fresh_store_replayed_offline": True,
+        "enriched_fields_and_evidence_replayed_offline": True,
         "original_store_path_unavailable": not source.exists(),
     }
     (output / "result.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")

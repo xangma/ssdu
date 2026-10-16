@@ -15,6 +15,7 @@ from urllib.parse import unquote, urljoin, urlparse
 
 from ssdu.distributions import parse_csv
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import mapping_metadata, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 PROVIDER = "mhclg"
@@ -171,6 +172,63 @@ def _format(attachment, url):
     return declared or suffix.rsplit(".", 1)[-1] or "unknown"
 
 
+def _mapped_metadata(document, details, path):
+    evidence = []
+
+    def record(field, source_path, method="provider_assertion"):
+        evidence.append({"field": field, "source_path": source_path, "method": method})
+
+    description = plain_text(document.get("description"))
+    if description:
+        record("description", "/description")
+    else:
+        description = plain_text(details.get("body"))
+        if description:
+            record("description", "/details/body")
+    areas = []
+    applicability = details.get("national_applicability")
+    if isinstance(applicability, dict):
+        for identity, item in applicability.items():
+            if not isinstance(identity, str) or not identity.strip() or not isinstance(item, dict):
+                continue
+            label = plain_text(item.get("label"))
+            if item.get("applicable") is True and label:
+                areas.append({"id": identity, "label": label})
+                location = "/details/national_applicability/" + identity.replace("~", "~0").replace(
+                    "/", "~1"
+                )
+                record("coverage.spatial", location + "/applicable")
+                record("coverage.spatial", location + "/label")
+    coverage = None
+    if areas:
+        coverage = {
+            "spatial": {
+                "areas": areas,
+                "scope": "provider_declared",
+                "basis": "publication_applicability",
+                "note": (
+                    "Publication applicability declared by the provider; this does not establish "
+                    "the geographic extent of observations."
+                ),
+            }
+        }
+    licence = plain_text(details.get("licence"))
+    if licence:
+        record("licence", "/details/licence")
+    record("access", "@response.url", "connector_endpoint")
+    return {
+        "description": description,
+        "measures": [],
+        "coverage": coverage,
+        "licence": licence or UNKNOWN_LICENCE,
+        "access": {
+            "metadata_url": BASE + "/api/content" + path,
+            "data_access": "not_asserted",
+        },
+        "metadata_mapping": mapping_metadata(evidence),
+    }
+
+
 def describe_dataset(dataset_id, client):
     path = _base_path(dataset_id)
     resource = client.get(BASE + "/api/content" + path)
@@ -227,14 +285,11 @@ def describe_dataset(dataset_id, client):
         "provider": PROVIDER,
         "dataset_id": _identifier(path),
         "title": title,
-        "description": document.get("description", ""),
+        **_mapped_metadata(document, details, path),
         "source_url": BASE + path,
         "dimensions": [],
         "release": release,
         "distributions": distributions,
-        "licence": details.get("licence")
-        if isinstance(details.get("licence"), str) and details["licence"].strip()
-        else UNKNOWN_LICENCE,
         "capabilities": {
             "formats": ["csv", "csvw"],
             "profile": "records",

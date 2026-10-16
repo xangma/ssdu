@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import mapping_metadata, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 from ssdu.normalization_nisra import (
     MAX_CUBE_CELLS,
@@ -223,10 +224,85 @@ def _metadata(dataset_id, client):
     return interpretation(metadata, dataset_id, max_cells=math.prod(sizes))
 
 
+def _mapped_metadata(cube, codes, metadata_url):
+    """Map explicit JSON-stat roles and categories, without inferring data extents."""
+    evidence = []
+
+    def asserted(field, path, method="provider_assertion"):
+        evidence.append({"field": field, "source_path": path, "method": method})
+
+    notes = cube.get("note", [])
+    description_parts = []
+    if isinstance(notes, list):
+        for index, note in enumerate(notes):
+            if text := plain_text(note):
+                description_parts.append(text)
+                asserted("description", f"/note/{index}")
+
+    def dimension(axis, field):
+        if "label" in cube["dimension"][axis]:
+            pointer = axis.replace("~", "~0").replace("/", "~1")
+            asserted(field, f"/dimension/{pointer}/label")
+        return {"id": axis, "label": cube["dimension"][axis].get("label", axis)}
+
+    def categories(axis, field):
+        category = cube["dimension"][axis]["category"]
+        pointer = "/dimension/" + axis.replace("~", "~0").replace("/", "~1")
+        for key in ("index", "label"):
+            if key in category:
+                asserted(field, pointer + "/category/" + key)
+        return [
+            {"id": code, "label": category.get("label", {}).get(code, code)} for code in codes[axis]
+        ]
+
+    roles, measures = cube.get("role", {}), []
+    for axis in roles.get("metric", []):
+        asserted("measures", "/role/metric", "provider_dimension_role")
+        members = categories(axis, "measures")
+        units = cube["dimension"][axis]["category"].get("unit", {})
+        for member in members:
+            if member["id"] in units:
+                member["unit"] = units[member["id"]]
+                pointer = axis.replace("~", "~0").replace("/", "~1")
+                code = member["id"].replace("~", "~0").replace("/", "~1")
+                asserted("measures", f"/dimension/{pointer}/category/unit/{code}")
+        measures.extend(members)
+
+    coverage = {"spatial": None, "temporal": None}
+    for role, component, member_key in (
+        ("time", "temporal", "periods"),
+        ("geo", "spatial", "areas"),
+    ):
+        if axes := roles.get(role, []):
+            field = "coverage." + component
+            asserted(field, "/role/" + role, "provider_dimension_role")
+            coverage[component] = {
+                "dimensions": [dimension(axis, field) for axis in axes],
+                member_key: [member for axis in axes for member in categories(axis, field)],
+                "scope": "dimension_categories",
+            }
+
+    licence = _licence_reference(cube["extension"].get("copyright"))
+    if licence == UNKNOWN_LICENCE:
+        licence = None
+    else:
+        asserted("licence", "/extension/copyright/href")
+    asserted("access", "@response.url", "connector_endpoint")
+    return {
+        "description": "\n\n".join(description_parts) or None,
+        "measures": measures,
+        "coverage": coverage,
+        "licence": licence,
+        "access": {"metadata_url": metadata_url, "data_access": "not_asserted"},
+        "metadata_mapping": mapping_metadata(evidence),
+    }
+
+
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
     """Inspect release and native dimensions before acquiring any observations."""
     cube = _metadata(dataset_id, client)
     axes, codes, cells = cube_axes(cube, max_cells=math.prod(cube["size"]))
+    metadata_url = f"{BASE}/PxStat.Data.Cube_API.ReadMetadata/{dataset_id}/en"
     return {
         "provider": "nisra",
         "dataset_id": dataset_id,
@@ -260,9 +336,10 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
             "page_size_paginates_provider": False,
         },
         "full_cube_cells": cells,
-        "source_url": f"{BASE}/PxStat.Data.Cube_API.ReadMetadata/{dataset_id}/en",
+        "source_url": metadata_url,
         "references": REFERENCES,
         "source_metadata": cube,
+        **_mapped_metadata(cube, codes, metadata_url),
     }
 
 

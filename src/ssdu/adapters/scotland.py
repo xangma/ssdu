@@ -17,6 +17,7 @@ from contextlib import nullcontext
 import pandas as pd
 
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import mapping_metadata, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 ENDPOINT = "https://statistics.gov.scot/sparql.json"
@@ -387,6 +388,96 @@ def _scope_identity(dataset_id, rows):
     )
 
 
+def _description(rows):
+    # Dataset bindings retain languages and RDF term types, unlike _structure.
+    for predicate in (DCT + "description", RDFS + "comment"):
+        candidates = [
+            (term.get("xml:lang", "").lower(), plain_text(term["value"]))
+            for row in rows
+            if row["kind"]["value"] == "dataset"
+            and row["property"]["value"] == predicate
+            and (term := row["value"])["type"] in {"literal", "typed-literal"}
+        ]
+        candidates = [(language, text) for language, text in candidates if text]
+        for preferred in (
+            [(language, text) for language, text in candidates if language.split("-")[0] == "en"],
+            [(language, text) for language, text in candidates if not language],
+            candidates,
+        ):
+            if preferred:
+                texts = {text for _, text in preferred}
+                return (next(iter(texts)), predicate) if len(texts) == 1 else (None, None)
+    return None, None
+
+
+def _asserted_text(rows, predicate):
+    """Keep a single explicit rights statement; conflicting assertions stay unknown."""
+    values = set()
+    for row in rows:
+        if row["kind"]["value"] != "dataset" or row["property"]["value"] != predicate:
+            continue
+        term = row["value"]
+        value = term["value"] if term["type"] == "uri" else plain_text(term["value"])
+        if term["type"] == "uri" and not _URI.fullmatch(value):
+            continue
+        if value:
+            values.add(value)
+    return next(iter(values)) if len(values) == 1 else None
+
+
+def _mapped_metadata(dataset_id, rows, structure):
+    evidence = []
+    dataset_path = f"<{BASE}{dataset_id}>"
+    component_path = f"{dataset_path}/<{QB}structure>/<{QB}component>"
+
+    def asserted(field, path, method="provider_assertion"):
+        evidence.append({"field": field, "source_path": path, "method": method})
+
+    description, predicate = _description(rows)
+    if description:
+        asserted("description", f"{dataset_path}/<{predicate}>")
+    measures = [
+        {"id": _uri(prop), "label": plain_text(item["label"])}
+        for prop, item in sorted(structure["properties"].items())
+        if item["kind"] == "measure"
+    ]
+    if measures:
+        path = f"{component_path}/<{QB}measure>"
+        asserted("measures", path)
+        if any(item["label"] for item in measures):
+            asserted("measures", f"{path}/<{RDFS}label>")
+    coverage = {}
+    for field, prop in (("spatial", AREA), ("temporal", PERIOD)):
+        item = structure["properties"].get(prop, {})
+        if item.get("kind") == "dimension":
+            # A role declaration supplies no observed members or data extents.
+            coverage[field] = {
+                "dimensions": [{"id": prop, "label": plain_text(item["label"])}],
+                "scope": "declared_dimension",
+            }
+            path = f"{component_path}/<{QB}dimension>"
+            asserted("coverage." + field, path, "declared_dimension")
+            if coverage[field]["dimensions"][0]["label"]:
+                asserted("coverage." + field, f"{path}/<{RDFS}label>", "declared_dimension")
+    licence = _asserted_text(rows, DCT + "license")
+    if licence:
+        asserted("licence", f"{dataset_path}/<{DCT}license>")
+    access = {"metadata_url": ENDPOINT, "data_access": "not_asserted"}
+    asserted("access", "connector.ENDPOINT", "connector_endpoint")
+    conditions = _asserted_text(rows, DCT + "accessRights")
+    if conditions:
+        access["conditions"] = conditions
+        asserted("access", f"{dataset_path}/<{DCT}accessRights>")
+    return {
+        "description": description,
+        "measures": measures,
+        "coverage": coverage or None,
+        "licence": licence,
+        "access": access,
+        "metadata_mapping": mapping_metadata(evidence),
+    }
+
+
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
     """Inspect dataset and data-structure metadata without retrieving observations."""
     rows, structure = _definition(dataset_id, client)
@@ -443,6 +534,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
             },
         ],
         "source_metadata": {"bindings": rows, "structure": structure},
+        **_mapped_metadata(dataset_id, rows, structure),
     }
 
 

@@ -99,6 +99,40 @@ Here `uv --offline` prevents package downloads; the metadata job can still
 contact providers. Use SSDU's explicit `offline=True` or the metadata command's
 `--offline` option when retained responses are required.
 
+## Understand the saved descriptions
+
+SSDU keeps the provider's wording and identifiers, alongside a common set of
+fields. The mappings use metadata already returned by each connector; they do
+not download observations to fill gaps.
+
+| Field | What it tells you |
+| --- | --- |
+| `description` | Readable provider prose, with HTML removed. |
+| `measures` | Declared statistics or measure concepts, with units where stated. |
+| `coverage` | Declared dates, areas, category lists or dimension roles, with their basis. |
+| `licence` | The provider's stated licence; missing statements remain unknown. |
+| `access` | The metadata endpoint and any stated access conditions. |
+
+Read coverage with its `scope` and, where present, `basis`. A time dimension
+means periods can be selected; it does not establish the first and last
+available observations. NISRA category lists describe available metadata
+categories. MHCLG publication applicability is labelled separately from an
+observation extent. SSDU does not derive coverage from publication dates or
+dataset titles.
+
+Some fields will remain empty. For example, a Welsh filter labelled “Data
+description” does not by itself identify which members are measures. A public
+metadata endpoint also does not establish unrestricted data access or reuse:
+`data_access` remains `not_asserted` without a provider statement.
+
+Mapping version `1.1.0` retains each field's native location and description
+response hashes in `source_metadata.mapping.evidence`. The metadata snapshot
+contract remains `1.0.0`. Replaying older cached responses creates a new immutable
+snapshot with the richer interpretation; it preserves provider-check times
+and leaves the old snapshot unchanged. Large category lists remain complete in
+Python and saved snapshots; REST/MCP responses mark compact summaries with
+`metadata_detail` and `omitted_fields` and provide paged category browsing.
+
 ## Read freshness and completeness separately
 
 A cache hit means SSDU already has a response. It does **not** mean the

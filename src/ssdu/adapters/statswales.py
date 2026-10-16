@@ -13,13 +13,14 @@ import hashlib
 import json
 import re
 from contextlib import nullcontext
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
 import pandas as pd
 
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import mapping_metadata, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 BASE = "https://api.stats.gov.wales/v2"
@@ -179,11 +180,73 @@ def _title(metadata, dataset_id, lang="en-gb"):
     if not isinstance(revision, dict):
         raise RetrievalError("Malformed StatsWales published revision")
     translated = revision.get("metadata", [])
+    if not isinstance(translated, list):
+        return dataset_id
     language = "en-gb" if lang == "en" else "cy-gb" if lang == "cy" else lang
     for entry in translated:
         if isinstance(entry, dict) and str(entry.get("language", "")).lower() == language:
             return entry.get("title") or dataset_id
     return dataset_id
+
+
+def _description_fields(dataset_id, metadata):
+    """Interpret explicit revision assertions without guessing dimension roles."""
+    revision = metadata.get("published_revision", {})
+    translated = revision.get("metadata", [])
+    translated = translated if isinstance(translated, list) else []
+    description, evidence = None, []
+    for languages in ({"en", "en-gb"}, {"cy", "cy-gb"}):
+        candidates = [
+            (index, plain_text(entry.get("summary")))
+            for index, entry in enumerate(translated)
+            if isinstance(entry, dict)
+            and str(entry.get("language", "")).lower() in languages
+            and plain_text(entry.get("summary"))
+        ]
+        if candidates:
+            # Conflicting assertions in the preferred language remain unknown.
+            if len({value for _, value in candidates}) == 1:
+                index, description = candidates[0]
+                evidence.append(
+                    {
+                        "field": "description",
+                        "source_path": f"/published_revision/metadata/{index}/summary",
+                        "method": "provider_assertion",
+                    }
+                )
+            break
+
+    temporal = {}
+    for bound in ("start", "end"):
+        value = revision.get(f"coverage_{bound}_date")
+        if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            try:
+                date.fromisoformat(value)
+            except ValueError:
+                continue
+            temporal[bound] = value
+    if temporal.get("start", "") > temporal.get("end", "9999-12-31"):
+        temporal = {}
+    for bound in temporal:
+        evidence.append(
+            {
+                "field": "coverage.temporal",
+                "source_path": f"/published_revision/coverage_{bound}_date",
+                "method": "provider_assertion",
+            }
+        )
+    endpoint = f"{BASE}/{dataset_id}?lang=en-gb"
+    evidence.append(
+        {"field": "access", "source_path": "@response.url", "method": "connector_endpoint"}
+    )
+    return {
+        "description": description,
+        "measures": [],
+        "coverage": {"temporal": {**temporal, "scope": "provider_declared"}} if temporal else None,
+        "licence": None,
+        "access": {"metadata_url": endpoint, "data_access": "not_asserted"},
+        "metadata_mapping": mapping_metadata(evidence),
+    }
 
 
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
@@ -210,6 +273,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         "provider": "statswales",
         "dataset_id": dataset_id,
         "title": _title(metadata, dataset_id),
+        **_description_fields(dataset_id, metadata),
         "dimensions": dimensions,
         "release": {
             "kind": "observed_published_revision",

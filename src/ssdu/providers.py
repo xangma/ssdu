@@ -84,7 +84,10 @@ class ProviderRegistration:
         if self.normalizer_module != "ssdu.normalization":
             paths.append(root / f"normalization_{self.id}.py")
         if self.workflow:
-            paths.extend(root / name for name in ("connectors.py", "connector_cache.py"))
+            paths.extend(
+                root / name
+                for name in ("connectors.py", "connector_cache.py", "metadata_mapping.py")
+            )
         if self.profile == "records":
             paths.append(root / "records.py")
         if self.id == "mhclg":

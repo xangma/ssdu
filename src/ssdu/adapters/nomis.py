@@ -9,6 +9,7 @@ from contextlib import nullcontext
 import pandas as pd
 
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import mapping_metadata, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 BASE = "https://www.nomisweb.co.uk/api/v01/dataset"
@@ -136,6 +137,110 @@ def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict
     }
 
 
+def _metadata_entries(value, path):
+    """Retain native singleton/list locations for optional SDMX metadata."""
+    if isinstance(value, dict):
+        return [(value, path)]
+    if isinstance(value, list):
+        return [(item, f"{path}/{i}") for i, item in enumerate(value) if isinstance(item, dict)]
+    return []
+
+
+def _description(value, path):
+    candidates = []
+    for item, location in _metadata_entries(value, path):
+        text = plain_text(item.get("value"))
+        lang = item.get("lang", "")
+        if text and isinstance(lang, str):
+            rank = 0 if lang.lower().split("-")[0] == "en" else 1 if not lang else 2
+            candidates.append((rank, text, location + "/value"))
+    if not candidates:
+        return None, []
+    preferred = [item for item in candidates if item[0] == min(c[0] for c in candidates)]
+    if len({item[1] for item in preferred}) != 1:
+        return None, []
+    return preferred[0][1], [item[2] for item in preferred]
+
+
+def _mapped_metadata(document, family, dataset_id):
+    path = "/structure/keyfamilies/keyfamily"
+    if isinstance(document["structure"]["keyfamilies"]["keyfamily"], list):
+        path += "/0"
+    evidence = []
+
+    def record(field, source_path, method="provider_assertion"):
+        evidence.append({"field": field, "source_path": source_path, "method": method})
+
+    description, locations = _description(family.get("description"), path + "/description")
+    for location in locations:
+        record("description", location)
+    components = family.get("components", {})
+    declared = _metadata_entries(components.get("dimension"), path + "/components/dimension")
+    attributes = _metadata_entries(components.get("attribute"), path + "/components/attribute")
+    unit_concepts = {"UNIT", "UNIT_MULTIPLIER", "UNIT_MULT"}
+    varying_units = any(
+        str(item.get("conceptref", "")).upper() in unit_concepts | {"MEASURES"}
+        for item, _ in declared
+    ) or any(
+        str(item.get("conceptref", "")).upper() in unit_concepts
+        and str(item.get("attachmentlevel", "")).lower() != "dataset"
+        for item, _ in attributes
+    )
+    measures = []
+    for item, location in _metadata_entries(
+        components.get("primarymeasure"), path + "/components/primarymeasure"
+    ):
+        concept = item.get("conceptref")
+        if isinstance(concept, str) and concept.strip():
+            measures.append({"id": concept, "label": concept})
+            record("measures", location + "/conceptref")
+    units = []
+    for annotation, location in _metadata_entries(
+        family.get("annotations", {}).get("annotation"), path + "/annotations/annotation"
+    ):
+        if annotation.get("annotationtitle") == "Units":
+            unit = plain_text(annotation.get("annotationtext"))
+            if unit:
+                units.append((unit, location + "/annotationtext"))
+    # One primary value column can contain several statistics or series units.
+    if not varying_units and len(measures) == 1 and units and len({unit for unit, _ in units}) == 1:
+        measures[0]["unit"] = units[0][0]
+        for _, location in units:
+            record("measures", location)
+    coverage = {}
+    temporal = _metadata_entries(
+        components.get("timedimension"), path + "/components/timedimension"
+    )
+    for field, entries, concept_name, method in (
+        ("spatial", declared, "GEOGRAPHY", "declared_dimension"),
+        ("temporal", temporal, None, "provider_dimension_role"),
+    ):
+        dimensions = []
+        for item, location in entries:
+            concept = item.get("conceptref")
+            if (
+                isinstance(concept, str)
+                and concept.strip()
+                and (concept_name is None or concept.upper() == concept_name)
+            ):
+                dimensions.append({"id": concept.lower(), "label": concept})
+                record("coverage." + field, location + "/conceptref", method)
+        if dimensions:
+            coverage[field] = {"dimensions": dimensions, "scope": "declared_dimension"}
+    record("access", "@response.url", "connector_endpoint")
+    return {
+        "description": description,
+        "measures": measures,
+        "coverage": coverage or None,
+        "licence": None,
+        "access": {
+            "metadata_url": f"{BASE}/{dataset_id}/def.sdmx.json",
+            "data_access": "not_asserted",
+        },
+        "metadata_mapping": mapping_metadata(evidence),
+    }
+
+
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
     document, family = _definition(dataset_id, client)
     dimensions = [
@@ -151,6 +256,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         "provider": "nomis",
         "dataset_id": dataset_id,
         "title": family.get("name", {}).get("value", dataset_id),
+        **_mapped_metadata(document, family, dataset_id),
         "dimensions": dimensions,
         "release": {
             "kind": "observed_snapshot",

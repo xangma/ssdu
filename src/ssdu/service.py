@@ -81,7 +81,7 @@ class Service:
         # Raw provider documents and code collections belong in immutable snapshots,
         # not in a tool response. Keep identity, references and freshness visible.
         for prose_limit, collection_limit in ((8192, 100), (512, 20), (128, 5)):
-            omitted = set()
+            omitted = set(value.get("omitted_fields", []))
 
             def compact(
                 item,
@@ -114,7 +114,16 @@ class Service:
                     isinstance(item, str)
                     and len(item) > prose_limit
                     and path.rsplit(".", 1)[-1]
-                    in {"description", "title", "label", "note", "message", "metadata_note"}
+                    in {
+                        "description",
+                        "title",
+                        "label",
+                        "note",
+                        "message",
+                        "metadata_note",
+                        "licence",
+                        "conditions",
+                    }
                 ):
                     omitted.add(path)
                     return item[:prose_limit]
@@ -258,7 +267,7 @@ class Service:
         summary["metadata_note"] = (
             "Raw metadata remains cached for Python inspection; browse category codes with list_provider_dimension_values."
         )
-        return bounded_result(summary)
+        return self._metadata_result(summary)
 
     def list_provider_dimension_values(
         self, provider, dataset_id, dimension, search="", limit=20, offset=0

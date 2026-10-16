@@ -22,6 +22,7 @@ from ssdu.connector_cache import CachedClient
 from ssdu.contracts import SnapshotId
 from ssdu.http import HttpClient, ProviderRetry, Resource
 from ssdu.metadata_contract import safe_name, validate_record
+from ssdu.metadata_mapping import MAPPING_VERSION, bind_mapping
 from ssdu.metadata_store import MetadataStore
 from ssdu.metadata_sync_models import SyncInput, SyncPlan
 from ssdu.models import RetrievalError
@@ -47,6 +48,7 @@ def _implementation():
             "metadata_sync.py",
             "metadata_sync_models.py",
             "metadata_contract.py",
+            "metadata_mapping.py",
             "metadata_store.py",
             "connector_cache.py",
             "http.py",
@@ -482,6 +484,7 @@ class MetadataSync:
         for identity, (summary, summary_resources) in rows.items():
             self._check_cancel(job_id)
             descriptor, pages, record_evidence = None, [], list(summary_resources)
+            descriptor_resources = []
             if options.detail != "catalogue":
                 try:
                     candidate, resources = self._operation(
@@ -501,6 +504,7 @@ class MetadataSync:
                             "Provider description identifies a different or malformed dataset"
                         )
                     descriptor = candidate
+                    descriptor_resources = resources
                     described += 1
                     if _checked(resources):
                         checked_count += 1
@@ -603,12 +607,16 @@ class MetadataSync:
                     "catalogue": summary,
                     "descriptor": descriptor,
                     "code_pages": pages,
+                    "mapping": bind_mapping(
+                        descriptor,
+                        ["raw/" + item["body_sha256"] + ".bin" for item in descriptor_resources],
+                    ),
                 },
                 "derived_evidence": [],
                 "captured_at": now,
                 "last_checked_at": _checked(record_evidence),
                 "provider_modified_at": modified,
-                "mapping_version": "1.0.0",
+                "mapping_version": MAPPING_VERSION,
             }
             captured = _earliest(record_evidence, "captured_at")
             if captured is None:
