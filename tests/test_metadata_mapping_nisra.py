@@ -105,7 +105,7 @@ def test_maps_prose_measure_roles_units_categories_and_copyright_with_one_reques
     }
     assert result["licence"] == "https://example.org/terms"
     assert result["access"] == {"metadata_url": result["source_url"], "data_access": "not_asserted"}
-    assert result["metadata_mapping"]["version"] == "1.1.0"
+    assert result["metadata_mapping"]["version"] == "1.2.0"
     assert evidence(result, "description") == {
         "/note/0": "provider_assertion",
         "/note/1": "provider_assertion",
@@ -133,7 +133,9 @@ def test_missing_roles_notes_and_terms_stay_unknown_despite_suggestive_names():
     assert result["measures"] == []
     assert result["coverage"] == {"spatial": None, "temporal": None}
     assert result["licence"] is None
-    assert result["metadata_mapping"]["evidence"] == [
+    assert [
+        item for item in result["metadata_mapping"]["evidence"] if item["field"] != "dimensions"
+    ] == [
         {
             "field": "access",
             "source_path": "@response.url",
@@ -203,3 +205,81 @@ def test_conflicting_roles_keep_existing_jsonstat_validation():
     document["role"]["geo"] = ["PERIOD"]
     with pytest.raises(RetrievalError, match="overlapping roles"):
         describe(document)
+
+
+def test_native_topics_language_category_units_and_related_maps_need_no_follow_requests():
+    document = cube()
+    document["extension"].update(
+        {
+            "subject": {"code": 987, "value": "Invented subject"},
+            "product": {"code": "SYNTH", "value": "Invented series"},
+            "language": {"code": "en", "name": "English"},
+        }
+    )
+    document["source"] = "Invented publishing office"
+    document["dimension"]["AREA"]["link"] = {
+        "enclosure": [
+            {"href": "https://example.org/invented-areas.geojson", "type": "application/geo+json"}
+        ]
+    }
+    document["link"] = {
+        "alternate": [{"href": "https://example.org/invented-table", "label": "Invented table"}]
+    }
+    result = describe(document)
+    assert result["subjects"] == [
+        {"scheme": "nisra:subject", "id": "987", "label": "Invented subject"},
+        {"scheme": "nisra:product", "id": "SYNTH", "label": "Invented series"},
+    ]
+    assert result["languages"] == ["en"]
+    assert result["publishers"] == [{"name": "Invented publishing office", "role": "source"}]
+    assert result["related"] == [
+        {
+            "relation": "alternate",
+            "url": "https://example.org/invented-table",
+            "title": "Invented table",
+        },
+        {"relation": "enclosure", "url": "https://example.org/invented-areas.geojson"},
+    ]
+    assert result["dimensions"][0]["values"] == result["measures"]
+    assert result["dimensions"][1]["values"] == result["coverage"]["temporal"]["periods"]
+    assert result["source_metadata"]["link"] == document["link"]
+    assert evidence(result, "subjects")["/extension/subject/code"] == "provider_assertion"
+    assert (
+        evidence(result, "related")["/dimension/AREA/link/enclosure/0/href"] == "provider_assertion"
+    )
+    assert result["field_status"]["publishers"]["status"] == "mapped"
+
+
+def test_missing_geo_role_is_reported_without_guessing_from_area_labels():
+    document = cube()
+    document["role"].pop("geo")
+    result = describe(document)
+    assert result["coverage"]["spatial"] is None
+    assert result["field_status"]["coverage.spatial"]["status"] == "not_provided"
+    assert "No explicit JSON-stat geo role" in result["field_status"]["coverage.spatial"]["reason"]
+    assert result["field_status"]["publishers"]["status"] == "not_provided"
+    assert result["field_status"]["distributions"]["status"] == "not_requested"
+
+
+@pytest.mark.parametrize(
+    "value", ["not-a-native-subject-object", {"code": [], "value": {"en": "Unknown shape"}}]
+)
+def test_unsupported_native_subject_shapes_are_unmapped_not_absent(value):
+    document = cube()
+    document["extension"]["subject"] = value
+    result = describe(document)
+    assert result["subjects"] == []
+    assert result["field_status"]["subjects"]["status"] == "unmapped"
+
+
+def test_unsafe_related_links_are_retained_only_in_native_metadata():
+    document = cube()
+    document["link"] = {
+        "alternate": [
+            {"href": "javascript:alert(1)"},
+            {"href": "https://secret:token@example.org/data"},
+        ]
+    }
+    result = describe(document)
+    assert result["related"] == []
+    assert result["source_metadata"]["link"] == document["link"]

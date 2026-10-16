@@ -95,8 +95,8 @@ def http(tmp_path, handler):
 def test_catalogue_pages_have_one_native_identity_and_bounded_lookahead(tmp_path):
     calls = []
     with http(tmp_path, responder(calls)) as client:
-        first = scotland.list_datasets('events "quoted"', client, limit=2)
-        final = scotland.list_datasets("", client, limit=2, offset=first["next_offset"])
+        first = scotland.list_legacy_datasets('events "quoted"', client, limit=2)
+        final = scotland.list_legacy_datasets("", client, limit=2, offset=first["next_offset"])
     assert [item["id"] for item in first["items"]] == [DATASET, "ssdu-synthetic-other-events"]
     assert first["total"] is None and first["next_offset"] == 2
     assert final["items"][0]["id"] == "ssdu-synthetic-z-events"
@@ -151,7 +151,7 @@ def test_native_slug_case_survives_discovery_description_and_cached_replay(tmp_p
 
     with http(tmp_path, handler) as client:
         connector = Connector("scotland", tmp_path / "store", client=client)
-        page = connector.list_datasets(limit=2)
+        page = scotland.list_legacy_datasets("", client, limit=2)
         identity = page["items"][0]["id"]
         assert identity == dataset_id
         scotland.validate_request(Request("scotland", identity))
@@ -159,7 +159,6 @@ def test_native_slug_case_survives_discovery_description_and_cached_replay(tmp_p
         assert descriptor["dataset_id"] == dataset_id
         assert descriptor["source_url"] == scotland.BASE + dataset_id
         with patch.object(HttpClient, "request", side_effect=AssertionError("Offline HTTP")):
-            assert connector.list_datasets(limit=2, offline=True) == page
             assert connector.describe_dataset(identity, offline=True) == descriptor
     assert len(calls) == 2
 
@@ -204,7 +203,7 @@ def test_selection_checks_metadata_and_native_uri_syntax_without_observations(tm
 def test_bad_page_bounds_do_not_issue_requests(tmp_path, limit, offset):
     with http(tmp_path, lambda _: pytest.fail("Unexpected HTTP")) as client:
         with pytest.raises(ValueError):
-            scotland.list_datasets("", client, limit=limit, offset=offset)
+            scotland.list_legacy_datasets("", client, limit=limit, offset=offset)
         with pytest.raises(ValueError):
             scotland.list_dimension_values(
                 DATASET, scotland.AREA, client, limit=limit, offset=offset
@@ -254,7 +253,7 @@ def test_malformed_or_unbounded_pages_fail_closed(tmp_path, kind, defect):
 
     with http(tmp_path, handler) as client, pytest.raises(RetrievalError):
         if kind == "catalogue":
-            scotland.list_datasets("", client, limit=1)
+            scotland.list_legacy_datasets("", client, limit=1)
         else:
             scotland.list_dimension_values(DATASET, scotland.AREA, client, limit=1)
 
@@ -340,11 +339,13 @@ def test_common_workflow_cache_and_fresh_store_snapshot_replay_are_offline(tmp_p
     request = Request("scotland", DATASET, {"dimensions": {scotland.AREA: [CODE]}})
     with http(tmp_path, responder(calls)) as transport:
         connector = Connector("scotland", source, client=transport)
-        catalogue = connector.list_datasets(limit=2)
+        with CachedClient(source.root, client=transport) as cached:
+            catalogue = scotland.list_legacy_datasets("", cached, limit=2)
         descriptor = connector.describe_dataset(DATASET)
         codes = connector.list_dimension_values(DATASET, scotland.AREA, limit=2)
         before = len(calls)
-        assert connector.list_datasets(limit=2) == catalogue
+        with CachedClient(source.root, client=transport) as cached:
+            assert scotland.list_legacy_datasets("", cached, limit=2) == catalogue
         assert connector.describe_dataset(DATASET) == descriptor
         assert connector.list_dimension_values(DATASET, scotland.AREA, limit=2) == codes
         assert len(calls) == before
@@ -353,7 +354,8 @@ def test_common_workflow_cache_and_fresh_store_snapshot_replay_are_offline(tmp_p
         expected = source.open_dataset(manifest["product_id"]).to_arrow()
         before = len(calls)
         with patch.object(HttpClient, "request", side_effect=AssertionError("Offline HTTP")):
-            assert connector.list_datasets(limit=2, offline=True) == catalogue
+            with CachedClient(source.root, offline=True) as cached:
+                assert scotland.list_legacy_datasets("", cached, limit=2) == catalogue
             assert connector.describe_dataset(DATASET, offline=True) == descriptor
             assert (
                 connector.list_dimension_values(DATASET, scotland.AREA, limit=2, offline=True)

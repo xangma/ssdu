@@ -19,7 +19,9 @@ from unittest.mock import patch
 import httpx
 
 from ssdu.http import HttpClient
+from ssdu.metadata_contract import CONTRACT_VERSION
 from ssdu.metadata_index import MetadataIndex
+from ssdu.metadata_mapping import MAPPING_VERSION
 from ssdu.metadata_store import MetadataStore
 from ssdu.metadata_sync import MetadataSync
 from ssdu.rate_limit import RateLimiter
@@ -29,7 +31,7 @@ DATASETS = {
     "statswales": "00000000-0000-4000-8000-000000000001",
     "mhclg": "ssdu-invented-housing",
     "nisra": "SYNTH_METADATA",
-    "scotland": "ssdu-invented-community",
+    "scotland": "ckan:00000000-0000-4000-8000-000000000005",
 }
 TITLES = {
     "nomis": "Invented community workshop occupations",
@@ -160,6 +162,23 @@ def fixture_response(request):
             f"/api/v01/dataset/{DATASETS['nomis']}/def.sdmx.json",
         ):
             return httpx.Response(200, json=nomis_definition())
+        if path == f"/api/v01/dataset/{DATASETS['nomis']}/time.def.sdmx.json":
+            return httpx.Response(
+                200,
+                json={
+                    "structure": {
+                        "codelists": {
+                            "codelist": {
+                                "id": "CL_TIME",
+                                "code": [
+                                    {"value": year, "description": {"value": year}}
+                                    for year in ("2023", "2024")
+                                ],
+                            }
+                        }
+                    }
+                },
+            )
         if path == f"/api/v01/dataset/{DATASETS['nomis']}/occupation.def.sdmx.json":
             return httpx.Response(
                 200,
@@ -280,6 +299,25 @@ def fixture_response(request):
             )
         if path == base + f"ReadMetadata/{DATASETS['nisra']}/en":
             return httpx.Response(200, json=nisra_metadata())
+    if host == "api.data.gov.scot":
+        dataset_id = DATASETS["scotland"].removeprefix("ckan:")
+        native = {
+            "id": dataset_id,
+            "name": "ssdu-invented-community",
+            "title": TITLES["scotland"],
+            "description": "<p>Invented event definitions for a metadata lesson.</p>",
+            "metadata_modified": "2026-01-01T00:00:00Z",
+            "license_url": "https://example.invalid/ssdu/invented-fixtures",
+            "resources": [],
+        }
+        if path.endswith("/package_list"):
+            return httpx.Response(200, json={"success": True, "result": [native["name"]]})
+        if path.endswith("/package_search"):
+            return httpx.Response(
+                200, json={"success": True, "result": {"count": 1, "results": [native]}}
+            )
+        if path.endswith("/package_show") and request.url.params["id"] == dataset_id:
+            return httpx.Response(200, json={"success": True, "result": native})
     if host == "statistics.gov.scot" and path == "/sparql.json":
         query = request.url.params["query"]
         if "GROUP BY ?dataset" in query:
@@ -433,13 +471,14 @@ def run(output_dir):
 
         store = MetadataStore(source)
         document = store.read(snapshot_id)
+        assert document["contract_version"] == CONTRACT_VERSION
         manifest = store.verify(snapshot_id)
         assert manifest["counts"] == {"providers": 5, "records": 5}
         assert {row["provider"] for row in document["records"]} == set(DATASETS)
         assert all(row["references"] and row["raw_resources"] for row in document["records"])
         for row in document["records"]:
             mapping = row["source_metadata"]["mapping"]
-            assert mapping["version"] == row["mapping_version"] == "1.1.0"
+            assert mapping["version"] == row["mapping_version"] == MAPPING_VERSION
             assert mapping["evidence"]
             assert all(
                 item["resource_paths"]
@@ -501,6 +540,7 @@ def run(output_dir):
         "snapshot_id": snapshot_id,
         "offline_snapshot_id": replay_snapshot_id,
         "contract_version": document["contract_version"],
+        "mapping_version": MAPPING_VERSION,
         "job_id": job_id,
         "interruption_resumed": True,
         "retained_prefix_not_refetched": True,

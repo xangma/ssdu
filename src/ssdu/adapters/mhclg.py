@@ -24,10 +24,9 @@ ORGANISATIONS = (
     "ministry-of-housing-communities-local-government",
     "department-for-levelling-up-housing-and-communities",
     "department-for-communities-and-local-government",
+    "ministry-of-housing-communities-and-local-government-2018-2021",
 )
-ACCEPTED_PUBLISHERS = frozenset(
-    (*ORGANISATIONS, "ministry-of-housing-communities-and-local-government-2018-2021")
-)
+ACCEPTED_PUBLISHERS = frozenset(ORGANISATIONS)
 HOSTS = frozenset(
     {"www.gov.uk", "assets.publishing.service.gov.uk", "open-data.communities.gov.uk"}
 )
@@ -74,13 +73,13 @@ def _base_path(dataset_id):
         dataset_id = parsed.path
     if dataset_id.startswith("statdata:"):
         slug = dataset_id.removeprefix("statdata:")
-        if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", slug):
+        if re.fullmatch(r"[a-z0-9]+(?:-+[a-z0-9]+)*", slug):
             return "/government/statistical-data-sets/" + slug
         raise RetrievalError("MHCLG statdata: identifiers require a valid publication slug")
-    if re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", dataset_id):
+    if re.fullmatch(r"[a-z0-9]+(?:-+[a-z0-9]+)*", dataset_id):
         return "/government/statistics/" + dataset_id
     if not re.fullmatch(
-        r"/government/(?:statistics|statistical-data-sets)/[a-z0-9]+(?:-[a-z0-9]+)*", dataset_id
+        r"/government/(?:statistics|statistical-data-sets)/[a-z0-9]+(?:-+[a-z0-9]+)*", dataset_id
     ):
         raise RetrievalError("MHCLG dataset_id must be a GOV.UK publication slug or base path")
     return dataset_id
@@ -140,6 +139,7 @@ def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0):
         items.append(
             {
                 "id": _identifier(path),
+                "kind": "publication",
                 "title": entry["title"],
                 "provider": PROVIDER,
                 "description": entry.get("description", ""),
@@ -175,7 +175,66 @@ def _format(attachment, url):
     return declared or suffix.rsplit(".", 1)[-1] or "unknown"
 
 
-def _mapped_metadata(document, details, path):
+def _pointer(value):
+    return value.replace("~", "~0").replace("/", "~1")
+
+
+def _linked_identity(entry):
+    """Keep provider-declared linked identities; never follow a metadata link."""
+    if isinstance(entry, str):
+        entry = {"base_path": entry} if entry.startswith("/") else {"slug": entry}
+    if not isinstance(entry, dict):
+        return None
+    identity = entry.get("content_id") or entry.get("slug")
+    path = entry.get("base_path")
+    url = entry.get("web_url") or entry.get("url")
+    if isinstance(path, str) and path.startswith("/"):
+        url = urljoin(BASE, path)
+    identity = identity if isinstance(identity, str) and identity else None
+    url = url if isinstance(url, str) and url.startswith(("https://", "http://")) else None
+    name = plain_text(entry.get("title") or entry.get("name"))
+    if not identity and isinstance(path, str) and path:
+        identity = path
+    if not any((identity, url, name)):
+        return None
+    return {
+        key: value for key, value in {"id": identity, "name": name, "url": url}.items() if value
+    }
+
+
+def _organisation_metadata(links, record):
+    publishers, related, seen = [], [], set()
+    for key, role in (
+        ("primary_publishing_organisation", "primary"),
+        ("organisations", "associated"),
+    ):
+        entries = links.get(key, [])
+        if not isinstance(entries, list):
+            continue
+        for index, entry in enumerate(entries):
+            identity = _linked_identity(entry)
+            if identity is None:
+                continue
+            source = "/links/" + key + "/" + str(index)
+            signature = identity.get("url") or identity.get("id") or identity.get("name")
+            if signature not in seen:
+                publishers.append({**identity, "role": role})
+                seen.add(signature)
+                record("publishers", source)
+            if role == "associated":
+                related.append(
+                    {
+                        "relation": "associated_organisation",
+                        **({"target_id": identity["id"]} if "id" in identity else {}),
+                        **({"url": identity["url"]} if "url" in identity else {}),
+                        **({"title": identity["name"]} if "name" in identity else {}),
+                    }
+                )
+                record("related", source)
+    return publishers, related
+
+
+def _mapped_metadata(document, details, path, distributions):
     evidence = []
 
     def record(field, source_path, method="provider_assertion"):
@@ -197,9 +256,7 @@ def _mapped_metadata(document, details, path):
             label = plain_text(item.get("label"))
             if item.get("applicable") is True and label:
                 areas.append({"id": identity, "label": label})
-                location = "/details/national_applicability/" + identity.replace("~", "~0").replace(
-                    "/", "~1"
-                )
+                location = "/details/national_applicability/" + _pointer(identity)
                 record("coverage.spatial", location + "/applicable")
                 record("coverage.spatial", location + "/label")
     coverage = None
@@ -218,7 +275,118 @@ def _mapped_metadata(document, details, path):
     licence = plain_text(details.get("licence"))
     if licence:
         record("licence", "/details/licence")
+    links = document.get("links", {})
+    publishers, related = _organisation_metadata(links, record)
+    subjects = []
+    for key in ("taxons", "topics", "mainstream_browse_pages", "policy_areas"):
+        entries = links.get(key, [])
+        if not isinstance(entries, list):
+            continue
+        for index, entry in enumerate(entries):
+            identity = _linked_identity(entry)
+            if identity is None:
+                continue
+            subject = {"scheme": "govuk:" + key}
+            if identity.get("id") or identity.get("url"):
+                subject["id"] = identity.get("id") or identity["url"]
+            if identity.get("name"):
+                subject["label"] = identity["name"]
+            subjects.append(subject)
+            record("subjects", "/links/" + key + "/" + str(index))
+    for key, relation in (
+        ("document_collections", "is_part_of"),
+        ("part_of_statistical_series", "is_part_of"),
+        ("ordered_related_items", "related"),
+        ("related_statistical_data_sets", "related"),
+    ):
+        entries = links.get(key, [])
+        if not isinstance(entries, list):
+            continue
+        for index, entry in enumerate(entries):
+            identity = _linked_identity(entry)
+            if identity is None:
+                continue
+            related.append(
+                {
+                    "relation": relation,
+                    **({"target_id": identity["id"]} if "id" in identity else {}),
+                    **({"url": identity["url"]} if "url" in identity else {}),
+                    **({"title": identity["name"]} if "name" in identity else {}),
+                }
+            )
+            record("related", "/links/" + key + "/" + str(index))
+    languages = []
+    language_entries = [(document.get("locale"), "/locale")]
+    translations = links.get("available_translations", [])
+    if isinstance(translations, list):
+        language_entries.extend(
+            (entry.get("locale"), "/links/available_translations/" + str(index) + "/locale")
+            for index, entry in enumerate(translations)
+            if isinstance(entry, dict)
+        )
+    for language, source in language_entries:
+        if isinstance(language, str) and re.fullmatch(
+            r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*", language
+        ):
+            if language not in languages:
+                languages.append(language)
+            record("languages", source)
+    if distributions:
+        record("distributions", "/details/attachments")
     record("access", "@response.url", "connector_endpoint")
+    statuses = {
+        field: {"status": "mapped" if value else "not_provided"}
+        for field, value in {
+            "description": description,
+            "publishers": publishers,
+            "subjects": subjects,
+            "languages": languages,
+            "related": related,
+            "distributions": distributions,
+            "licence": licence,
+            "coverage.spatial": coverage,
+        }.items()
+    }
+    inspected = {
+        "description": document.get("description") or details.get("body"),
+        "publishers": links.get("primary_publishing_organisation") or links.get("organisations"),
+        "subjects": any(
+            links.get(key)
+            for key in ("taxons", "topics", "mainstream_browse_pages", "policy_areas")
+        ),
+        "languages": document.get("locale") or translations,
+        "related": any(
+            links.get(key)
+            for key in (
+                "organisations",
+                "document_collections",
+                "part_of_statistical_series",
+                "ordered_related_items",
+                "related_statistical_data_sets",
+            )
+        ),
+        "licence": details.get("licence"),
+        "coverage.spatial": applicability,
+    }
+    for field, native in inspected.items():
+        if native and statuses[field]["status"] != "mapped":
+            statuses[field] = {
+                "status": "unmapped",
+                "reason": "Native metadata is retained but has no supported normalized assertion.",
+            }
+    for field in ("dimensions", "measures"):
+        statuses[field] = {
+            "status": "not_requested",
+            "reason": "Publication metadata is retained; attachment schemas are not downloaded.",
+        }
+    statuses["coverage.temporal"] = {
+        "status": "unmapped" if details.get("temporal_coverage") else "not_provided",
+        "reason": "Publication dates are not observation-period coverage.",
+    }
+    statuses["access"] = {
+        "status": "mapped",
+        "reason": "Public metadata endpoint is known; data access conditions are not asserted.",
+    }
     return {
         "description": description,
         "measures": [],
@@ -228,21 +396,34 @@ def _mapped_metadata(document, details, path):
             "metadata_url": BASE + "/api/content" + path,
             "data_access": "not_asserted",
         },
+        "publishers": publishers,
+        "subjects": subjects,
+        "languages": languages,
+        "related": related,
+        "field_status": statuses,
         "metadata_mapping": mapping_metadata(evidence),
     }
 
 
-def describe_dataset(dataset_id, client):
+def _describe(dataset_id, client, *, metadata_only):
     path = _base_path(dataset_id)
     resource = client.get(BASE + "/api/content" + path)
     document = resource.json()
     if not isinstance(document, dict) or document.get("base_path") != path:
         raise RetrievalError("MHCLG Content API returned a different publication")
+    if (
+        metadata_only
+        and "document_type" in document
+        and document["document_type"] not in DOCUMENT_TYPES
+    ):
+        raise RetrievalError("Publication is outside the supported statistical content types")
     links, details = document.get("links", {}), document.get("details", {})
     if not isinstance(links, dict) or not isinstance(details, dict):
         raise RetrievalError("Malformed MHCLG publication metadata")
     publishers = links.get("primary_publishing_organisation") or links.get("organisations")
-    if not _publisher(publishers):
+    download_supported = _publisher(publishers)
+    associated = _publisher(links.get("organisations"))
+    if not download_supported and not (metadata_only and associated):
         raise RetrievalError("Publication is not published by MHCLG or a supported predecessor")
     title = document.get("title")
     if not isinstance(title, str) or not title:
@@ -271,7 +452,7 @@ def describe_dataset(dataset_id, client):
                 "title": item.get("title") or identity,
                 "url": url,
                 "format": file_format,
-                "supported": trusted and file_format in {"csv", "csvw"},
+                "supported": download_supported and trusted and file_format in {"csv", "csvw"},
                 "content_type": item.get("content_type") or item.get("mime_type"),
                 "bytes": item.get("file_size"),
             }
@@ -284,25 +465,52 @@ def describe_dataset(dataset_id, client):
         "metadata_sha256": hashlib.sha256(resource.body).hexdigest(),
         "release_page": BASE + path,
     }
-    return {
+    mapped = _mapped_metadata(document, details, path, distributions)
+    primary = [item for item in mapped["publishers"] if item["role"] == "primary"]
+    publisher_names = [
+        item.get("name") or item.get("id") or item["url"]
+        for item in primary or mapped["publishers"]
+    ]
+    result = {
         "provider": PROVIDER,
         "dataset_id": _identifier(path),
         "title": title,
-        **_mapped_metadata(document, details, path),
+        "kind": "publication",
+        **mapped,
         "source_url": BASE + path,
         "dimensions": [],
         "release": release,
         "distributions": distributions,
         "capabilities": {
-            "formats": ["csv", "csvw"],
+            "formats": ["csv", "csvw"] if download_supported else [],
             "profile": "records",
             "selectors": "local_exact_string",
             "dimension_values": False,
             "release_history": False,
             "immutable_upstream_release": False,
+            "retrieval": download_supported,
         },
-        "publisher": "Ministry of Housing, Communities and Local Government",
+        "publisher": "; ".join(publisher_names),
     }
+    if metadata_only:
+        # Preserve all native assertions, including fields the common mapping
+        # does not interpret. Content stays local with the verified response.
+        result["source_metadata"] = {"document": document}
+        if not download_supported:
+            result["capabilities"]["retrieval_reason"] = (
+                "Associated with MHCLG, but its primary publisher is outside the download policy."
+            )
+    return result
+
+
+def describe_dataset(dataset_id, client):
+    """Describe a publication eligible for the adapter's strict download policy."""
+    return _describe(dataset_id, client, metadata_only=False)
+
+
+def describe_metadata(dataset_id, client):
+    """Capture associated publications independently of download eligibility."""
+    return _describe(dataset_id, client, metadata_only=True)
 
 
 def list_dimension_values(dataset_id, dimension, client, *, search="", limit=20, offset=0):

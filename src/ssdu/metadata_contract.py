@@ -12,7 +12,25 @@ from datetime import datetime
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.1.0"
+SUPPORTED_CONTRACT_VERSIONS = frozenset({"1.0.0", CONTRACT_VERSION})
+FIELD_STATUSES = frozenset({"mapped", "not_provided", "unmapped", "ambiguous", "not_requested"})
+NORMALIZED_FIELDS = frozenset(
+    {
+        "description",
+        "publishers",
+        "subjects",
+        "dimensions",
+        "measures",
+        "coverage.spatial",
+        "coverage.temporal",
+        "licence",
+        "access",
+        "distributions",
+        "languages",
+        "related",
+    }
+)
 MAX_RECORDS = 100_000
 MAX_PROVIDERS = 100
 MAX_DOCUMENT_BYTES = 128 * 1024 * 1024
@@ -162,7 +180,7 @@ def _references(refs, names, label):
     return sorted(refs, key=canonical)
 
 
-RECORD_FIELDS = {
+LEGACY_RECORD_FIELDS = {
     "provider",
     "native_id",
     "dataset_id",
@@ -188,13 +206,103 @@ RECORD_FIELDS = {
     "deleted",
     "tombstone",
 }
+RECORD_FIELDS = LEGACY_RECORD_FIELDS | {
+    "publishers",
+    "subjects",
+    "languages",
+    "related",
+    "field_status",
+}
 
 
-def _record(value, names):
+def _url(value, label):
+    _text(value, label)
+    try:
+        url = urlsplit(value)
+    except ValueError as exc:
+        raise MetadataError(f"Invalid {label} URL") from exc
+    if url.scheme not in {"http", "https"} or not url.netloc or url.username or url.password:
+        raise MetadataError(f"{label} must be an absolute public HTTP(S) URL")
+
+
+def _entity(item, label):
+    for name in ("id", "label", "name", "title", "role", "format", "content_type"):
+        if name in item:
+            _text(item[name], f"{label} {name}", nullable=True)
+    for name in ("url", "download_url", "access_url"):
+        if name in item and item[name] is not None:
+            _url(item[name], f"{label} {name}")
+    for name in ("count", "value_count", "bytes"):
+        if name in item and item[name] is not None:
+            _count(item[name], f"{label} {name}")
+    if "supported" in item:
+        _boolean(item["supported"], f"{label} supported")
+    if "unit" in item and item["unit"] is not None and not isinstance(item["unit"], (str, dict)):
+        raise MetadataError(f"Invalid {label} unit")
+    if "values" in item and not isinstance(item["values"], list):
+        raise MetadataError(f"{label} values must be an array")
+
+
+def _typed_metadata(value):
+    """Validate portable field shapes, retaining extensions on established fields."""
+    for key, fields, identities in (
+        ("publishers", {"id", "name", "url", "role"}, {"id", "name", "url"}),
+        ("subjects", {"id", "label", "scheme"}, {"id", "label"}),
+        ("related", {"relation", "url", "target_id", "title"}, {"url", "target_id", "title"}),
+    ):
+        if key not in value:
+            continue
+        if not isinstance(value[key], list):
+            raise MetadataError(f"Record {key} must be an array of objects")
+        for item in value[key]:
+            _object(item, key, fields, {"relation"} if key == "related" else ())
+            if not identities.intersection(item):
+                raise MetadataError(f"Record {key} requires an identifying field")
+            for name, field in item.items():
+                (_url if name == "url" else _text)(field, f"{key} {name}")
+    if "languages" in value:
+        if not isinstance(value["languages"], list):
+            raise MetadataError("Record languages must be an array of strings")
+        for language in value["languages"]:
+            _text(language, "record language", maximum=100)
+    for key in ("dimensions", "measures", "distributions"):
+        for item in value.get(key, []):
+            _entity(item, key)
+    coverage = value.get("coverage")
+    if coverage is not None and not isinstance(coverage, dict):
+        raise MetadataError("Record coverage must be an object or null")
+    if isinstance(coverage, dict):
+        for field in ("spatial", "temporal"):
+            part = coverage.get(field)
+            if part is None:
+                continue
+            _object(part, f"coverage {field}")
+            for name in ("scope", "basis", "note", "start", "end"):
+                if name in part:
+                    _text(part[name], f"coverage {field} {name}", nullable=True)
+            for name in ("dimensions", "areas", "periods"):
+                if name in part and (
+                    not isinstance(part[name], list)
+                    or any(not isinstance(item, dict) for item in part[name])
+                ):
+                    raise MetadataError(f"coverage {field} {name} must be an array of objects")
+                for item in part.get(name, []):
+                    _entity(item, f"coverage {field} {name}")
+    if "field_status" in value:
+        _object(value["field_status"], "record field_status", NORMALIZED_FIELDS)
+        for field, item in value["field_status"].items():
+            _object(item, "field status", {"status", "reason"}, {"status"})
+            if not isinstance(item["status"], str) or item["status"] not in FIELD_STATUSES:
+                raise MetadataError("Invalid metadata field status")
+            if "reason" in item:
+                _text(item["reason"], "field status reason", empty=True)
+
+
+def _record(value, names, version=CONTRACT_VERSION):
     _object(
         value,
         "metadata record",
-        RECORD_FIELDS,
+        LEGACY_RECORD_FIELDS if version == "1.0.0" else RECORD_FIELDS,
         {"provider", "native_id", "dataset_id", "title", "references", "raw_resources"},
     )
     for key in ("provider", "native_id", "dataset_id", "title"):
@@ -203,11 +311,12 @@ def _record(value, names):
         raise MetadataError("Invalid metadata provider identifier")
     if value["dataset_id"] != f"{value['provider']}:{value['native_id']}":
         raise MetadataError("Metadata dataset_id must retain provider and native identity")
-    if not isinstance(value.get("kind", "dataset"), str) or value.get("kind", "dataset") not in {
-        "dataset",
-        "series",
-    }:
-        raise MetadataError("Metadata kind must be dataset or series")
+    kinds = {"dataset", "series"} | ({"publication"} if version != "1.0.0" else set())
+    if (
+        not isinstance(value.get("kind", "dataset"), str)
+        or value.get("kind", "dataset") not in kinds
+    ):
+        raise MetadataError("Unsupported metadata kind")
     if "description" in value:
         _text(value["description"], "record description", nullable=True, empty=True)
     for key in ("dimensions", "measures", "distributions", "derived_evidence"):
@@ -222,6 +331,8 @@ def _record(value, names):
     for key in ("release", "coverage", "access", "licence"):
         if key in value and value[key] is not None and not isinstance(value[key], (dict, str)):
             raise MetadataError(f"Invalid record {key}")
+    if version != "1.0.0":
+        _typed_metadata(value)
     if "source_metadata" in value:
         _object(value["source_metadata"], "record source_metadata")
     for key in ("captured_at", "last_checked_at"):
@@ -241,15 +352,17 @@ def _record(value, names):
     return value
 
 
-def validate_record(record, resource_names=None):
+def validate_record(record, resource_names=None, *, contract_version=CONTRACT_VERSION):
     """Validate a detached record without supplying facts absent from the provider."""
     names = None if resource_names is None else globals()["resource_names"](resource_names)
-    return _record(parse_json(canonical(record)), names)
+    if not isinstance(contract_version, str) or contract_version not in SUPPORTED_CONTRACT_VERSIONS:
+        raise MetadataError("Unsupported metadata contract_version")
+    return _record(parse_json(canonical(record)), names, contract_version)
 
 
-def record_version(record):
+def record_version(record, *, contract_version=None):
     """Metadata revision excluding local clocks and raw-response storage locations."""
-    value = validate_record(record)
+    value = validate_record(record, contract_version=contract_version or CONTRACT_VERSION)
     for field in ("captured_at", "last_checked_at", "raw_resources", "metadata_version"):
         value.pop(field, None)
     for reference in value["references"]:
@@ -393,7 +506,10 @@ def validate_document(document, resource_names=None):
         },
         {"contract_version", "captured_at", "providers", "records"},
     )
-    if value["contract_version"] != CONTRACT_VERSION:
+    if (
+        not isinstance(value["contract_version"], str)
+        or value["contract_version"] not in SUPPORTED_CONTRACT_VERSIONS
+    ):
         raise MetadataError("Unsupported metadata contract_version")
     _time(value["captured_at"], "snapshot captured_at")
     names = None if resource_names is None else globals()["resource_names"](resource_names)
@@ -408,7 +524,7 @@ def validate_document(document, resource_names=None):
     by_provider = {item["provider"]: item for item in reports}
     if len(by_provider) != len(reports):
         raise MetadataError("Duplicate provider report")
-    rows = [_record(row, names) for row in value["records"]]
+    rows = [_record(row, names, value["contract_version"]) for row in value["records"]]
     identities = {row["dataset_id"] for row in rows}
     if len(identities) != len(rows):
         raise MetadataError("Duplicate metadata dataset identity")
@@ -435,13 +551,15 @@ def validate_document(document, resource_names=None):
     return value
 
 
-def contract_schema():
+def contract_schema(version=CONTRACT_VERSION):
     """Return the portable JSON Schema for v1's structural contract.
 
     Cross-record identities, report/count consistency, canonical ordering and raw
     resource existence are additionally enforced by validate_document and the store.
     Format-aware validators should enable standard date-time and URI checks.
     """
+    if not isinstance(version, str) or version not in SUPPORTED_CONTRACT_VERSIONS:
+        raise MetadataError("Unsupported metadata contract_version")
     text = {"type": "string", "minLength": 1, "maxLength": 2_000_000}
     nullable_text = {"anyOf": [text, {"type": "null"}]}
     timestamp = {
@@ -481,7 +599,7 @@ def contract_schema():
         "dataset_id": {**text, "maxLength": 4096},
         "title": text,
         "description": {"type": ["string", "null"]},
-        "kind": {"enum": ["dataset", "series"]},
+        "kind": {"enum": ["dataset", "series"] + (["publication"] if version != "1.0.0" else [])},
         **{key: object_array for key in ("dimensions", "measures", "distributions")},
         **{key: flexible_value for key in ("release", "coverage", "access", "licence")},
         "references": refs,
@@ -503,6 +621,79 @@ def contract_schema():
         "deleted": {"type": "boolean"},
         "tombstone": {"type": "boolean"},
     }
+    if version != "1.0.0":
+        public_url = {
+            "type": "string",
+            "format": "uri",
+            "pattern": r"^https?://[^/?#@\s]+(?:[/?#]|$)",
+        }
+        entity = {
+            "type": "object",
+            "properties": {
+                **{
+                    key: nullable_text
+                    for key in ("id", "label", "name", "title", "role", "format", "content_type")
+                },
+                **{
+                    key: {"anyOf": [public_url, {"type": "null"}]}
+                    for key in ("url", "download_url", "access_url")
+                },
+                **{
+                    key: {"anyOf": [count, {"type": "null"}]}
+                    for key in ("count", "value_count", "bytes")
+                },
+                "supported": {"type": "boolean"},
+                "unit": flexible_value,
+                "values": {"type": "array"},
+            },
+        }
+        for key in ("dimensions", "measures", "distributions"):
+            record_properties[key] = {"type": "array", "items": entity}
+        coverage_part = {
+            "type": ["object", "null"],
+            "properties": {
+                **{key: nullable_text for key in ("scope", "basis", "note", "start", "end")},
+                **{
+                    key: {"type": "array", "items": entity}
+                    for key in ("dimensions", "areas", "periods")
+                },
+            },
+        }
+        record_properties["coverage"] = {
+            "type": ["object", "null"],
+            "properties": {"spatial": coverage_part, "temporal": coverage_part},
+        }
+        for key, fields, identities in (
+            ("publishers", {"id", "name", "url", "role"}, {"id", "name", "url"}),
+            ("subjects", {"id", "label", "scheme"}, {"id", "label"}),
+            ("related", {"relation", "url", "target_id", "title"}, {"url", "target_id", "title"}),
+        ):
+            shape = {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {name: public_url if name == "url" else text for name in fields},
+                "anyOf": [{"required": [name]} for name in sorted(identities)],
+            }
+            if key == "related":
+                shape["required"] = ["relation"]
+            record_properties[key] = {"type": "array", "items": shape}
+        record_properties["languages"] = {"type": "array", "items": {**text, "maxLength": 100}}
+        record_properties["field_status"] = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                field: {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["status"],
+                    "properties": {
+                        "status": {"enum": sorted(FIELD_STATUSES)},
+                        "reason": {"type": "string"},
+                    },
+                }
+                for field in sorted(NORMALIZED_FIELDS)
+            },
+        }
     completeness = {
         "type": "object",
         "additionalProperties": False,
@@ -543,14 +734,14 @@ def contract_schema():
     }
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": f"https://xangma.github.io/ssdu/schemas/metadata-{CONTRACT_VERSION}.json",
-        "title": f"SSDU provider metadata snapshot {CONTRACT_VERSION}",
+        "$id": f"https://xangma.github.io/ssdu/schemas/metadata-{version}.json",
+        "title": f"SSDU provider metadata snapshot {version}",
         "$comment": "DCAT-aligned concepts; not a complete DCAT or DDI serialization. Store validation additionally checks evidence closure and identities.",
         "type": "object",
         "additionalProperties": False,
         "required": ["contract_version", "captured_at", "providers", "records"],
         "properties": {
-            "contract_version": {"const": CONTRACT_VERSION},
+            "contract_version": {"const": version},
             "captured_at": timestamp,
             "providers": {
                 "type": "array",

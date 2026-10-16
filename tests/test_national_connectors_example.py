@@ -27,6 +27,7 @@ def test_national_connectors_example_transfers_and_replays_offline(tmp_path):
     assert receipt["status"] == "passed"
     assert receipt["fixture_kind"] == "independently_invented_teaching_data"
     assert receipt["provider_network_requests"] == 0
+    assert receipt["scotland_service"] == "retained_legacy_linked_data"
     assert receipt["metadata_replayed_offline"]
     assert receipt["fresh_store_replayed_offline"]
     assert receipt["original_store_path_unavailable"]

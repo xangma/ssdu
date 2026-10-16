@@ -197,6 +197,17 @@ def no_network(events):
         yield
 
 
+class LegacyScotlandConnector(Connector):
+    """Keep this legacy retrieval lesson separate from current CKAN discovery."""
+
+    def list_datasets(self, query="", *, limit=20, offset=0, offline=False, refresh=False):
+        from ssdu.adapters.scotland import list_legacy_datasets
+
+        self._bounds(limit, offset)
+        with self._client(offline, refresh) as cached:
+            return list_legacy_datasets(query, cached, limit=limit, offset=offset)
+
+
 def run(output_dir):
     output = Path(output_dir).resolve()
     if output.exists() and any(output.iterdir()):
@@ -215,7 +226,9 @@ def run(output_dir):
     )
     source = Store(output / "source")
     connectors = {
-        provider: Connector(provider, root=source, client=client)
+        provider: (LegacyScotlandConnector if provider == "scotland" else Connector)(
+            provider, root=source, client=client
+        )
         for provider in ("nisra", "scotland")
     }
     dimension_ids = {"nisra": "TLIST(A1)", "scotland": PERIOD}
@@ -297,6 +310,7 @@ def run(output_dir):
     receipt = {
         "status": "passed",
         "fixture_kind": "independently_invented_teaching_data",
+        "scotland_service": "retained_legacy_linked_data",
         "datasets": {
             provider: {
                 "snapshot_id": dataset.snapshot_id,

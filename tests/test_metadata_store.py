@@ -44,7 +44,7 @@ def test_snapshot_roundtrip_and_offline_replay_keep_same_identity_and_every_refe
     store, snapshot_id, document, resources = published
     manifest = store.verify(snapshot_id)
     assert manifest["counts"] == {"providers": 1, "records": 2}
-    assert manifest["contract_version"] == "1.0.0"
+    assert manifest["contract_version"] == document["contract_version"]
     assert manifest["files"]["resources/raw/catalogue.json"] == {
         "sha256": hashlib.sha256(resources["raw/catalogue.json"]).hexdigest(),
         "bytes": len(resources["raw/catalogue.json"]),

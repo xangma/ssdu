@@ -178,7 +178,7 @@ def test_catalogue_pagination_parameters_and_no_attachment_download():
         assert request.url.params.get_list("filter_organisations") == list(mhclg.ORGANISATIONS)
         assert (
             "ministry-of-housing-communities-and-local-government-2018-2021"
-            not in request.url.params.get_list("filter_organisations")
+            in request.url.params.get_list("filter_organisations")
         )
         assert request.url.params["q"] == "housing"
         return httpx.Response(
@@ -229,6 +229,64 @@ def test_statistical_data_set_ids_round_trip_transport_identifier():
     assert described["dataset_id"] == canonical
     assert fetched.dataset.contract["source"]["dataset_id"] == canonical
     assert described["source_url"] == mhclg.BASE + path
+
+
+@pytest.mark.parametrize(
+    "dataset_id,path",
+    [
+        ("invented-statistics--2", "/government/statistics/invented-statistics--2"),
+        (
+            "statdata:invented-statistics--2",
+            "/government/statistical-data-sets/invented-statistics--2",
+        ),
+        (
+            "/government/statistics/invented-statistics--2",
+            "/government/statistics/invented-statistics--2",
+        ),
+        (
+            "/government/statistical-data-sets/invented-statistics--2",
+            "/government/statistical-data-sets/invented-statistics--2",
+        ),
+        (
+            mhclg.BASE + "/government/statistics/invented-statistics--2",
+            "/government/statistics/invented-statistics--2",
+        ),
+    ],
+)
+def test_consecutive_interior_hyphens_round_trip_catalogue_and_description(dataset_id, path):
+    document = publication("invented-statistics--2")
+    document["base_path"] = path
+    with client_for(document) as client:
+        listed = mhclg.list_datasets("", client)
+        described = mhclg.describe_dataset(dataset_id, client)
+        metadata = mhclg.describe_metadata(dataset_id, client)
+        assert len(client.resources) == 3
+    identity = mhclg._identifier(path)
+    assert listed["items"][0]["id"] == described["dataset_id"] == metadata["dataset_id"] == identity
+    assert described["source_url"] == metadata["source_url"] == mhclg.BASE + path
+
+
+@pytest.mark.parametrize(
+    "dataset_id",
+    [
+        "--invented-statistics",
+        "invented-statistics--",
+        "invented-statistics--../other",
+        "statdata:invented-statistics--2?version=1",
+        "/government/statistics/../invented-statistics--2",
+        "/government/statistics/invented-statistics--2/other",
+        "/government/statistics/invented-statistics--2?version=1",
+        "/government/statistics/invented-statistics--2#part",
+        "/government/statistics/invented-statistics%2d%2d2",
+        mhclg.BASE + "/government/statistics/invented-statistics--2?version=1",
+        "https://untrusted.example/government/statistics/invented-statistics--2",
+    ],
+)
+def test_hyphenated_identifiers_keep_unsafe_paths_rejected_before_network(dataset_id):
+    with client_for(publication()) as client:
+        with pytest.raises(RetrievalError):
+            mhclg.describe_metadata(dataset_id, client)
+        assert client.resources == []
 
 
 @pytest.mark.parametrize(

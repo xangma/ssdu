@@ -2,7 +2,6 @@
 
 import copy
 import importlib.util
-import re
 from pathlib import Path
 from unittest.mock import patch
 
@@ -10,6 +9,7 @@ import httpx
 import pytest
 
 from ssdu.http import HttpClient
+from ssdu.metadata_contract import CONTRACT_VERSION
 from ssdu.metadata_index import MetadataIndex
 from ssdu.metadata_store import MetadataStore
 from ssdu.metadata_sync import MetadataSync
@@ -70,7 +70,7 @@ def test_each_provider_sync_keeps_raw_references_and_metadata_only(provider, tmp
     job_id = submit(sync, spec(provider))
     assert calls == []
     job, document = snapshot(sync, job_id)
-    assert document["contract_version"] == "1.0.0"
+    assert document["contract_version"] == CONTRACT_VERSION
     assert len(document["records"]) == 1
     row = document["records"][0]
     assert row["dataset_id"] == f"{provider}:{FIXTURE.DATASETS[provider]}"
@@ -153,7 +153,7 @@ def two_dataset_handler(provider):
         "statswales": "00000000-0000-4000-8000-000000000002",
         "mhclg": "ssdu-invented-rural",
         "nisra": "SYNTH_RURAL",
-        "scotland": "ssdu-invented-rural",
+        "scotland": "ckan:00000000-0000-4000-8000-000000000002",
     }[provider]
     ids = [first, second]
 
@@ -209,32 +209,37 @@ def two_dataset_handler(provider):
                     },
                 },
             )
-        if provider == "scotland" and "GROUP BY ?dataset" in params.get("query", ""):
-            size, offset = map(
-                int, re.search(r"LIMIT (\d+) OFFSET (\d+)", params["query"]).groups()
-            )
+        if provider == "scotland" and path.endswith("/package_search"):
+            size, offset = int(params["rows"]), int(params["start"])
             return httpx.Response(
                 200,
-                json=FIXTURE.bindings(
-                    ["dataset", "title"],
-                    [
-                        {
-                            "dataset": FIXTURE.term(FIXTURE.SCOT_BASE + identity, "uri"),
-                            "title": FIXTURE.term("Invented catalogue"),
-                        }
-                        for identity in ids[offset : offset + size]
-                    ],
-                ),
+                json={
+                    "success": True,
+                    "result": {
+                        "count": 2,
+                        "results": [
+                            {
+                                "id": identity.removeprefix("ckan:"),
+                                "name": "invented-" + identity[-1],
+                                "title": "Invented catalogue",
+                            }
+                            for identity in ids[offset : offset + size]
+                        ],
+                    },
+                },
             )
         # Clone the independently invented definition to a second native identity.
-        original = str(request.url).replace(second, first)
-        if provider == "scotland":
+        source_identity = first.removeprefix("ckan:") if provider == "scotland" else first
+        target_identity = second.removeprefix("ckan:") if provider == "scotland" else second
+        original = str(request.url).replace(target_identity, source_identity)
+        if provider == "scotland" and "query" in params:
             original = str(
                 request.url.copy_set_param("query", params["query"].replace(second, first))
             )
         response = FIXTURE.fixture_response(httpx.Request(request.method, original))
         body = response.content.replace(
-            first.encode(), (second if second in str(request.url) else first).encode()
+            source_identity.encode(),
+            (target_identity if target_identity in str(request.url) else source_identity).encode(),
         )
         return httpx.Response(response.status_code, content=body, headers=response.headers)
 
@@ -326,7 +331,7 @@ def test_cooldown_is_durable_and_failed_attempts_count(tmp_path):
     clock.now = waiting["retry_at"]
     resumed, resumed_calls, _ = sync_for(tmp_path, handler, clock)
     job, _ = snapshot(resumed, job_id)
-    assert job["requests"] == len(calls) + len(resumed_calls) == 4
+    assert job["requests"] == len(calls) + len(resumed_calls) == 5
 
 
 @pytest.mark.parametrize("budget", [{"max_requests": 1}, {"max_total_bytes": 1}])
@@ -380,7 +385,7 @@ def test_changed_metadata_publishes_new_snapshot_without_modifying_old(tmp_path)
     assert old["records"][0]["title"] == FIXTURE.TITLES["nomis"]
     assert new["records"][0]["title"] == "Invented revised occupation metadata"
     assert MetadataStore(tmp_path).read(old_job["result"]["snapshot_id"]) == old
-    assert len(calls) == 7  # refresh reacquires the repeated definition for codes
+    assert len(calls) == 10  # Includes occupation and declared TIME codelists.
 
 
 def test_corrupt_checkpoint_fails_closed_and_clean_retry_reacquires(tmp_path):
@@ -523,7 +528,7 @@ def test_clean_retry_reacquires_failed_catalogue_epoch_without_resetting_budget(
     retried = sync.retry_job(job_id)
     assert retried["requests"] == 1 and retried["providers"]["nomis"]["epoch"] == 1
     job, _ = snapshot(sync, job_id)
-    assert job["requests"] == len(calls) == 5
+    assert job["requests"] == len(calls) == 7
     assert job["providers"]["nomis"]["attempts"] == 2
 
 

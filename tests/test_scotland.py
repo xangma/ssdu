@@ -21,8 +21,10 @@ from ssdu.adapters.scotland import (
     fetch,
     metadata_query,
     observations_query,
-    search,
     validate_request,
+)
+from ssdu.adapters.scotland import (
+    search_legacy as search,
 )
 from ssdu.http import HttpClient
 from ssdu.models import Request, RetrievalError

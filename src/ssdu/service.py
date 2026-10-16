@@ -70,6 +70,59 @@ class Service:
         """Run one due sync job explicitly. This method is never exposed by REST or MCP."""
         return bounded_result(self._metadata_sync().run_job(job_id))
 
+    def _metadata_capture(self):
+        from ssdu.metadata_capture import MetadataCapture
+
+        return MetadataCapture(self.store.root)
+
+    def plan_metadata_capture(
+        self, spec, *, offline=False, refresh=False, budget=None, batch_size=10
+    ):
+        """Freeze whole-catalogue capture intent locally without contacting providers."""
+        return self._metadata_result(
+            self._metadata_capture().plan_capture(
+                spec, offline=offline, refresh=refresh, budget=budget, batch_size=batch_size
+            )
+        )
+
+    def get_metadata_capture_plan(self, plan_id):
+        return self._metadata_result(self._metadata_capture().get_plan(plan_id))
+
+    def submit_metadata_capture_plan(self, plan_id, idempotency_key):
+        return self._metadata_result(self._metadata_capture().submit_plan(plan_id, idempotency_key))
+
+    def get_metadata_capture_job(self, job_id):
+        return self._metadata_result(self._metadata_capture().get_job(job_id))
+
+    def list_metadata_capture_jobs(self, limit=20, offset=0):
+        return self._metadata_result(self._metadata_capture().list_jobs(limit, offset))
+
+    def cancel_metadata_capture_job(self, job_id):
+        return self._metadata_result(self._metadata_capture().cancel_job(job_id))
+
+    def retry_metadata_capture_job(self, job_id):
+        return self._metadata_result(self._metadata_capture().retry_job(job_id))
+
+    def run_metadata_capture_job(self, job_id=None, *, max_batches=None):
+        """Run one explicit capture worker; REST and MCP never expose this operation."""
+        return self._metadata_result(
+            self._metadata_capture().run_job(job_id, max_batches=max_batches)
+        )
+
+    def metadata_capture_report(self, capture_id):
+        """Verify local capture evidence and summarize catalogue and field completeness."""
+        return self._metadata_result(self._metadata_capture().report(capture_id))
+
+    def export_metadata_capture(self, capture_id, destination):
+        """Export verified local metadata evidence without provider access."""
+        return self._metadata_result(
+            self._metadata_capture().export_capture(capture_id, destination)
+        )
+
+    def import_metadata_capture(self, source):
+        """Verify and index a local portable capture without provider access."""
+        return self._metadata_result(self._metadata_capture().import_capture(source))
+
     @staticmethod
     def _metadata_result(value):
         """Project oversized metadata while preserving full verified Python-store evidence."""

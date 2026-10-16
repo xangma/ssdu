@@ -17,6 +17,7 @@ NativeId = Annotated[
 class ProviderSync(StrictModel):
     query: Annotated[str, StringConstraints(max_length=512)] = ""
     detail: Literal["catalogue", "dataset", "codes"] = "catalogue"
+    catalogue_mode: Literal["paged", "inventory"] = "paged"
     page_size: Annotated[StrictInt, Field(ge=1, le=100)] = 100
     max_pages: Annotated[StrictInt, Field(ge=1, le=1000)] = 20
     max_datasets: Annotated[StrictInt, Field(ge=1, le=100_000)] = 1000

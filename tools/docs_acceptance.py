@@ -254,12 +254,34 @@ def main():
         )
         assert rejected.returncode != 0 and "FileExistsError" in rejected.stderr
         assert (run / "result.json").read_bytes() == unchanged
+    metadata_capture = None
+    if example := manifest.get("metadata_capture_example"):
+        run = validation / "metadata-capture"
+        if run.exists():
+            shutil.rmtree(run)
+        result = subprocess.run(
+            [sys.executable, str(docs.ROOT / example), "--output-dir", str(run)],
+            cwd=docs.ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=150,
+        )
+        metadata_capture = json.loads(result.stdout)
+        assert metadata_capture == json.loads((run / "result.json").read_text())
+        assert metadata_capture["status"] == "passed"
+        assert metadata_capture["records"] == metadata_capture["search_results"] == 10
+        assert metadata_capture["provider_network_requests"] == 0
+        assert metadata_capture["fresh_store_replayed_offline"]
+        assert metadata_capture["normalized_fields_and_evidence_equal"]
+        assert metadata_capture["index_rebuilt_offline"]
+        assert metadata_capture["original_store_path_unavailable"]
     default_rest = json.loads((source / "_downloads/openapi.json").read_text())
     jobs_rest = json.loads((source / "_downloads/openapi-jobs.json").read_text())
     default_mcp = json.loads((source / "_downloads/mcp.json").read_text())
     jobs_mcp = json.loads((source / "_downloads/mcp-jobs.json").read_text())
-    assert len(default_rest["paths"]) == 18 and len(jobs_rest["paths"]) == 30
-    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 32
+    assert len(default_rest["paths"]) == 19 and len(jobs_rest["paths"]) == 37
+    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 40
     assert {
         "/snapshots/{snapshot_id}/dataset": "get",
         "/snapshots/{snapshot_id}/dataset/query": "post",
@@ -270,10 +292,11 @@ def main():
         "/metadata/datasets": "get",
         "/metadata/status": "get",
         "/metadata/snapshots": "get",
+        "/metadata/captures/{capture_id}": "get",
     }.items() <= {
         (path, method) for path, methods in default_rest["paths"].items() for method in methods
     }
-    assert len(default_mcp["tools"]) == 17 and len(jobs_mcp["tools"]) == 31
+    assert len(default_mcp["tools"]) == 18 and len(jobs_mcp["tools"]) == 39
     dataset_tools = {
         "describe_snapshot",
         "query_dataset",
@@ -286,6 +309,7 @@ def main():
         "metadata_status",
         "list_metadata_snapshots",
         "describe_metadata_snapshot",
+        "metadata_capture_report",
     }
     assert dataset_tools <= {tool["name"] for tool in default_mcp["tools"]}
     assert all(
@@ -331,6 +355,7 @@ def main():
         "conformance_families": len(families["families"]),
         "four_nations": four_nations,
         "dataset_api": dataset_api,
+        "metadata_capture": metadata_capture,
         "links": local_links(html),
         "generated_sha256": {
             name: hashlib.sha256(content.encode()).hexdigest() for name, content in repeated.items()

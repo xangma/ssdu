@@ -10,11 +10,11 @@ import zipfile
 from pathlib import Path
 
 from .metadata_contract import (
-    CONTRACT_VERSION,
     MAX_DOCUMENT_BYTES,
     MAX_PROVIDERS,
     MAX_RECORDS,
     SHA256,
+    SUPPORTED_CONTRACT_VERSIONS,
     MetadataError,
     canonical,
     parse_json,
@@ -56,7 +56,7 @@ def _manifest(raw, snapshot_id):
     if (
         type(value["schema_version"]) is not int
         or value["schema_version"] != MANIFEST_VERSION
-        or value["contract_version"] != CONTRACT_VERSION
+        or value["contract_version"] not in SUPPORTED_CONTRACT_VERSIONS
         or value["kind"] != "provider_metadata"
         or value["document"] != "document.json"
     ):
@@ -192,6 +192,8 @@ class MetadataStore:
                 if name.startswith("resources/")
             ]
             document = validate_document(parse_json(document_raw), names)
+            if manifest["contract_version"] != document["contract_version"]:
+                raise MetadataError("Metadata manifest and document contract versions disagree")
             if document_raw != canonical(document) + b"\n":
                 raise MetadataError("Metadata document is not canonical")
             if manifest["counts"] != {key: len(document[key]) for key in ("providers", "records")}:
@@ -238,7 +240,7 @@ class MetadataStore:
             raise MetadataError("Metadata snapshot exceeds total size budget")
         identity = {
             "schema_version": MANIFEST_VERSION,
-            "contract_version": CONTRACT_VERSION,
+            "contract_version": normalized["contract_version"],
             "kind": "provider_metadata",
             "document": "document.json",
             "counts": {key: len(normalized[key]) for key in ("providers", "records")},

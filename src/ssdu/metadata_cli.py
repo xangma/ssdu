@@ -5,6 +5,12 @@ from pathlib import Path
 
 def add_arguments(parser):
     commands = parser.add_subparsers(dest="metadata_command", required=True)
+    capture = commands.add_parser(
+        "capture", help="Capture complete provider catalogues in resumable bounded batches"
+    )
+    from ssdu.metadata_capture_cli import add_arguments as add_capture_arguments
+
+    add_capture_arguments(capture)
     plan = commands.add_parser("plan", help="Freeze metadata sync intent without provider access")
     plan.add_argument("spec", type=Path, help="MetadataSyncSpec JSON file")
     policy = plan.add_mutually_exclusive_group()
@@ -62,6 +68,11 @@ def _read_json(path, model):
 
 
 def execute(args):
+    if args.metadata_command == "capture":
+        from ssdu.metadata_capture_cli import execute as execute_capture
+
+        return execute_capture(args)
+
     from ssdu.metadata_index import MetadataIndex
     from ssdu.metadata_store import MetadataStore
     from ssdu.metadata_sync_models import MetadataSyncSpec

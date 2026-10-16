@@ -9,10 +9,11 @@ The common workflow is available for **Nomis, StatsWales, MHCLG, NISRA and
 Scotland**. Their selection codes and supported formats differ; check the
 [coverage matrix](../reference/sources.md) before choosing a source.
 
-**Scotland:** the connector uses the legacy `statistics.gov.scot` service.
-Publishing moved to `data.gov.scot` on 25 August 2026, and the legacy service is
-scheduled to close on 31 October 2026. SSDU does not yet integrate the replacement
-CKAN service. Saved snapshots and synthetic examples can still be replayed
+**Scotland:** catalogue browsing uses the current `data.gov.scot` service.
+Those entries are metadata-only: resource links do not yet imply download support.
+Explicit legacy IDs still support the retained linked-data workflow described
+below. The legacy service stopped receiving updates on 25 August 2026 and is
+scheduled to close on 31 October 2026. Saved snapshots can still be replayed
 offline. See the [official transition notice](https://blogs.gov.scot/digital/2026/08/19/data-gov-scot-public-beta-launches-on-25-august/).
 
 To collect descriptions for discovery before choosing a table, see
@@ -94,22 +95,24 @@ same_dataset = provider.fetch_dataset(request, offline=True)
 
 `dataset_id` and `selection` above come from the metadata you inspected; the
 complete teaching scripts supply concrete examples. Nomis, StatsWales, NISRA
-and Scotland can return statistical observations with dimensions and measures.
+and supported legacy Scottish cubes can return statistical observations with
+dimensions and measures.
 An ordinary MHCLG CSV is retained as records, preserving its column names and source text.
 SSDU does not guess units or make different tables comparable.
 
 ## Try Northern Ireland and Scotland
 
-This second example follows the same steps for two invented tables: workshop
-attendance in Northern Ireland and community events in Scotland. The measures
+This second example follows the retained legacy workflow for two invented tables:
+workshop attendance in Northern Ireland and community events in Scotland. The measures
 are unrelated; putting them in one collection does not make them comparable.
 
 ```sh
 uv run --frozen --offline python examples/national_connectors.py --output-dir data/national-connectors
 ```
 
-It browses each catalogue, reads the dataset description and available years,
-selects one year, inspects the plan and saves a dataset. It then checks that
+It browses the NISRA catalogue and explicitly browses Scotland’s legacy catalogue,
+reads the dataset description and available years, selects one year, inspects the
+plan and saves a dataset. It then checks that
 the catalogue, description and year codes reopen offline. Finally it exports
 both datasets as one collection, moves the original store aside and verifies
 the collection in a fresh store with HTTP and network connections blocked.
@@ -136,8 +139,8 @@ member of an external geography or time vocabulary.
 
 NISRA currently retrieves the complete English-language cube before selecting
 rows locally, with a limit of 100,000 cells. A small selection therefore cannot
-make an oversized cube downloadable. Scotland supports linked-data observation
-cubes using bounded, selected queries; file/ZIP publications and slice-attached
+make an oversized cube downloadable. Legacy Scotland supports linked-data
+observation cubes using bounded, selected queries; file/ZIP publications and slice-attached
 components are not yet supported. The dataset description reports these limits
 before you retrieve values.
 

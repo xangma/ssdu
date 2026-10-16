@@ -71,6 +71,44 @@ def index(root):
     return MetadataIndex(root, clock=lambda: datetime(2026, 10, 4, 12, tzinfo=UTC))
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+def test_equal_source_checks_prefer_description_and_survive_rebuild(reverse, tmp_path):
+    store = MetadataStore(tmp_path)
+    summary = publish(
+        tmp_path,
+        ("a",),
+        authoritative=False,
+        scope={"detail": "catalogue", "query": "", "dataset_ids": []},
+    )
+    rich = store.read(summary)
+    rich["providers"][0]["scope"] = {"detail": "dataset", "query": "", "dataset_ids": ["a"]}
+    rich["providers"][0]["completeness"]["catalogue_complete"] = False
+    rich["records"][0]["source_metadata"] = {"descriptor": {"title": "Invented description"}}
+    rich["records"][0]["mapping_version"] = "1.2.0"
+    described = store.publish(
+        rich, {"catalogue.json": b'{"notice":"Invented metadata; not provider observations"}'}
+    )
+    current = index(tmp_path)
+    for snapshot in (described, summary) if reverse else (summary, described):
+        current.import_snapshot(snapshot)
+    before = current.get("nomis:a")
+    assert before["metadata_snapshot_id"] == described
+    assert before["metadata_profile"]["description_available"]
+    current.rebuild()
+    assert current.get("nomis:a") == before
+    newer = publish(
+        tmp_path,
+        ("a",),
+        day=2,
+        authoritative=False,
+        scope={"detail": "catalogue", "query": "", "dataset_ids": []},
+    )
+    current.import_snapshot(newer)
+    assert current.get("nomis:a")["metadata_snapshot_id"] == newer
+    assert not current.get("nomis:a")["metadata_profile"]["description_available"]
+    assert current.get("nomis:a")["retained_description"]["metadata_snapshot_id"] == described
+
+
 def test_verified_index_search_pagination_references_and_provider_identity(tmp_path):
     first = publish(tmp_path, ("same", "second"))
     second = publish(tmp_path, ("same",), provider="nisra")

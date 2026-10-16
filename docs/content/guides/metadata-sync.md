@@ -1,178 +1,171 @@
 # Keep a catalogue you can search offline
 
-Imagine preparing a research project before travelling. You want to search
-dataset descriptions without repeatedly visiting five websites or downloading
-the figures. SSDU can save provider catalogues and descriptions in a local
-metadata snapshot, then build a search index from that snapshot.
+Before choosing a table, you may want to search the descriptions available from
+several services. SSDU can capture their catalogues in a **local metadata cache**.
+It saves the provider responses, gives their descriptions a common structure and
+builds an index that a discovery application can read without contacting providers.
 
-**Metadata** describes a dataset: its title, categories, source links and any
-declared dates, coverage or access conditions. Finding a catalogue entry does
-not guarantee that SSDU can download every format it describes. Check the
-[provider coverage matrix](../reference/sources.md) before retrieving values.
+Metadata describes data: titles, definitions, categories, source links and stated
+coverage or access conditions. Catalogue capture does not download observations
+or attachments. It retains entries even when SSDU cannot retrieve their files.
+Check the [provider coverage matrix](../reference/sources.md) for download support.
 
-**Scottish metadata freshness:** SSDU's Scotland connector targets the legacy
-portal, which stopped receiving updates on 25 August 2026 and is scheduled to
-close on 31 October. A successful check of that endpoint does not establish
-current Scottish coverage. Integration with the replacement `data.gov.scot`
-CKAN catalogue remains to be implemented. See the
-[official transition notice](https://blogs.gov.scot/digital/2026/08/19/data-gov-scot-public-beta-launches-on-25-august/).
+The same capture workflow covers **Nomis, StatsWales, MHCLG, NISRA and Scotland's
+current `data.gov.scot` portal**. Their catalogue units differ: MHCLG entries are
+publication pages, potentially containing several files; the other catalogues
+mainly list datasets or tables. A full service catalogue is not every holding of
+the organisation that maintains it.
 
 ## Try it without contacting a provider
 
 After [installation](../start/install.md), run from the project folder:
 
 ```sh
-uv run --frozen --offline python examples/metadata_sync.py --output-dir data/metadata-sync
+uv run --frozen --offline python examples/metadata_capture.py --output-dir data/metadata-capture
 ```
 
-Choose a new or empty output folder. The example uses **independently invented
-metadata** for Nomis, StatsWales, MHCLG, NISRA and Scotland. It supplies responses
-in memory and blocks network connections. It contains no observations and does
-not download attachments.
-
-The example follows a complete research workflow:
-
-1. Plan one metadata job covering all five providers.
-2. Interrupt it partway through, then resume the same job.
-3. Save a verified metadata snapshot and search its descriptions locally.
-4. Inspect its freshness and completeness reports.
-5. Export the snapshot, move the original store aside and import it into a
-   fresh store.
-6. Repeat the search and replay the retained provider responses offline.
+Choose a new or empty output folder. This example uses **independently invented
+metadata** for all five services and blocks network connections. It plans a
+capture, stops after a saved batch, resumes it and reads the completeness report.
+It then exports the capture, moves the original store aside, imports into a fresh
+store and replays the retained responses offline.
 
 Look for `"status": "passed"`, `"provider_network_requests": 0` and
-`"fresh_store_replayed_offline": true`. The output includes `result.json`
-and a metadata bundle. You can also run the
-{download}`self-contained script <../_downloads/metadata_sync.py>` from another
-folder after installing SSDU.
+`"fresh_store_replayed_offline": true`. The output includes `result.json` and a
+portable metadata bundle. The {download}`self-contained script
+<../_downloads/metadata_capture.py>` also runs outside the checkout after installing
+SSDU.
 
-## Choose what to collect
+For a smaller, single-job introduction with category browsing, use
+{download}`metadata_sync.py <../_downloads/metadata_sync.py>`.
 
-A sync has three levels of detail:
+## Plan a full service capture
 
-| Detail | What you retain | When to choose it |
-| --- | --- | --- |
-| `catalogue` | Dataset identities and catalogue summaries | Start a broad search cheaply. |
-| `dataset` | Summaries plus individual dataset descriptions | Inspect definitions and available dimensions. |
-| `codes` | Descriptions plus bounded pages of category codes | Prepare selections such as years or areas. |
-
-Large catalogues and code lists can take many requests. Set page and dataset
-limits deliberately; a small exploratory sync can be useful even when it is
-incomplete. Large code lists have their own limits, and unsupported code-list
-operations remain visible in the report.
-
-This Python example plans a bounded catalogue scan for all five providers:
+A capture first saves an inventory, then describes its entries in bounded batches.
+Planning is local and makes no HTTP requests:
 
 ```python
-from ssdu.metadata_sync import MetadataSync
+from ssdu.metadata_capture import MetadataCapture
 
-sync = MetadataSync("my-data")
+cache = MetadataCapture("my-data")
 spec = {
     "providers": {
         provider: {
-            "detail": "catalogue",
-            "page_size": 20,
-            "max_pages": 2,
-            "max_datasets": 40,
+            "detail": "dataset",
+            "page_size": 100,
+            "max_pages": 100,
+            "max_datasets": 10000,
         }
         for provider in ("nomis", "statswales", "mhclg", "nisra", "scotland")
     }
 }
-plan = sync.plan_sync(spec)
+plan = cache.plan_capture(spec, batch_size=10)
 print(plan)
 ```
 
-Inspect the plan before submitting it. The limits bound how much metadata the
-job attempts to collect; they do not promise an exhaustive provider catalogue.
+These are ceilings, not expected counts. A catalogue larger than the chosen
+limits produces a partial report. Increase bounds deliberately after inspecting
+the plan and service scope. Use `detail="codes"` only when category lists are
+needed; it can require many more requests. Use the smaller `MetadataSync` workflow for catalogue-only summaries.
+
+Submit the plan with a stable name for this capture:
 
 ```python
-job = sync.submit_plan(plan["plan_id"], idempotency_key="research-catalogue-1")
-result = sync.run_job(job["job_id"])
+job = cache.submit_plan(plan["plan_id"], "research-catalogue-1")
+result = cache.run_job(job["job_id"])
 print(result)
 ```
 
-The job uses SSDU's persistent cache and rate limits. If interrupted, reopen
-`MetadataSync` with the same store and run the same job ID again. Retained
-checkpoints let it continue without starting the entire scan over. Use
-`get_job(job_id)` to inspect progress or a failure before retrying.
+Acquisition uses SSDU's persistent HTTP cache, shared per-host rate limits and
+request/byte budgets. Provider backoff remains in force. If the process stops,
+reopen `MetadataCapture` with the same store and run the same job ID again.
+Checkpoints preserve completed batches. `get_job(job_id)` shows progress and
+failures; an idempotency key prevents accidentally submitting the same job twice.
 
-You can also save `spec` as JSON and use the command line:
+To give control back after one batch, use `run_job(job_id, max_batches=1)` and
+continue the same job later. A completed capture has a `capture_id`; inspect its
+immutable report with `cache.report(capture_id)`.
+
+The command line offers the same explicit steps. Save `spec` as `capture.json`:
 
 ```sh
-uv run --frozen --offline ssdu --store my-data metadata plan sync.json
+ssdu --store my-data metadata capture plan capture.json --batch-size 10
+ssdu --store my-data metadata capture submit PLAN_ID --idempotency-key research-catalogue-1
+ssdu --store my-data metadata capture run JOB_ID
+ssdu --store my-data metadata capture report CAPTURE_ID
 ```
 
-Here `uv --offline` prevents package downloads; the metadata job can still
-contact providers. Use SSDU's explicit `offline=True` or the metadata command's
-`--offline` option when retained responses are required.
+`uv --offline` only prevents package downloads. Use SSDU's `offline=True` or the
+capture command's `--offline` option to require retained provider responses.
 
-## Understand the saved descriptions
+## Read a common description without losing the original
 
-SSDU keeps the provider's wording and identifiers, alongside a common set of
-fields. The mappings use metadata already returned by each connector; they do
-not download observations to fill gaps.
+SSDU normalizes metadata into a versioned structure while retaining native
+responses and references. It does not infer statistical meaning from titles.
 
-| Field | What it tells you |
+| Common field | What it represents |
 | --- | --- |
-| `description` | Readable provider prose, with HTML removed. |
-| `measures` | Declared statistics or measure concepts, with units where stated. |
-| `coverage` | Declared dates, areas, category lists or dimension roles, with their basis. |
-| `licence` | The provider's stated licence; missing statements remain unknown. |
-| `access` | The metadata endpoint and any stated access conditions. |
+| `description` | Provider prose, with HTML removed. |
+| `publishers`, `subjects`, `languages` | Declared organisations, topics and language information. |
+| `dimensions`, `measures` | Declared categories and statistics, including units where stated. |
+| `coverage` | Dates, areas or category roles, labelled with their source and scope. |
+| `distributions` | Files or services described by the provider, including unsupported formats. |
+| `licence`, `access` | Stated terms and access conditions; absence remains unknown. |
+| `related` | Declared links to other records or publications. |
+| `field_status` | Whether a field is mapped, absent from the response, unmapped, ambiguous or not requested. |
 
-Read coverage with its `scope` and, where present, `basis`. A time dimension
-means periods can be selected; it does not establish the first and last
-available observations. NISRA category lists describe available metadata
-categories. MHCLG publication applicability is labelled separately from an
-observation extent. SSDU does not derive coverage from publication dates or
-dataset titles.
+Field status separates a gap in SSDU's interpretation from a missing provider
+statement. Mapping evidence records the native locations and retained response
+hashes behind normalized values. Contract `1.1.0` and mapping `1.2.0` add the richer
+structure; older `1.0.0` snapshots remain readable.
 
-Some fields will remain empty. For example, a Welsh filter labelled “Data
-description” does not by itself identify which members are measures. A public
-metadata endpoint also does not establish unrestricted data access or reuse:
-`data_access` remains `not_asserted` without a provider statement.
+Read coverage with its `scope` and, where present, `basis`. A time dimension means
+periods can be selected; it does not establish the first and last available
+observations. MHCLG publication applicability is distinct from the geographic
+extent of its tables. Normalizing fields does not make measures or geographies
+comparable across providers.
 
-Mapping version `1.1.0` retains each field's native location and description
-response hashes in `source_metadata.mapping.evidence`. The metadata snapshot
-contract remains `1.0.0`. Replaying older cached responses creates a new immutable
-snapshot with the richer interpretation; it preserves provider-check times
-and leaves the old snapshot unchanged. Large category lists remain complete in
-Python and saved snapshots; REST/MCP responses mark compact summaries with
-`metadata_detail` and `omitted_fields` and provide paged category browsing.
+Scotland's current CKAN catalogue is metadata-only in SSDU. Resource links and
+formats are retained without claiming that SSDU can retrieve their observations.
+Saved legacy `statistics.gov.scot` snapshots remain replayable. The legacy service
+stopped receiving updates on 25 August 2026 and is scheduled to close on 31 October
+2026. See the [official transition notice](https://blogs.gov.scot/digital/2026/08/19/data-gov-scot-public-beta-launches-on-25-august/).
 
-## Read freshness and completeness separately
+## Understand completeness
 
-A cache hit means SSDU already has a response. It does **not** mean the
-provider was checked today. Reports distinguish when metadata was captured,
-when a provider check last succeeded and any modification date declared by
-the provider. Request `refresh=True` when planning a deliberate new check;
-this still respects rate limits and budgets.
+Read the whole-capture report before describing a cache as complete. It separates:
 
-Completeness describes the requested scope and detail. A query for “housing”
-can finish without covering a provider's other subjects. Reaching a page,
-dataset or code-list limit leaves a partial result. Finishing catalogue pages
-also does not guarantee that a provider stayed unchanged while they were read.
-Review the report's scope, counts, limits and errors before describing a
-catalogue as complete. Missing records in a partial run do not imply deletion.
-The five connectors currently retain missing records after completed scans too:
-their catalogue APIs do not provide the deletion evidence needed to retire them
-reliably. A completed traversal is recorded as an observed inventory.
+- **Inventory coverage:** distinct entries found, declared totals, pagination and reconciliation results.
+- **Description coverage:** inventoried entries successfully described, with unresolved IDs and errors.
+- **Field quality:** counts of mapped, missing, unmapped and ambiguous fields.
+- **Freshness:** capture time, successful provider-check time and any provider modification date.
 
-## Keep the catalogue used in an analysis
+An exhausted, reconciled inventory supports a claim about that declared service
+scope. It does not establish every release, historical archive, independent
+codelist, restricted dataset or other service operated by the publisher. Where
+there is no verified total, a percentage is unknown. A provider can also change
+while its pages are read; the capture is not an atomic upstream snapshot.
 
-Each completed sync produces an immutable snapshot with the versioned metadata
-contract and retained source responses. Export the snapshot when a colleague
-needs the same discovery material; importing verifies the bundle before it is
-used. Provider references remain attached to the records.
+Limits and failures remain visible. Missing entries in a partial capture do not
+imply deletion. A cache hit does not mean the provider was checked today. Use
+`refresh=True` when deliberately rechecking; capture does not create a recurring
+refresh schedule.
 
-The current search index is a rebuildable view of verified metadata. Updating
-it does not rewrite the descriptions pinned to previously downloaded data.
-If a later catalogue-only refresh has less detail, the earlier description
-remains available through its metadata snapshot ID with its original dates.
-Keep the metadata snapshot ID with the research record when the exact search
-corpus matters, alongside any [dataset collection](../start/quickstart.md).
+## Transfer and replay the cache
 
-The REST and MCP metadata interfaces read retained local material. Online
-acquisition is an explicit Python, command-line or worker action. This makes
-it possible to put a discovery application on top of the local index without
-making each search trigger provider requests.
+A capture consists of verified immutable snapshots and a report relating them.
+Export it when another machine needs the same discovery material:
+
+```python
+cache.export_capture(capture_id, "research-catalogue.ssdu-metadata.zip")
+
+fresh = MetadataCapture("fresh-data")
+imported = fresh.import_capture("research-catalogue.ssdu-metadata.zip")
+print(imported)
+```
+
+Import verifies the bundle before using it. The saved snapshots preserve references
+and original check times. A new `plan_capture(spec, offline=True)` can replay the
+retained responses in the fresh store. Search results come from a rebuildable
+local index; searches do not trigger acquisition. REST and MCP expose the retained
+metadata and capture report, while Python, CLI and workers perform explicit capture.

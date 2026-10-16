@@ -1,16 +1,79 @@
 """Pure metadata interpretation helpers; no HTTP, licence defaults or inferred data extents."""
 
+import copy
 import re
 from html import unescape
 from html.parser import HTMLParser
 
-MAPPING_VERSION = "1.1.0"
+MAPPING_VERSION = "1.2.0"
 MAPPING_FIELDS = frozenset(
-    {"description", "measures", "coverage.temporal", "coverage.spatial", "licence", "access"}
+    {
+        "description",
+        "publishers",
+        "subjects",
+        "dimensions",
+        "measures",
+        "coverage.temporal",
+        "coverage.spatial",
+        "licence",
+        "access",
+        "distributions",
+        "languages",
+        "related",
+    }
 )
 MAPPING_METHODS = frozenset(
     {"provider_assertion", "provider_dimension_role", "declared_dimension", "connector_endpoint"}
 )
+FIELD_STATUSES = frozenset({"mapped", "not_provided", "unmapped", "ambiguous", "not_requested"})
+
+
+def normalized_metadata_fields(base):
+    """Return canonical additions and honest per-field mapping status, without I/O.
+
+    An absent normalized field does not establish that the provider omitted it.
+    Adapters may assert that distinction after inspecting native metadata. Existing
+    adapter statuses are retained; otherwise only retained mapping evidence can
+    establish a mapped field. Provider values and the input object are untouched.
+    """
+    if not isinstance(base, dict):
+        raise TypeError("Metadata description must be an object")
+    fields = {
+        key: copy.deepcopy(base.get(key) if base.get(key) is not None else [])
+        for key in ("publishers", "subjects", "languages", "related")
+    }
+    supplied = base.get("field_status", {})
+    if not isinstance(supplied, dict) or set(supplied) - MAPPING_FIELDS:
+        raise ValueError("Metadata field_status must identify known normalized fields")
+    status = {}
+    for field, value in supplied.items():
+        if (
+            not isinstance(value, dict)
+            or set(value) - {"status", "reason"}
+            or not isinstance(value.get("status"), str)
+            or value.get("status") not in FIELD_STATUSES
+            or ("reason" in value and not isinstance(value["reason"], str))
+        ):
+            raise ValueError("Metadata field_status requires a known status and optional reason")
+        status[field] = copy.deepcopy(value)
+    mapping = base.get("metadata_mapping", {})
+    evidence = mapping.get("evidence", []) if isinstance(mapping, dict) else []
+    if not isinstance(evidence, list):
+        raise TypeError("Metadata mapping evidence must be an array")
+    mapped = {entry["field"] for entry in mapping_metadata(evidence)["evidence"]}
+    for field in sorted(MAPPING_FIELDS - set(status)):
+        value = base
+        for part in field.split("."):
+            value = value.get(part) if isinstance(value, dict) else None
+        meaningful = value not in (None, "", [], {})
+        if field in mapped and meaningful:
+            status[field] = {"status": "mapped"}
+        else:
+            status[field] = {
+                "status": "unmapped",
+                "reason": "No evidence-backed normalized value has been recorded.",
+            }
+    return {**fields, "field_status": status}
 
 
 class _Text(HTMLParser):
@@ -60,7 +123,9 @@ def mapping_metadata(evidence):
     for item in evidence:
         if (
             not isinstance(item, dict)
+            or not isinstance(item.get("field"), str)
             or item.get("field") not in MAPPING_FIELDS
+            or not isinstance(item.get("method"), str)
             or item.get("method") not in MAPPING_METHODS
             or not isinstance(item.get("source_path"), str)
             or not 1 <= len(item["source_path"]) <= 8192

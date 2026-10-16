@@ -211,7 +211,7 @@ SOURCE_COVERAGE = CoverageMatrix(
         ProviderCoverage(
             provider_id="scottish_government",
             name="Scottish Government",
-            overview="Legacy Scottish linked-data statistics; the current data.gov.scot service is not yet integrated.",
+            overview="Current Scottish public catalogue metadata, with retained legacy linked-data retrieval.",
             source_ids=("scotland",),
             source_urls=("https://www.gov.scot/",),
         ),
@@ -323,7 +323,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             status="implemented",
             catalogue=_stage(
                 "partial",
-                "Paginated GOV.UK statistical-publication discovery for MHCLG and supported predecessors; cached publication and attachment metadata.",
+                "Paginated GOV.UK statistical-publication discovery associated with MHCLG and supported predecessors; metadata includes cross-published entries and unsupported attachment formats.",
             ),
             retrieval=_stage(
                 "implemented",
@@ -451,16 +451,16 @@ SOURCE_COVERAGE = CoverageMatrix(
         ),
         SourceCoverage(
             source_id="scotland",
-            name="Scottish official statistics: linked-data cubes",
+            name="Scottish official statistics",
             provider="scotland",
             status="implemented",
             catalogue=_stage(
                 "partial",
-                "Paged linked-cube catalogue, pre-download descriptions and URI member codes through the common cached connector workflow; file datasets are excluded.",
+                "Current data.gov.scot CKAN catalogue and resource descriptions through the cached metadata workflow; explicit legacy linked-cube browsing remains available.",
             ),
             retrieval=_stage(
-                "implemented",
-                "Bounded statistics.gov.scot RDF cube selections with explicit dimensions and a declared data structure.",
+                "partial",
+                "Retained legacy statistics.gov.scot RDF cube selections; current CKAN entries are metadata-only and do not imply downloadable observations.",
             ),
             normalization=_stage(
                 "implemented",
@@ -474,10 +474,10 @@ SOURCE_COVERAGE = CoverageMatrix(
             contract_version=OBSERVATIONS_CONTRACT_VERSION,
             conformance_family_ids=tuple(f.family_id for f in get_conformance_families("scotland")),
             capabilities=_network_capabilities(),
-            access="Public SPARQL endpoint through shared cached, rate-limited HTTP requests.",
+            access="Public CKAN metadata and legacy SPARQL through shared cached, rate-limited HTTP requests.",
             limits=(
-                "Legacy portal: publishing stopped on 2026-08-25; statistics.gov.scot is scheduled to close on 2026-10-31. The replacement data.gov.scot CKAN catalogue is not yet an implemented connector.",
-                "Linked RDF cubes only; file/ZIP routes and slice-attached components are unsupported.",
+                "Current CKAN resources are captured as metadata-only, including unsupported formats; no current-portal download support is claimed. Legacy publishing stopped on 2026-08-25 and statistics.gov.scot is scheduled to close on 2026-10-31.",
+                "Legacy retrieval supports linked RDF cubes only; file/ZIP routes and slice-attached components are unsupported.",
                 "Native URI/code selectors and request budgets remain dataset-specific.",
                 "Metadata is checked around retrieval; provider historical release pinning is not claimed.",
                 "Dimension code pages enumerate observed dataset members, not a complete external vocabulary.",
@@ -491,6 +491,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             ),
             implementation_paths=(
                 "src/ssdu/adapters/scotland.py",
+                "src/ssdu/adapters/scotland_ckan.py",
                 "src/ssdu/normalization_scotland.py",
                 "tests/test_scotland.py",
                 "tests/test_connector_scotland.py",

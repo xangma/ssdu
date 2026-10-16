@@ -15,6 +15,7 @@ import re
 from contextlib import nullcontext
 from datetime import UTC, date, datetime
 from typing import Any
+from urllib.parse import urlsplit
 from uuid import UUID
 
 import pandas as pd
@@ -160,6 +161,55 @@ def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict
     return {"items": rows, "total": total, "next_offset": next_offset}
 
 
+def catalogue_inventory(query: str, client: HttpClient, *, max_records=1000) -> dict:
+    """Reconcile a bounded inventory without offset-page ordering assumptions.
+
+    The API's offset pages can repeat or omit IDs at tied publication times.
+    A single bounded response avoids that boundary when the catalogue fits. A
+    larger catalogue remains explicitly incomplete; it is never resampled until
+    a desired count is reached or presented as an atomic provider snapshot.
+    """
+    _window(max_records, 0)
+    if not isinstance(query, str):
+        raise TypeError("StatsWales query must be a string")
+    params = {"lang": "en-gb", "page_size": max_records, "page_number": 1}
+    path = BASE
+    if query.strip():
+        params.update({"keywords": query.strip(), "mode": "basic"})
+        path += "/search"
+    response = client.get(path, params=params).json()
+    rows = _catalogue_rows(response, max_size=max_records)
+    counters = _catalogue_counters(response, 1, max_records)
+    total = counters.get("total")
+    distinct = {row["id"]: row for row in rows}
+    duplicate_count = len(rows) - len(distinct)
+    expected = min(total, max_records) if total is not None else None
+    count_matches = expected is None or len(rows) == expected
+    exhausted = (total is not None and len(rows) >= total) or (
+        total is None and len(rows) < max_records
+    )
+    errors = []
+    if duplicate_count:
+        errors.append({"stage": "catalogue", "code": "duplicate_ids"})
+    if not count_matches:
+        errors.append({"stage": "catalogue", "code": "declared_count_mismatch"})
+    complete = exhausted and not errors
+    return {
+        "items": list(distinct.values()),
+        "total": total,
+        "next_offset": None if complete else len(rows),
+        "observed_distinct": len(distinct),
+        "duplicate_count": duplicate_count,
+        "errors": errors,
+        "inventory_complete": complete,
+        "reconciliation": {
+            "method": "bounded_single_response",
+            "max_records": max_records,
+            "atomic_provider_snapshot": False,
+        },
+    }
+
+
 def _metadata(dataset_id, client, *, lang="en-gb"):
     dataset_id = _dataset_id(dataset_id)
     source = BASE + "/" + dataset_id
@@ -187,6 +237,202 @@ def _title(metadata, dataset_id, lang="en-gb"):
         if isinstance(entry, dict) and str(entry.get("language", "")).lower() == language:
             return entry.get("title") or dataset_id
     return dataset_id
+
+
+def _text(value):
+    return value.strip() if isinstance(value, str) and value.strip() else None
+
+
+def _http_url(value):
+    value = _text(value)
+    if value is None:
+        return None
+    parsed = urlsplit(value)
+    return (
+        value
+        if parsed.scheme in {"http", "https"}
+        and parsed.netloc
+        and not (parsed.username or parsed.password)
+        else None
+    )
+
+
+def _discovery_fields(metadata):
+    """Map declared catalogue identities and relationships, retaining native prose."""
+    revision = metadata.get("published_revision", {})
+    publishers, subjects, related, evidence = [], [], [], []
+    incomplete = set()
+
+    def add(field, rows, item, path):
+        if item and item not in rows:
+            rows.append(item)
+            evidence.append({"field": field, "source_path": path, "method": "provider_assertion"})
+
+    publisher = metadata.get("publisher")
+    if isinstance(publisher, dict):
+        for key, role in (("organisation", "publisher"), ("group", "publishing_group")):
+            native = publisher.get(key)
+            if not isinstance(native, dict):
+                continue
+            item = {key: value for key in ("id", "name") if (value := _text(native.get(key)))}
+            if item:
+                add("publishers", publishers, {**item, "role": role}, f"/publisher/{key}")
+    elif publisher is not None:
+        incomplete.add("publishers")
+
+    providers = revision.get("providers", [])
+    if not isinstance(providers, list):
+        if providers is not None:
+            incomplete.update({"publishers", "related"})
+        providers = []
+    # Prefer the explicitly English translation for a repeated identity; preserve
+    # every alternative assertion in source_metadata rather than inventing names.
+    providers = sorted(
+        enumerate(providers),
+        key=lambda pair: (
+            str(pair[1].get("language", "")).lower() not in {"en", "en-gb"}
+            if isinstance(pair[1], dict)
+            else True,
+            pair[0],
+        ),
+    )
+    seen_providers, seen_sources = set(), set()
+    for index, native in providers:
+        if not isinstance(native, dict):
+            incomplete.add("publishers")
+            continue
+        identity, name = _text(native.get("provider_id")), _text(native.get("provider_name"))
+        token = identity or name
+        if token and token not in seen_providers:
+            seen_providers.add(token)
+            item = {key: value for key, value in (("id", identity), ("name", name)) if value}
+            add(
+                "publishers",
+                publishers,
+                {**item, "role": "data_provider"},
+                f"/published_revision/providers/{index}",
+            )
+        source_id, title = _text(native.get("source_id")), _text(native.get("source_name"))
+        token = source_id or title
+        if token and token not in seen_sources:
+            seen_sources.add(token)
+            item = {
+                key: value for key, value in (("target_id", source_id), ("title", title)) if value
+            }
+            add(
+                "related",
+                related,
+                {"relation": "source", **item},
+                f"/published_revision/providers/{index}",
+            )
+
+    topics = revision.get("topics", [])
+    if isinstance(topics, list):
+        for index, native in enumerate(topics):
+            if not isinstance(native, dict):
+                incomplete.add("subjects")
+                continue
+            identity = native.get("id")
+            identity = str(identity) if type(identity) is int else _text(identity)
+            label = _text(native.get("name_en")) or _text(native.get("name_cy"))
+            item = {key: value for key, value in (("id", identity), ("label", label)) if value}
+            if item:
+                add(
+                    "subjects",
+                    subjects,
+                    {**item, "scheme": "StatsWales topics"},
+                    f"/published_revision/topics/{index}",
+                )
+    elif topics is not None:
+        incomplete.add("subjects")
+
+    translated = revision.get("metadata", [])
+    translated = translated if isinstance(translated, list) else []
+    languages = sorted(
+        {
+            language.lower()
+            for native in translated
+            if isinstance(native, dict) and (language := _text(native.get("language")))
+        }
+    )
+    if languages:
+        evidence.append(
+            {
+                "field": "languages",
+                "source_path": "/published_revision/metadata",
+                "method": "provider_assertion",
+            }
+        )
+    links = revision.get("related_links", [])
+    if isinstance(links, list):
+        for index, native in enumerate(links):
+            if not isinstance(native, dict) or not (url := _http_url(native.get("url"))):
+                incomplete.add("related")
+                continue
+            title = _text(native.get("label_en")) or _text(native.get("label_cy"))
+            item = {"relation": "related", "url": url, **({"title": title} if title else {})}
+            add("related", related, item, f"/published_revision/related_links/{index}")
+    elif links is not None:
+        incomplete.add("related")
+    previous = _text(revision.get("previous_revision_id"))
+    if previous:
+        add(
+            "related",
+            related,
+            {"relation": "previous_revision", "target_id": previous},
+            "/published_revision/previous_revision_id",
+        )
+    replacement = metadata.get("replaced_by")
+    if isinstance(replacement, dict) and (identity := _text(replacement.get("dataset_id"))):
+        title = _text(replacement.get("dataset_title"))
+        add(
+            "related",
+            related,
+            {
+                "relation": "is_replaced_by",
+                "target_id": identity,
+                **({"title": title} if title else {}),
+            },
+            "/replaced_by",
+        )
+
+    fields = {
+        "publishers": publishers,
+        "subjects": subjects,
+        "languages": languages,
+        "related": related,
+    }
+    status = {
+        field: {
+            "status": "unmapped" if field in incomplete else "mapped" if values else "not_provided"
+        }
+        for field, values in fields.items()
+    }
+    for field in incomplete:
+        status[field]["reason"] = (
+            "Some native assertions could not be normalized; originals are retained."
+        )
+    status.update(
+        {
+            "measures": {
+                "status": "unmapped",
+                "reason": "Filter categories are retained, but the captured API response does not declare their measure roles.",
+            },
+            "coverage.spatial": {
+                "status": "unmapped",
+                "reason": "Filter categories are retained, but the captured API response does not declare geographic roles or spatial extents.",
+            },
+            "licence": {
+                "status": "not_provided",
+                "reason": "The captured dataset and filter responses contain no licence assertion.",
+            },
+            "distributions": {
+                "status": "not_provided",
+                "reason": "The captured metadata contains no distribution links; data queries are created separately.",
+            },
+        }
+    )
+    return fields, status, evidence
 
 
 def _description_fields(dataset_id, metadata):
@@ -235,11 +481,42 @@ def _description_fields(dataset_id, metadata):
                 "method": "provider_assertion",
             }
         )
+    fields, status, extra_evidence = _discovery_fields(metadata)
+    evidence.extend(extra_evidence)
+    status["description"] = {"status": "mapped" if description else "not_provided"}
+    if (
+        any(isinstance(entry, dict) and plain_text(entry.get("summary")) for entry in translated)
+        and not description
+    ):
+        status["description"] = {
+            "status": "ambiguous",
+            "reason": "Preferred-language summary assertions disagree.",
+        }
+    status["coverage.temporal"] = {"status": "mapped" if temporal else "not_provided"}
+    if any(
+        revision.get(f"coverage_{bound}_date") not in (None, "") and bound not in temporal
+        for bound in ("start", "end")
+    ):
+        status["coverage.temporal"] = {
+            "status": "unmapped",
+            "reason": "Native coverage dates are invalid or contradictory; originals are retained.",
+        }
+    for field, native_keys in (
+        ("licence", ("licence", "license", "licence_url", "license_url")),
+        ("distributions", ("distributions", "resources")),
+    ):
+        if any(key in native for native in (metadata, revision) for key in native_keys):
+            status[field] = {
+                "status": "unmapped",
+                "reason": "Native assertions have an unrecognized shape; originals are retained.",
+            }
     endpoint = f"{BASE}/{dataset_id}?lang=en-gb"
     evidence.append(
         {"field": "access", "source_path": "@response.url", "method": "connector_endpoint"}
     )
     return {
+        **fields,
+        "field_status": status,
         "description": description,
         "measures": [],
         "coverage": {"temporal": {**temporal, "scope": "provider_declared"}} if temporal else None,
@@ -265,15 +542,28 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
                 "label": dim.get("columnName", identity),
                 "selector": identity,
                 "value_count": len(list(_values(dim.get("values")))),
+                "values": [
+                    {"id": node["reference"], "label": node.get("description") or node["reference"]}
+                    for node in _values(dim.get("values"))
+                ],
                 "source_metadata": dim,
             }
         )
     revision = metadata.get("published_revision", {})
+    fields = _description_fields(dataset_id, metadata)
+    if dimensions:
+        fields["metadata_mapping"] = mapping_metadata(
+            [
+                *fields["metadata_mapping"]["evidence"],
+                {"field": "dimensions", "source_path": "@filters", "method": "declared_dimension"},
+            ]
+        )
+    fields["field_status"]["dimensions"] = {"status": "mapped" if dimensions else "not_provided"}
     return {
         "provider": "statswales",
         "dataset_id": dataset_id,
         "title": _title(metadata, dataset_id),
-        **_description_fields(dataset_id, metadata),
+        **fields,
         "dimensions": dimensions,
         "release": {
             "kind": "observed_published_revision",
@@ -287,7 +577,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
             "server_side_selection": True,
             "selection_syntax": "filters: [{factTableColumn: [reference, ...]}]; lang; sort_by",
             "historical_release_selection": False,
-            "metadata_languages": ["en-gb"],
+            "metadata_languages": fields["languages"],
             "retrieval_languages": ["en-gb", "cy-gb"],
         },
         "source_url": f"https://stats.gov.wales/en-GB/{dataset_id}",

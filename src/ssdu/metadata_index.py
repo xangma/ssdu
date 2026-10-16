@@ -54,6 +54,24 @@ def _current_rank(row):
     return rank
 
 
+def _detail_rank(document, report):
+    """Prefer a verified description when source check times are equal."""
+    source = document.get("source_metadata", {})
+    detail = report.get("scope", {}).get("detail")
+    described = (
+        isinstance(source.get("descriptor"), dict)
+        if "descriptor" in source
+        else detail in {"dataset", "codes"}
+    )
+    version = str(document.get("mapping_version", "")).split(".")
+    version = (
+        tuple(map(int, version))
+        if len(version) == 3 and all(part.isdigit() for part in version)
+        else (0, 0, 0)
+    )
+    return described, version, detail == "codes"
+
+
 def _inventory(report, count):
     completeness = report["completeness"]
     scope = report.get("scope", {})
@@ -187,7 +205,9 @@ class MetadataIndex:
                     row.get("last_checked_at", report["freshness"].get("last_checked_at"))
                 )
                 captured = _stamp(row.get("captured_at") or document["captured_at"])
-                row["metadata_version"] = record_version(row)
+                row["metadata_version"] = record_version(
+                    row, contract_version=document["contract_version"]
+                )
                 row["raw_resource_hashes"] = {
                     path: resources.get(path, resources.get("resources/" + path, {})).get("sha256")
                     for path in row.get("raw_resources", [])
@@ -200,7 +220,33 @@ class MetadataIndex:
                 db.execute("INSERT INTO observations VALUES (?,?,?)", (snapshot_id, key, version))
                 old = db.execute("SELECT * FROM current WHERE dataset_id=?", (key,)).fetchone()
                 candidate = _rank(checked, captured, snapshot_id)
-                if old and candidate <= _current_rank(old):
+                previous = _current_rank(old) if old else None
+                if (
+                    old
+                    and old["status"] == "active"
+                    and not row.get("deleted")
+                    and not row.get("tombstone")
+                    and candidate[:2] == previous[:2]
+                ):
+                    prior_document = json.loads(
+                        db.execute(
+                            "SELECT document FROM versions WHERE metadata_version=?",
+                            (old["metadata_version"],),
+                        ).fetchone()[0]
+                    )
+                    prior_report = json.loads(
+                        db.execute(
+                            "SELECT report FROM provider_runs WHERE provider=? AND snapshot_id=?",
+                            (provider, old["snapshot_id"]),
+                        ).fetchone()[0]
+                    )
+                    candidate = (*candidate[:2], _detail_rank(row, report), *candidate[2:])
+                    previous = (
+                        *previous[:2],
+                        _detail_rank(prior_document, prior_report),
+                        *previous[2:],
+                    )
+                if old and candidate <= previous:
                     ignored += 1
                     continue
                 status = "deleted" if row.get("deleted") or row.get("tombstone") else "active"

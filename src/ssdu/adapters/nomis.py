@@ -9,7 +9,7 @@ from contextlib import nullcontext
 import pandas as pd
 
 from ssdu.http import HttpClient
-from ssdu.metadata_mapping import mapping_metadata, plain_text
+from ssdu.metadata_mapping import mapping_metadata, normalized_metadata_fields, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 BASE = "https://www.nomisweb.co.uk/api/v01/dataset"
@@ -146,6 +146,19 @@ def _metadata_entries(value, path):
     return []
 
 
+def _metadata_dimensions(family):
+    dimensions = list(_dimensions(family))
+    for temporal, _ in _metadata_entries(family.get("components", {}).get("timedimension"), ""):
+        concept = temporal.get("conceptref")
+        if (
+            isinstance(concept, str)
+            and concept.strip()
+            and not any(dim["conceptref"] == concept for dim in dimensions)
+        ):
+            dimensions.append(temporal)
+    return dimensions
+
+
 def _description(value, path):
     candidates = []
     for item, location in _metadata_entries(value, path):
@@ -174,6 +187,65 @@ def _mapped_metadata(document, family, dataset_id):
     description, locations = _description(family.get("description"), path + "/description")
     for location in locations:
         record("description", location)
+    annotations = _metadata_entries(
+        family.get("annotations", {}).get("annotation"), path + "/annotations/annotation"
+    )
+    # Nomis publishes most prose as named annotations rather than description.
+    # Keep their headings and order; never manufacture prose from the title.
+    paragraphs = [description] if description else []
+    for annotation, location in annotations:
+        name = annotation.get("annotationtitle")
+        if not isinstance(name, str) or not (
+            name == "SubDescription" or re.fullmatch(r"MetadataText\d*", name)
+        ):
+            continue
+        text = plain_text(annotation.get("annotationtext"))
+        if not text:
+            continue
+        suffix = name.removeprefix("MetadataText")
+        titles = {
+            title
+            for candidate, _ in annotations
+            if name != "SubDescription"
+            and candidate.get("annotationtitle") == "MetadataTitle" + suffix
+            and (title := plain_text(candidate.get("annotationtext")))
+        }
+        heading = next(iter(titles)) if len(titles) == 1 else None
+        paragraph = f"{heading}\n{text}" if heading else text
+        if paragraph not in paragraphs:
+            paragraphs.append(paragraph)
+        record("description", location + "/annotationtext")
+        if heading:
+            for candidate, title_location in annotations:
+                if (
+                    candidate.get("annotationtitle") == "MetadataTitle" + suffix
+                    and plain_text(candidate.get("annotationtext")) == heading
+                ):
+                    record("description", title_location + "/annotationtext")
+    description = "\n\n".join(paragraphs) or None
+    subjects, languages, publishers, related = [], [], [], []
+    for annotation, location in annotations:
+        name, text = annotation.get("annotationtitle"), annotation.get("annotationtext")
+        if not isinstance(name, str) or not isinstance(text, str):
+            continue
+        if name == "Keywords" or name.startswith("contenttype/"):
+            for term in dict.fromkeys(part.strip() for part in text.split(",") if part.strip()):
+                subjects.append(
+                    {"label" if name == "Keywords" else "id": term, "scheme": "nomis:" + name}
+                )
+            if text.strip():
+                record("subjects", location + "/annotationtext")
+    for name in ("name", "description"):
+        for item, location in _metadata_entries(family.get(name), path + "/" + name):
+            language = item.get("lang")
+            if isinstance(language, str) and language.strip():
+                if language not in languages:
+                    languages.append(language)
+                record("languages", location + "/lang")
+    agency = family.get("agencyid")
+    if isinstance(agency, str) and agency.strip():
+        publishers.append({"id": agency, "role": "metadata_agency"})
+        record("publishers", path + "/agencyid")
     components = family.get("components", {})
     declared = _metadata_entries(components.get("dimension"), path + "/components/dimension")
     attributes = _metadata_entries(components.get("attribute"), path + "/components/attribute")
@@ -195,9 +267,7 @@ def _mapped_metadata(document, family, dataset_id):
             measures.append({"id": concept, "label": concept})
             record("measures", location + "/conceptref")
     units = []
-    for annotation, location in _metadata_entries(
-        family.get("annotations", {}).get("annotation"), path + "/annotations/annotation"
-    ):
+    for annotation, location in annotations:
         if annotation.get("annotationtitle") == "Units":
             unit = plain_text(annotation.get("annotationtext"))
             if unit:
@@ -211,6 +281,15 @@ def _mapped_metadata(document, family, dataset_id):
     temporal = _metadata_entries(
         components.get("timedimension"), path + "/components/timedimension"
     )
+    for item, location in declared + temporal + attributes:
+        codelist = item.get("codelist")
+        if isinstance(codelist, str) and codelist.strip():
+            relation = {"relation": "codelist", "target_id": codelist}
+            if relation not in related:
+                related.append(relation)
+            record("related", location + "/codelist")
+    for _, location in declared + temporal:
+        record("dimensions", location)
     for field, entries, concept_name, method in (
         ("spatial", declared, "GEOGRAPHY", "declared_dimension"),
         ("temporal", temporal, None, "provider_dimension_role"),
@@ -228,7 +307,7 @@ def _mapped_metadata(document, family, dataset_id):
         if dimensions:
             coverage[field] = {"dimensions": dimensions, "scope": "declared_dimension"}
     record("access", "@response.url", "connector_endpoint")
-    return {
+    result = {
         "description": description,
         "measures": measures,
         "coverage": coverage or None,
@@ -237,8 +316,102 @@ def _mapped_metadata(document, family, dataset_id):
             "metadata_url": f"{BASE}/{dataset_id}/def.sdmx.json",
             "data_access": "not_asserted",
         },
+        "publishers": publishers,
+        "subjects": subjects,
+        "languages": languages,
+        "related": related,
         "metadata_mapping": mapping_metadata(evidence),
     }
+    fields = {
+        "description": description,
+        "publishers": publishers,
+        "subjects": subjects,
+        "languages": languages,
+        "related": related,
+        "measures": measures,
+        "coverage.spatial": coverage.get("spatial"),
+        "coverage.temporal": coverage.get("temporal"),
+        "licence": None,
+    }
+    result["field_status"] = {
+        field: {"status": "mapped" if value else "not_provided"} for field, value in fields.items()
+    }
+    if not description and family.get("description"):
+        candidates = []
+        for item, _ in _metadata_entries(family["description"], ""):
+            text, language = plain_text(item.get("value")), item.get("lang", "")
+            if text and isinstance(language, str):
+                rank = 0 if language.lower().split("-")[0] == "en" else 1 if not language else 2
+                candidates.append((rank, text))
+        preferred = (
+            {text for rank, text in candidates if rank == min(value[0] for value in candidates)}
+            if candidates
+            else set()
+        )
+        result["field_status"]["description"] = {
+            "status": "ambiguous" if len(preferred) > 1 else "unmapped",
+            "reason": "Native descriptions conflict or have no supported readable text.",
+        }
+    for field, native in (
+        ("publishers", agency),
+        (
+            "description",
+            [
+                item.get("annotationtext")
+                for item, _ in annotations
+                if item.get("annotationtitle") == "SubDescription"
+                or re.fullmatch(r"MetadataText\d*", str(item.get("annotationtitle", "")))
+            ],
+        ),
+        (
+            "subjects",
+            [
+                item.get("annotationtext")
+                for item, _ in annotations
+                if isinstance(item.get("annotationtitle"), str)
+                and (
+                    item["annotationtitle"] == "Keywords"
+                    or item["annotationtitle"].startswith("contenttype/")
+                )
+            ],
+        ),
+        (
+            "languages",
+            [
+                item.get("lang")
+                for name in ("name", "description")
+                for item, _ in _metadata_entries(family.get(name), "")
+                if "lang" in item
+            ],
+        ),
+        (
+            "related",
+            [
+                item["codelist"]
+                for item, _ in declared + temporal + attributes
+                if "codelist" in item
+            ],
+        ),
+        ("measures", components.get("primarymeasure")),
+    ):
+        if (
+            not result[field]
+            and native
+            and result["field_status"][field]["status"] == "not_provided"
+        ):
+            result["field_status"][field] = {
+                "status": "unmapped",
+                "reason": "Native metadata is retained but has no supported readable normalized value.",
+            }
+    if units and measures and "unit" not in measures[0]:
+        result["field_status"]["measures"]["reason"] = (
+            "Native unit annotations are retained but cannot be assigned universally to varying or conflicting series."
+        )
+    result["field_status"]["distributions"] = {
+        "status": "not_requested",
+        "reason": "This structural definition does not enumerate downloadable distributions.",
+    }
+    return result
 
 
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
@@ -250,9 +423,9 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
             "codelist": dim.get("codelist"),
             "selector": dim["conceptref"].lower(),
         }
-        for dim in _dimensions(family)
+        for dim in _metadata_dimensions(family)
     ]
-    return {
+    result = {
         "provider": "nomis",
         "dataset_id": dataset_id,
         "title": family.get("name", {}).get("value", dataset_id),
@@ -276,6 +449,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         ],
         "source_metadata": document,
     }
+    return {**result, **normalized_metadata_fields(result)}
 
 
 def list_dimension_values(
@@ -285,7 +459,7 @@ def list_dimension_values(
     if not isinstance(search, str) or not isinstance(dimension, str):
         raise TypeError("Nomis dimension and search must be strings")
     _, family = _definition(dataset_id, client)
-    available = {dim["conceptref"].lower() for dim in _dimensions(family)}
+    available = {dim["conceptref"].lower() for dim in _metadata_dimensions(family)}
     if dimension not in available | ({"date", "time"} if "time" in available else set()):
         raise ValueError(f"Unknown Nomis dimension: {dimension}")
     native = "time" if dimension == "date" else dimension

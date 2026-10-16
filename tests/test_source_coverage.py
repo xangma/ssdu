@@ -263,7 +263,9 @@ def test_four_nation_claims_exclude_unsupported_routes_and_release_pins():
     assert "slice-attached" in " ".join(scotland["limits"])
     assert "2026-08-25" in " ".join(scotland["limits"])
     assert "2026-10-31" in " ".join(scotland["limits"])
-    assert "not yet an implemented connector" in " ".join(scotland["limits"])
+    assert "metadata-only" in " ".join(scotland["limits"])
+    assert "current data.gov.scot" in scotland["catalogue"]["scope"].lower()
+    assert scotland["retrieval"]["status"] == "partial"
     assert "independently invented" in " ".join(get_source_coverage()["notes"])
 
 

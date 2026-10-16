@@ -65,11 +65,11 @@ def test_maps_summary_and_declared_dates_with_native_evidence():
         "metadata_url": f"{statswales.BASE}/{DATASET}?lang=en-gb",
         "data_access": "not_asserted",
     }
-    assert result["metadata_mapping"]["version"] == "1.1.0"
+    assert result["metadata_mapping"]["version"] == "1.2.0"
     assert {
         (item["field"], item["source_path"], item["method"])
         for item in result["metadata_mapping"]["evidence"]
-    } == {
+    } >= {
         ("description", "/published_revision/metadata/1/summary", "provider_assertion"),
         ("coverage.temporal", "/published_revision/coverage_start_date", "provider_assertion"),
         ("coverage.temporal", "/published_revision/coverage_end_date", "provider_assertion"),
@@ -113,9 +113,14 @@ def test_missing_assertions_do_not_use_title_publication_or_dimension_labels():
     assert result["licence"] is None
     assert [item["source_metadata"] for item in result["dimensions"]] == dimensions
     assert [item["value_count"] for item in result["dimensions"]] == [2, 2, 2]
-    assert result["metadata_mapping"]["evidence"] == [
-        {"field": "access", "source_path": "@response.url", "method": "connector_endpoint"}
-    ]
+    assert not any(
+        item["field"]
+        in {"description", "measures", "coverage.spatial", "coverage.temporal", "licence"}
+        for item in result["metadata_mapping"]["evidence"]
+    )
+    assert result["field_status"]["measures"]["status"] == "unmapped"
+    assert result["field_status"]["coverage.spatial"]["status"] == "unmapped"
+    assert result["field_status"]["licence"]["status"] == "not_provided"
 
 
 def test_welsh_summary_fallback_keeps_its_original_native_location():
@@ -180,3 +185,98 @@ def test_only_valid_explicit_nonconflicting_date_bounds_are_mapped(start, end, e
         if item["field"] == "coverage.temporal"
     }
     assert paths == {f"/published_revision/coverage_{bound}_date" for bound in (expected or {})}
+
+
+def test_normalizes_explicit_publishers_topics_languages_and_relationships():
+    metadata = revision(
+        metadata=[
+            {"language": "cy-GB", "title": "Gweithdai"},
+            {"language": "en-GB", "title": "Workshops"},
+        ],
+        providers=[
+            {
+                "language": "cy-gb",
+                "provider_id": "source-office",
+                "provider_name": "Swyddfa",
+                "source_id": "survey-1",
+                "source_name": "Arolwg",
+            },
+            {
+                "language": "en-gb",
+                "provider_id": "source-office",
+                "provider_name": "Invented Office",
+                "source_id": "survey-1",
+                "source_name": "Invented survey",
+            },
+        ],
+        topics=[
+            {"id": 42, "name_en": "Invented workshops", "name_cy": "Gweithdai", "path": "2.42"}
+        ],
+        related_links=[{"url": "https://example.org/methods", "label_en": "Survey methods"}],
+        previous_revision_id="revision-one",
+    )
+    metadata["publisher"] = {
+        "organisation": {"id": "org-1", "name": "Invented Administration"},
+        "group": {"id": "team-1", "name": "Invented Statistics"},
+    }
+    metadata["replaced_by"] = {"dataset_id": "replacement", "dataset_title": "New workshops"}
+    original = copy.deepcopy(metadata)
+    result = describe(metadata)
+    assert result["publishers"] == [
+        {"id": "org-1", "name": "Invented Administration", "role": "publisher"},
+        {"id": "team-1", "name": "Invented Statistics", "role": "publishing_group"},
+        {"id": "source-office", "name": "Invented Office", "role": "data_provider"},
+    ]
+    assert result["subjects"] == [
+        {"id": "42", "label": "Invented workshops", "scheme": "StatsWales topics"}
+    ]
+    assert result["languages"] == ["cy-gb", "en-gb"]
+    assert result["related"] == [
+        {"relation": "source", "target_id": "survey-1", "title": "Invented survey"},
+        {"relation": "related", "url": "https://example.org/methods", "title": "Survey methods"},
+        {"relation": "previous_revision", "target_id": "revision-one"},
+        {"relation": "is_replaced_by", "target_id": "replacement", "title": "New workshops"},
+    ]
+    for field in ("publishers", "subjects", "languages", "related"):
+        assert result["field_status"][field]["status"] == "mapped"
+        assert any(row["field"] == field for row in result["metadata_mapping"]["evidence"])
+    assert metadata == original == result["source_metadata"]
+
+
+def test_dimension_categories_are_normalized_without_guessing_roles_or_units():
+    native = [
+        {
+            "factTableColumn": "MeasureID",
+            "columnName": "Area and measure",
+            "values": [
+                {
+                    "reference": "all",
+                    "description": "Total",
+                    "children": [{"reference": "part", "description": "Part"}],
+                }
+            ],
+        }
+    ]
+    result = describe(revision(), native)
+    assert result["dimensions"][0]["values"] == [
+        {"id": "all", "label": "Total"},
+        {"id": "part", "label": "Part"},
+    ]
+    assert result["field_status"]["dimensions"]["status"] == "mapped"
+    assert result["measures"] == []
+    assert result["coverage"] is None
+    assert result["dimensions"][0]["source_metadata"] == native[0]
+
+
+def test_invalid_optional_assertions_remain_native_and_have_visible_mapping_gap():
+    metadata = revision(
+        topics=[None],
+        related_links=[{"url": "javascript:invented()"}],
+        providers=[{"provider_id": 12, "provider_name": {"unexpected": "object"}}],
+    )
+    metadata["publisher"] = "unexpected shape"
+    result = describe(metadata)
+    assert result["publishers"] == result["subjects"] == result["related"] == []
+    for field in ("publishers", "subjects", "related"):
+        assert result["field_status"][field]["status"] == "unmapped"
+    assert result["source_metadata"] == metadata

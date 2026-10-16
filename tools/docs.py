@@ -95,6 +95,7 @@ def inventory(root=ROOT):
     for key, expected, label in (
         ("four_nation_example", "examples/four_nations.py", "Four-nation"),
         ("dataset_api_example", "examples/dataset_api.py", "Dataset API"),
+        ("metadata_capture_example", "examples/metadata_capture.py", "Metadata capture"),
     ):
         example = manifest.get(key)
         if example is not None:

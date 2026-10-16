@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from urllib.parse import urlsplit
 
 from ssdu.http import HttpClient
-from ssdu.metadata_mapping import mapping_metadata, plain_text
+from ssdu.metadata_mapping import mapping_metadata, normalized_metadata_fields, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 from ssdu.normalization_nisra import (
     MAX_CUBE_CELLS,
@@ -221,7 +221,8 @@ def _metadata(dataset_id, client):
         or sum(sizes) > MAX_METADATA_CATEGORIES
     ):
         raise RetrievalError("NISRA metadata exceeds supported axis/category bounds")
-    return interpretation(metadata, dataset_id, max_cells=math.prod(sizes))
+    interpretation(metadata, dataset_id, max_cells=math.prod(sizes))
+    return {key: value for key, value in metadata.items() if key not in {"value", "status"}}
 
 
 def _mapped_metadata(cube, codes, metadata_url):
@@ -256,6 +257,66 @@ def _mapped_metadata(cube, codes, metadata_url):
         ]
 
     roles, measures = cube.get("role", {}), []
+    publishers, subjects, languages, related = [], [], [], []
+    extension = cube["extension"]
+    for key in ("subject", "product"):
+        item = extension.get(key)
+        if not isinstance(item, dict):
+            continue
+        subject = {"scheme": "nisra:" + key}
+        code, label = item.get("code"), plain_text(item.get("value"))
+        if type(code) in {str, int} and str(code).strip():
+            subject["id"] = str(code)
+            asserted("subjects", f"/extension/{key}/code")
+        if label:
+            subject["label"] = label
+            asserted("subjects", f"/extension/{key}/value")
+        if "id" in subject or "label" in subject:
+            subjects.append(subject)
+    language = extension.get("language")
+    if (
+        isinstance(language, dict)
+        and isinstance(language.get("code"), str)
+        and language["code"].strip()
+    ):
+        languages.append(language["code"])
+        asserted("languages", "/extension/language/code")
+    # JSON-stat source is an explicit source statement. A contact or copyright
+    # notice is not promoted to a publisher identity.
+    source = plain_text(cube.get("source"))
+    if source:
+        publishers.append({"name": source, "role": "source"})
+        asserted("publishers", "/source")
+
+    def relations(links, path):
+        if not isinstance(links, dict):
+            return
+        for relation, entries in links.items():
+            if not isinstance(relation, str) or not relation.strip():
+                continue
+            if isinstance(entries, dict):
+                entries = [entries]
+                paths = [path + "/" + relation.replace("~", "~0").replace("/", "~1")]
+            elif isinstance(entries, list):
+                pointer = path + "/" + relation.replace("~", "~0").replace("/", "~1")
+                paths = [pointer + f"/{index}" for index in range(len(entries))]
+            else:
+                continue
+            for entry, pointer in zip(entries, paths, strict=True):
+                if not isinstance(entry, dict) or not _public_url(entry.get("href")):
+                    continue
+                item = {"relation": relation, "url": entry["href"]}
+                if title := plain_text(entry.get("label")):
+                    item["title"] = title
+                if item not in related:
+                    related.append(item)
+                asserted("related", pointer + "/href")
+
+    relations(cube.get("link"), "/link")
+    for axis in cube["id"]:
+        pointer = axis.replace("~", "~0").replace("/", "~1")
+        asserted("dimensions", f"/dimension/{pointer}")
+        relations(cube["dimension"][axis].get("link"), f"/dimension/{pointer}/link")
     for axis in roles.get("metric", []):
         asserted("measures", "/role/metric", "provider_dimension_role")
         members = categories(axis, "measures")
@@ -288,14 +349,89 @@ def _mapped_metadata(cube, codes, metadata_url):
     else:
         asserted("licence", "/extension/copyright/href")
     asserted("access", "@response.url", "connector_endpoint")
-    return {
+    result = {
         "description": "\n\n".join(description_parts) or None,
         "measures": measures,
         "coverage": coverage,
         "licence": licence,
         "access": {"metadata_url": metadata_url, "data_access": "not_asserted"},
+        "publishers": publishers,
+        "subjects": subjects,
+        "languages": languages,
+        "related": related,
         "metadata_mapping": mapping_metadata(evidence),
     }
+    result["field_status"] = {
+        field: {"status": "mapped" if value else "not_provided"}
+        for field, value in {
+            "description": result["description"],
+            "publishers": publishers,
+            "subjects": subjects,
+            "languages": languages,
+            "related": related,
+            "measures": measures,
+            "licence": licence,
+            "coverage.spatial": coverage["spatial"],
+            "coverage.temporal": coverage["temporal"],
+        }.items()
+    }
+    for role, field in (
+        ("geo", "coverage.spatial"),
+        ("time", "coverage.temporal"),
+        ("metric", "measures"),
+    ):
+        if not roles.get(role):
+            result["field_status"][field]["reason"] = (
+                f"No explicit JSON-stat {role} role; axis labels are not interpreted as roles."
+            )
+    for field, native in (
+        ("description", notes),
+        ("subjects", [extension.get("subject"), extension.get("product")]),
+        ("languages", language),
+    ):
+        if not result[field] and native and native != [None, None]:
+            result["field_status"][field] = {
+                "status": "unmapped",
+                "reason": "Native metadata is present in an unsupported shape or has no readable value.",
+            }
+    copyright = extension.get("copyright")
+    if not licence and isinstance(copyright, dict) and copyright.get("href"):
+        result["field_status"]["licence"] = {
+            "status": "unmapped",
+            "reason": "The native copyright link is not a supported public HTTPS policy URL.",
+        }
+    if not related and (
+        cube.get("link") or any(dim.get("link") for dim in cube["dimension"].values())
+    ):
+        result["field_status"]["related"] = {
+            "status": "unmapped",
+            "reason": "Native links are retained but do not contain supported public HTTP(S) relations.",
+        }
+    if not publishers and cube.get("source"):
+        result["field_status"]["publishers"] = {
+            "status": "unmapped",
+            "reason": "The native source statement is retained in an unsupported shape.",
+        }
+    result["field_status"]["distributions"] = {
+        "status": "not_requested",
+        "reason": "ReadMetadata is captured without enumerating or downloading observation distributions.",
+    }
+    return result
+
+
+def _public_url(value):
+    if not isinstance(value, str) or not value or any(char.isspace() for char in value):
+        return False
+    try:
+        parsed = urlsplit(value)
+        return (
+            parsed.scheme in {"http", "https"}
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+        )
+    except ValueError:
+        return False
 
 
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
@@ -303,7 +439,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
     cube = _metadata(dataset_id, client)
     axes, codes, cells = cube_axes(cube, max_cells=math.prod(cube["size"]))
     metadata_url = f"{BASE}/PxStat.Data.Cube_API.ReadMetadata/{dataset_id}/en"
-    return {
+    result = {
         "provider": "nisra",
         "dataset_id": dataset_id,
         "title": cube["label"],
@@ -313,6 +449,20 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
                 "label": cube["dimension"][axis].get("label", axis),
                 "selector": axis,
                 "value_count": len(codes[axis]),
+                "values": [
+                    {
+                        "id": code,
+                        "label": cube["dimension"][axis]["category"]
+                        .get("label", {})
+                        .get(code, code),
+                        **(
+                            {"unit": cube["dimension"][axis]["category"]["unit"][code]}
+                            if code in cube["dimension"][axis]["category"].get("unit", {})
+                            else {}
+                        ),
+                    }
+                    for code in codes[axis]
+                ],
                 "source_metadata": cube["dimension"][axis],
             }
             for axis in axes
@@ -341,6 +491,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         "source_metadata": cube,
         **_mapped_metadata(cube, codes, metadata_url),
     }
+    return {**result, **normalized_metadata_fields(result)}
 
 
 def list_dimension_values(

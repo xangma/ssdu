@@ -3,13 +3,13 @@
 import argparse
 import json
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ResourceError, ToolError
 from mcp.server.mcpserver.tools import Tool
 from mcp.types import ToolAnnotations
-from pydantic import ConfigDict, StrictBool, TypeAdapter, create_model
+from pydantic import ConfigDict, Field, StrictBool, StrictInt, TypeAdapter, create_model
 
 from .collection_models import CollectionSpec
 from .contracts import (
@@ -29,14 +29,17 @@ from .contracts import (
     bounded_result,
     resolve_service,
     supports_connector_metadata,
+    supports_metadata_capture,
     supports_metadata_sync,
 )
+from .metadata_capture_models import CaptureInput, CaptureSpec, capture_budget
 from .metadata_sync_models import MetadataSyncSpec, SyncInput
 from .models import RetrievalError
 from .retrieval_models import IdempotencyKey, JobBudget, JobId, PlanInput
 
 logger = logging.getLogger(__name__)
 _DEFAULT_JOB_BUDGET = JobBudget()
+_DEFAULT_CAPTURE_BUDGET = capture_budget()
 
 
 def create_mcp_server(
@@ -236,6 +239,96 @@ def create_mcp_server(
                 describe_metadata_snapshot,
             )
         )
+
+    if supports_metadata_capture(data):
+
+        def metadata_capture_report(capture_id: SnapshotId) -> dict[str, Any]:
+            """Verify local capture completeness and normalization coverage without provider access."""
+            return call(data.metadata_capture_report, capture_id)
+
+        functions.append((metadata_capture_report, annotations))
+
+    if enable_jobs and supports_metadata_capture(data, controls=True):
+
+        def plan_metadata_capture(
+            spec: CaptureSpec,
+            offline: StrictBool = False,
+            refresh: StrictBool = False,
+            budget: JobBudget = _DEFAULT_CAPTURE_BUDGET,
+            batch_size: Annotated[StrictInt, Field(ge=1, le=100)] = 10,
+        ) -> dict[str, Any]:
+            """Freeze full-catalogue capture intent locally; a separate worker acquires metadata."""
+            try:
+                request = CaptureInput(
+                    spec=spec,
+                    offline=offline,
+                    refresh=refresh,
+                    budget=budget,
+                    batch_size=batch_size,
+                )
+            except ValueError:
+                raise ToolError("Invalid metadata capture request or state.") from None
+            return call(
+                data.plan_metadata_capture,
+                request.spec,
+                offline=request.offline,
+                refresh=request.refresh,
+                budget=request.budget,
+                batch_size=request.batch_size,
+                control=True,
+            )
+
+        def get_metadata_capture_plan(plan_id: SnapshotId) -> dict[str, Any]:
+            """Read a retained whole-catalogue capture plan without provider access."""
+            return call(data.get_metadata_capture_plan, plan_id, control=True)
+
+        def submit_metadata_capture_plan(
+            plan_id: SnapshotId, idempotency_key: IdempotencyKey
+        ) -> dict[str, Any]:
+            """Queue capture once per idempotency key; this tool never starts a worker."""
+            return call(data.submit_metadata_capture_plan, plan_id, idempotency_key, control=True)
+
+        def get_metadata_capture_job(job_id: JobId) -> dict[str, Any]:
+            """Read durable capture progress, bounded batches and retained result identifiers."""
+            return call(data.get_metadata_capture_job, job_id, control=True)
+
+        def list_metadata_capture_jobs(limit: Limit = 20, offset: Offset = 0) -> dict[str, Any]:
+            """List a bounded page of local whole-catalogue capture jobs."""
+            return call(data.list_metadata_capture_jobs, limit, offset, control=True)
+
+        def cancel_metadata_capture_job(job_id: JobId) -> dict[str, Any]:
+            """Request cancellation at the capture worker's next checkpoint."""
+            return call(data.cancel_metadata_capture_job, job_id, control=True)
+
+        def retry_metadata_capture_job(job_id: JobId) -> dict[str, Any]:
+            """Requeue failed capture within its remaining request, byte and attempt budgets."""
+            return call(data.retry_metadata_capture_job, job_id, control=True)
+
+        functions.extend(
+            (fn, annotations)
+            for fn in (
+                get_metadata_capture_plan,
+                get_metadata_capture_job,
+                list_metadata_capture_jobs,
+            )
+        )
+        for fn, idempotent in (
+            (plan_metadata_capture, True),
+            (submit_metadata_capture_plan, True),
+            (cancel_metadata_capture_job, True),
+            (retry_metadata_capture_job, False),
+        ):
+            functions.append(
+                (
+                    fn,
+                    ToolAnnotations(
+                        read_only_hint=False,
+                        destructive_hint=False,
+                        idempotent_hint=idempotent,
+                        open_world_hint=False,
+                    ),
+                )
+            )
 
     if enable_jobs and supports_metadata_sync(data, controls=True):
 

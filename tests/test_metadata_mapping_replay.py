@@ -6,6 +6,7 @@ import pytest
 from test_metadata_sync import FIXTURE, snapshot, spec, submit, sync_for
 
 from ssdu.http import HttpClient
+from ssdu.metadata_contract import CONTRACT_VERSION
 from ssdu.metadata_index import MetadataIndex
 from ssdu.metadata_mapping import MAPPING_VERSION
 from ssdu.metadata_store import MetadataStore
@@ -20,7 +21,7 @@ def test_mapped_fields_and_source_evidence_replay_from_portable_snapshot(provide
     job, document = snapshot(sync, submit(sync, configuration))
     sid = job["result"]["snapshot_id"]
     row = document["records"][0]
-    assert document["contract_version"] == "1.0.0"
+    assert document["contract_version"] == CONTRACT_VERSION
     assert row["mapping_version"] == MAPPING_VERSION
     mapping = row["source_metadata"]["mapping"]
     assert mapping["version"] == MAPPING_VERSION

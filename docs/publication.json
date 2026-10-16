@@ -49,7 +49,8 @@
     "_downloads/research_tutorial.ipynb": "examples/notebooks/research_tutorial.ipynb",
     "_downloads/provider_workflow.py": "examples/provider_workflow.py",
     "_downloads/national_connectors.py": "examples/national_connectors.py",
-    "_downloads/metadata_sync.py": "examples/metadata_sync.py"
+    "_downloads/metadata_sync.py": "examples/metadata_sync.py",
+    "_downloads/metadata_capture.py": "examples/metadata_capture.py"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -98,7 +99,13 @@
     "ssdu.metadata_store.MetadataStore.import_bundle",
     "ssdu.metadata_index.MetadataIndex",
     "ssdu.metadata_index.MetadataIndex.search",
-    "ssdu.metadata_index.MetadataIndex.status"
+    "ssdu.metadata_index.MetadataIndex.status",
+    "ssdu.metadata_capture.MetadataCapture",
+    "ssdu.metadata_capture.MetadataCapture.plan_capture",
+    "ssdu.metadata_capture.MetadataCapture.run_job",
+    "ssdu.metadata_capture.MetadataCapture.report",
+    "ssdu.metadata_capture.MetadataCapture.export_capture",
+    "ssdu.metadata_capture.MetadataCapture.import_capture"
   ],
   "schema_models": [
     "ssdu.contracts.QuerySpec",
@@ -115,7 +122,9 @@
     "ssdu.metadata_sync_models.ProviderSync",
     "ssdu.metadata_sync_models.MetadataSyncSpec",
     "ssdu.metadata_sync_models.SyncInput",
-    "ssdu.metadata_sync_models.SyncPlan"
+    "ssdu.metadata_sync_models.SyncPlan",
+    "ssdu.metadata_capture_models.CaptureInput",
+    "ssdu.metadata_capture_models.CapturePlan"
   ],
   "notebooks": {
     "examples/nomis.md": "examples/notebooks/nomis.ipynb",
@@ -124,5 +133,6 @@
     "start/research-tutorial.md": "examples/notebooks/research_tutorial.ipynb"
   },
   "four_nation_example": "examples/four_nations.py",
-  "dataset_api_example": "examples/dataset_api.py"
+  "dataset_api_example": "examples/dataset_api.py",
+  "metadata_capture_example": "examples/metadata_capture.py"
 }

@@ -11,6 +11,7 @@ import sqlite3
 import time
 import uuid
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import asdict, fields, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,8 +22,8 @@ from pydantic import TypeAdapter
 from ssdu.connector_cache import CachedClient
 from ssdu.contracts import SnapshotId
 from ssdu.http import HttpClient, ProviderRetry, Resource
-from ssdu.metadata_contract import safe_name, validate_record
-from ssdu.metadata_mapping import MAPPING_VERSION, bind_mapping
+from ssdu.metadata_contract import CONTRACT_VERSION, safe_name, validate_record
+from ssdu.metadata_mapping import MAPPING_VERSION, bind_mapping, normalized_metadata_fields
 from ssdu.metadata_store import MetadataStore
 from ssdu.metadata_sync_models import SyncInput, SyncPlan
 from ssdu.models import RetrievalError
@@ -64,6 +65,7 @@ def _implementation():
             "mhclg",
             "nisra",
             "scotland",
+            "scotland_ckan",
         )
     )
     return hashlib.sha256(
@@ -111,6 +113,7 @@ class MetadataSync:
     def __init__(self, root="data", *, clock=None, client_factory=None):
         self.store = root if isinstance(root, Store) else Store(root)
         self.clock, self.client_factory = clock or time.time, client_factory
+        self._snapshot_recovery = ContextVar("metadata_snapshot_recovery", default=False)
         self.root = self.store.root / "metadata-sync"
         self.root.mkdir(exist_ok=True)
         self.path = self.store.root / "metadata-sync.sqlite3"
@@ -399,8 +402,11 @@ class MetadataSync:
             try:
                 if kind == "catalogue":
                     value = adapter.list_datasets(client=client, **args)
+                elif kind == "inventory":
+                    value = adapter.catalogue_inventory(client=client, **args)
                 elif kind == "description":
-                    value = adapter.describe_dataset(client=client, **args)
+                    describe = getattr(adapter, "describe_metadata", adapter.describe_dataset)
+                    value = describe(client=client, **args)
                 else:
                     value = adapter.list_dimension_values(client=client, **args)
             except Exception as error:
@@ -417,6 +423,7 @@ class MetadataSync:
         duplicate_count, code_pages, described, checked_count = 0, 0, 0, 0
         catalogue_complete, codes_complete = False, options.detail == "codes"
         stable, total, next_offset = True, None, 0
+        catalogue_adapter_report = {}
         if options.dataset_ids:
             rows = {
                 identity: ({"id": identity, "title": identity, "provider": provider}, [])
@@ -424,21 +431,53 @@ class MetadataSync:
             }
         else:
             for _ in range(options.max_pages):
+                inventory = (
+                    options.catalogue_mode == "inventory"
+                    and next_offset == 0
+                    and hasattr(get_provider(provider).adapter(), "catalogue_inventory")
+                )
+                arguments = (
+                    {"query": options.query, "max_records": min(1000, options.max_datasets)}
+                    if inventory
+                    else {
+                        "query": options.query,
+                        "limit": options.page_size,
+                        "offset": next_offset,
+                    }
+                )
                 result, resources = self._operation(
                     job_id,
                     provider,
                     epoch,
                     plan,
-                    "catalogue",
-                    {
-                        "query": options.query,
-                        "limit": options.page_size,
-                        "offset": next_offset,
-                    },
+                    "inventory" if inventory else "catalogue",
+                    arguments,
                 )
                 evidence.extend(resources)
                 if not isinstance(result, dict) or not isinstance(result.get("items"), list):
                     raise RetrievalError("Malformed common catalogue page")
+                if result.get("total") is not None and (
+                    type(result["total"]) is not int or result["total"] < 0
+                ):
+                    raise RetrievalError("Catalogue total must be a nonnegative integer")
+                if inventory:
+                    catalogue_adapter_report = {
+                        key: result[key]
+                        for key in ("inventory_complete", "reconciliation", "duplicate_count")
+                        if key in result
+                    }
+                    duplicates = result.get("duplicate_count", 0)
+                    if type(duplicates) is not int or duplicates < 0:
+                        raise RetrievalError("Invalid inventory duplicate count")
+                    duplicate_count += duplicates
+                    if duplicates:
+                        stable = False
+                    adapter_errors = result.get("errors", [])
+                    if not isinstance(adapter_errors, list) or len(adapter_errors) > 1000:
+                        raise RetrievalError("Invalid inventory reconciliation errors")
+                    if adapter_errors:
+                        errors.extend(adapter_errors)
+                        stable = False
                 if (
                     total is not None
                     and result.get("total") is not None
@@ -468,7 +507,11 @@ class MetadataSync:
                     rows[identity] = row, resources
                 following = result.get("next_offset")
                 if following is None:
-                    catalogue_complete = stable and (total is None or len(rows) == total)
+                    catalogue_complete = (
+                        stable
+                        and (total is None or len(rows) == total)
+                        and (not inventory or result.get("inventory_complete", True) is True)
+                    )
                     next_offset = None
                     break
                 if (
@@ -593,7 +636,7 @@ class MetadataSync:
                 "dataset_id": f"{provider}:{identity}",
                 "title": base.get("title", identity),
                 "description": base.get("description"),
-                "kind": "dataset",
+                "kind": base.get("kind", "dataset"),
                 "dimensions": base.get("dimensions", []),
                 "measures": base.get("measures", []),
                 "distributions": base.get("distributions", []),
@@ -617,6 +660,7 @@ class MetadataSync:
                 "last_checked_at": _checked(record_evidence),
                 "provider_modified_at": modified,
                 "mapping_version": MAPPING_VERSION,
+                **normalized_metadata_fields(base),
             }
             captured = _earliest(record_evidence, "captured_at")
             if captured is None:
@@ -695,6 +739,28 @@ class MetadataSync:
                 "capture_time_basis": "source_resources"
                 if _earliest(resources, "captured_at")
                 else "local_materialization_unknown_source_capture",
+                "catalogue_adapter_report": catalogue_adapter_report,
+                "normalization": {
+                    "record_count": len(records),
+                    "fields": {
+                        field: {
+                            status: sum(
+                                item.get("field_status", {}).get(field, {}).get("status") == status
+                                for item in records
+                            )
+                            for status in (
+                                "mapped",
+                                "not_provided",
+                                "unmapped",
+                                "ambiguous",
+                                "not_requested",
+                            )
+                        }
+                        for field in sorted(
+                            {field for item in records for field in item.get("field_status", {})}
+                        )
+                    },
+                },
             },
         }
         return {"report": report, "records": records, "resources": resources}
@@ -732,6 +798,22 @@ class MetadataSync:
     @staticmethod
     def _unique_evidence(resources):
         return sorted({canonical(item): item for item in resources}.values(), key=canonical)
+
+    @contextmanager
+    def _recovered_snapshots(self):
+        """Verify and recover once for this explicit capture worker invocation.
+
+        Every cache/checkpoint read still verifies its own response body. A new
+        invocation starts a new recovery pass, including after interruption. The
+        context is local to this service and execution context; ordinary sync jobs
+        keep their independent recovery checks.
+        """
+        self._seed_snapshots()
+        token = self._snapshot_recovery.set(True)
+        try:
+            yield
+        finally:
+            self._snapshot_recovery.reset(token)
 
     def _seed_snapshots(self):
         """Recover cache only from body files bound to verified portable inventories."""
@@ -922,7 +1004,7 @@ class MetadataSync:
             try:
                 if plan.implementation != _implementation():
                     raise ValueError("Metadata implementation changed; replan before resuming")
-                if plan.input.offline:
+                if plan.input.offline and not self._snapshot_recovery.get():
                     self._seed_snapshots()
                 receipts = []
                 for provider, options in plan.input.spec.providers.items():
@@ -978,7 +1060,7 @@ class MetadataSync:
                             }
                         )
                 document = {
-                    "contract_version": "1.0.0",
+                    "contract_version": CONTRACT_VERSION,
                     "captured_at": _iso(self.clock),
                     "scope": plan.input.spec.model_dump(),
                     "providers": [receipt["report"] for receipt in receipts],

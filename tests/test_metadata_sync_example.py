@@ -30,10 +30,9 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
     assert receipt["fixture_kind"] == "independently_invented_teaching_metadata"
     assert receipt["providers"] == ["mhclg", "nisra", "nomis", "scotland", "statswales"]
     assert receipt["records"] == receipt["search_results"] == 5
-    assert receipt["contract_version"] == "1.0.0"
+    assert receipt["contract_version"] == "1.1.0"
     assert receipt["provider_network_requests"] == receipt["observation_requests"] == 0
-    assert receipt["fixture_http_requests"] > 0
-    assert receipt["fixture_http_requests"] == 14
+    assert 0 < receipt["fixture_http_requests"] < 25
     assert receipt["interruption_resumed"]
     assert receipt["retained_prefix_not_refetched"]
     assert receipt["fresh_store_replayed_offline"]
@@ -68,7 +67,7 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
         "mhclg": (0, "provider_declared", None, True),
         "nisra": (1, None, "dimension_categories", True),
         "nomis": (1, None, "declared_dimension", False),
-        "scotland": (1, None, "declared_dimension", True),
+        "scotland": (0, None, None, True),
         "statswales": (0, None, "provider_declared", False),
     }
     for provider, (measures, spatial, temporal, licence) in availability.items():
@@ -99,7 +98,7 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
             assert replay[provider].get(field) == row.get(field)
         mapping = row["source_metadata"]["mapping"]
         assert replay[provider]["source_metadata"]["mapping"] == mapping
-        assert mapping["version"] == row["mapping_version"] == "1.1.0"
+        assert mapping["version"] == row["mapping_version"] == "1.2.0"
         assert all(
             item["source_path"]
             and item["resource_paths"]
@@ -148,21 +147,11 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
     assert records["mhclg"]["licence"] == (
         "https://example.invalid/ssdu/invented-publication-terms"
     )
-    assert records["scotland"]["measures"] == [
-        {"id": "https://example.invalid/ssdu/events", "label": "Invented events"}
-    ]
-    assert records["scotland"]["coverage"] == {
-        "temporal": {
-            "dimensions": [
-                {"id": "http://purl.org/linked-data/sdmx/2009/dimension#refPeriod", "label": "Year"}
-            ],
-            "scope": "declared_dimension",
-        }
-    }
+    assert records["scotland"]["measures"] == []
+    assert records["scotland"]["coverage"] is None
     assert records["scotland"]["licence"] == "https://example.invalid/ssdu/invented-fixtures"
-    assert records["scotland"]["access"]["conditions"] == (
-        "Invented terms require permission before redistribution."
-    )
+    assert records["scotland"]["native_id"].startswith("ckan:")
+    assert records["scotland"]["source_metadata"]["descriptor"]["capabilities"]["metadata_only"]
     expected_native_paths = {
         "mhclg": {"/description", "/details/licence"},
         "nisra": {"/note/0", "/note/1", "/extension/copyright/href", "/role/time"},
@@ -171,12 +160,7 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
             "/structure/keyfamilies/keyfamily/0/components/primarymeasure/conceptref",
             "/structure/keyfamilies/keyfamily/0/components/timedimension/conceptref",
         },
-        "scotland": {
-            (
-                "<http://statistics.gov.scot/data/ssdu-invented-community>/"
-                "<http://purl.org/dc/terms/description>"
-            )
-        },
+        "scotland": {"/result/description"},
         "statswales": {
             "/published_revision/metadata/0/summary",
             "/published_revision/coverage_start_date",

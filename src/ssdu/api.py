@@ -27,8 +27,10 @@ from .contracts import (
     bounded_result,
     resolve_service,
     supports_connector_metadata,
+    supports_metadata_capture,
     supports_metadata_sync,
 )
+from .metadata_capture_models import CaptureInput
 from .metadata_sync_models import SyncInput
 from .models import RetrievalError
 from .retrieval_models import JobId, PlanInput, SubmitInput
@@ -201,6 +203,58 @@ def create_app(
         def describe_metadata_snapshot(snapshot_id: SnapshotId):
             """Verify and summarize retained metadata evidence; bulk data is never expanded."""
             return call(data.describe_metadata_snapshot, snapshot_id)
+
+    if supports_metadata_capture(data):
+
+        @app.get("/metadata/captures/{capture_id}")
+        def metadata_capture_report(capture_id: SnapshotId):
+            """Verify local catalogue capture completeness; never contact providers."""
+            return call(data.metadata_capture_report, capture_id)
+
+    if enable_jobs and supports_metadata_capture(data, controls=True):
+
+        @app.post("/metadata/capture/plans", status_code=201)
+        def plan_metadata_capture(request: CaptureInput):
+            """Freeze catalogue capture intent locally; a separate worker acquires metadata."""
+            return call(
+                data.plan_metadata_capture,
+                request.spec,
+                offline=request.offline,
+                refresh=request.refresh,
+                budget=request.budget,
+                batch_size=request.batch_size,
+                control=True,
+            )
+
+        @app.get("/metadata/capture/plans/{plan_id}")
+        def get_metadata_capture_plan(plan_id: SnapshotId):
+            return call(data.get_metadata_capture_plan, plan_id, control=True)
+
+        @app.post("/metadata/capture/jobs", status_code=202)
+        def submit_metadata_capture_plan(request: SubmitInput):
+            """Queue a frozen catalogue capture locally without starting a worker."""
+            return call(
+                data.submit_metadata_capture_plan,
+                request.plan_id,
+                request.idempotency_key,
+                control=True,
+            )
+
+        @app.get("/metadata/capture/jobs")
+        def list_metadata_capture_jobs(params: Annotated[JobListParams, Query()]):
+            return call(data.list_metadata_capture_jobs, **params.model_dump(), control=True)
+
+        @app.get("/metadata/capture/jobs/{job_id}")
+        def get_metadata_capture_job(job_id: JobId):
+            return call(data.get_metadata_capture_job, job_id, control=True)
+
+        @app.post("/metadata/capture/jobs/{job_id}/cancel")
+        def cancel_metadata_capture_job(job_id: JobId):
+            return call(data.cancel_metadata_capture_job, job_id, control=True)
+
+        @app.post("/metadata/capture/jobs/{job_id}/retry")
+        def retry_metadata_capture_job(job_id: JobId):
+            return call(data.retry_metadata_capture_job, job_id, control=True)
 
     if enable_jobs and supports_metadata_sync(data, controls=True):
 

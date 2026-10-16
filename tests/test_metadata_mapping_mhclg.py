@@ -8,6 +8,7 @@ import pytest
 
 from ssdu.adapters import mhclg
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import MAPPING_VERSION
 
 
 def publication():
@@ -87,7 +88,7 @@ def test_maps_prose_licence_and_explicit_publication_applicability_without_downl
         ("/details/national_applicability/nearland/label", "provider_assertion"),
     }
     assert evidence(result, "access") == {("@response.url", "connector_endpoint")}
-    assert result["metadata_mapping"]["version"] == "1.1.0"
+    assert result["metadata_mapping"]["version"] == MAPPING_VERSION
     assert "body" not in result and "raw" not in result
 
 
@@ -103,7 +104,13 @@ def test_missing_assertions_stay_unknown_despite_title_dates_and_attachment_acce
     assert result["licence"] == mhclg.UNKNOWN_LICENCE
     assert result["access"]["data_access"] == "not_asserted"
     assert "conditions" not in result["access"]
-    assert {item["field"] for item in result["metadata_mapping"]["evidence"]} == {"access"}
+    assert {item["field"] for item in result["metadata_mapping"]["evidence"]} == {
+        "access",
+        "publishers",
+        "related",
+        "languages",
+        "distributions",
+    }
 
 
 def test_body_is_readable_description_fallback_with_original_field_evidence():

@@ -202,6 +202,24 @@ def supports_metadata_sync(service, *, controls=False) -> bool:
     return all(callable(getattr(service, name, None)) for name in names)
 
 
+def supports_metadata_capture(service, *, controls=False) -> bool:
+    """Advertise catalogue capture only when the injected service provides its interface."""
+    names = (
+        (
+            "plan_metadata_capture",
+            "get_metadata_capture_plan",
+            "submit_metadata_capture_plan",
+            "get_metadata_capture_job",
+            "list_metadata_capture_jobs",
+            "cancel_metadata_capture_job",
+            "retry_metadata_capture_job",
+        )
+        if controls
+        else ("metadata_capture_report",)
+    )
+    return all(callable(getattr(service, name, None)) for name in names)
+
+
 def resolve_service(store="data", service: DataService | None = None) -> DataService:
     if service is not None:
         return service

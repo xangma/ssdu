@@ -18,6 +18,7 @@ from ssdu.adapters.scotland import (
     metadata_query,
 )
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import MAPPING_VERSION
 from ssdu.models import RetrievalError
 
 DATASET = "ssdu-Invented-Cohort"
@@ -116,7 +117,7 @@ def test_maps_prose_declared_measures_roles_and_rights_from_one_response():
     }
     assert result["source_metadata"]["bindings"] == source["results"]["bindings"]
     evidence = result["metadata_mapping"]
-    assert evidence["version"] == "1.1.0"
+    assert evidence["version"] == MAPPING_VERSION
     assert {
         "field": "description",
         "source_path": f"<{BASE}{DATASET}>/<{DCT}description>",

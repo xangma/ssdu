@@ -92,6 +92,8 @@ class ProviderRegistration:
             paths.append(root / "records.py")
         if self.id == "mhclg":
             paths.append(root / "distributions.py")
+        if self.id == "scotland":
+            paths.append(root / "adapters" / "scotland_ckan.py")
         return tuple(paths)
 
     def implementation_paths(self) -> tuple[Path, ...]:
@@ -183,7 +185,7 @@ REGISTRY = ProviderRegistry(
             "normalize",
             "ssdu.scotland.observations",
             "1.0.0",
-            frozenset({"statistics.gov.scot"}),
+            frozenset({"statistics.gov.scot", "api.data.gov.scot"}),
             accepts_raw_frame=True,
             workflow=True,
         ),

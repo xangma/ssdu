@@ -216,7 +216,7 @@ def test_machine_schema_validates_v1_and_declares_all_strict_core_fields():
     validator = Draft202012Validator(schema, format_checker=FormatChecker())
     validator.validate(synthetic_document())
     assert set(schema["$defs"]["record"]["properties"]) == RECORD_FIELDS
-    assert schema["properties"]["contract_version"] == {"const": "1.0.0"}
+    assert schema["properties"]["contract_version"] == {"const": CONTRACT_VERSION}
     incompatible = synthetic_document()
     incompatible["contract_version"] = "2.0.0"
     assert list(validator.iter_errors(incompatible))
@@ -228,7 +228,118 @@ def test_machine_schema_validates_v1_and_declares_all_strict_core_fields():
     assert list(validator.iter_errors(incompatible))
     # Callers cannot mutate a shared schema singleton.
     schema["properties"]["contract_version"]["const"] = "changed"
-    assert contract_schema()["properties"]["contract_version"]["const"] == "1.0.0"
+    assert contract_schema()["properties"]["contract_version"]["const"] == CONTRACT_VERSION
+
+
+def test_legacy_snapshot_validation_and_schema_preserve_flexible_native_shapes():
+    from jsonschema import Draft202012Validator
+
+    from ssdu.metadata_contract import LEGACY_RECORD_FIELDS, contract_schema
+
+    document = synthetic_document()
+    document["contract_version"] = "1.0.0"
+    document["records"][0]["dimensions"][0]["count"] = "native count not normalized"
+    document["records"][0]["coverage"] = "native scope retained in v1.0"
+    original = copy.deepcopy(document)
+    assert validate_document(document) == original
+    assert document == original
+    schema = contract_schema("1.0.0")
+    Draft202012Validator(schema).validate(document)
+    assert set(schema["$defs"]["record"]["properties"]) == LEGACY_RECORD_FIELDS
+    row = document["records"][0]
+    assert validate_record(row, contract_version="1.0.0") == row
+    assert record_version(row, contract_version="1.0.0")
+    with pytest.raises(MetadataError):
+        validate_record(row)
+
+
+def discovery_document():
+    document = synthetic_document()
+    document["records"][0].update(
+        kind="publication",
+        publishers=[
+            {"id": "invented-department", "name": "Invented Department", "role": "primary"}
+        ],
+        subjects=[{"id": "homes", "label": "Invented housing", "scheme": "provider"}],
+        languages=["en-GB", "cy"],
+        related=[
+            {"relation": "isPartOf", "target_id": "nomis:FAKE_002", "title": "Invented series"}
+        ],
+        field_status={
+            "subjects": {"status": "mapped"},
+            "coverage.spatial": {
+                "status": "not_provided",
+                "reason": "Inspected provider field is absent.",
+            },
+            "measures": {"status": "not_requested"},
+        },
+        coverage={"temporal": {"scope": "provider_declared", "start": "2020", "end": "2024"}},
+        distributions=[
+            {
+                "id": "download",
+                "url": "https://example.org/invented.csv",
+                "supported": False,
+                "bytes": 0,
+            }
+        ],
+    )
+    return document
+
+
+def test_current_contract_retains_typed_discovery_fields_without_inventing_facts():
+    from jsonschema import Draft202012Validator, FormatChecker
+
+    from ssdu.metadata_contract import contract_schema
+
+    document = discovery_document()
+    assert validate_document(document) == document
+    Draft202012Validator(contract_schema(), format_checker=FormatChecker()).validate(document)
+    document["contract_version"] = "1.0.0"
+    with pytest.raises(MetadataError):
+        validate_document(document)
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"publishers": [{}]},
+        {"publishers": [{"name": "Invented", "url": "file:///local"}]},
+        {"publishers": [{"name": "Invented", "url": "https://user:pass@example.org"}]},
+        {"publishers": [{"name": "Invented", "guessed": True}]},
+        {"subjects": [{"scheme": "unknown"}]},
+        {"subjects": ["housing"]},
+        {"languages": "en"},
+        {"languages": [None]},
+        {"related": [{"target_id": "other:row"}]},
+        {"related": [{"relation": "isPartOf"}]},
+        {"dimensions": [{"id": 3}]},
+        {"dimensions": [{"count": "three"}]},
+        {"dimensions": [{"values": "not an array"}]},
+        {"measures": [{"unit": 4}]},
+        {"distributions": [{"bytes": True}]},
+        {"distributions": [{"supported": "yes"}]},
+        {"distributions": [{"url": "../file.csv"}]},
+        {"coverage": "UK"},
+        {"coverage": {"spatial": "UK"}},
+        {"coverage": {"temporal": {"start": 2020}}},
+        {"coverage": {"spatial": {"areas": ["UK"]}}},
+        {"coverage": {"spatial": {"areas": [{"id": "UK", "count": "many"}]}}},
+        {"field_status": {"made_up": {"status": "mapped"}}},
+        {"field_status": {"description": {"status": "inferred"}}},
+        {"field_status": {"description": {"status": []}}},
+        {"field_status": {"description": {"status": "unmapped", "reason": 4}}},
+    ],
+)
+def test_typed_discovery_contract_and_schema_reject_malformed_fields(fields):
+    from jsonschema import Draft202012Validator
+
+    from ssdu.metadata_contract import contract_schema
+
+    document = discovery_document()
+    document["records"][0].update(fields)
+    with pytest.raises(MetadataError):
+        validate_document(document)
+    assert list(Draft202012Validator(contract_schema()).iter_errors(document))
 
 
 @pytest.mark.parametrize(

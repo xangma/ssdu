@@ -87,7 +87,7 @@ def test_nomis_declared_metadata_and_native_evidence(singleton):
         "data_access": "not_asserted",
     }
     mapping = result["metadata_mapping"]
-    assert mapping["version"] == "1.1.0"
+    assert mapping["version"] == "1.2.0"
     assert {
         "field": "description",
         "source_path": prefix + "/description/value",
@@ -99,6 +99,9 @@ def test_nomis_declared_metadata_and_native_evidence(singleton):
         "coverage.spatial",
         "coverage.temporal",
         "access",
+        "dimensions",
+        "languages",
+        "related",
     }
     for item in mapping["evidence"]:
         if item["method"] == "connector_endpoint":
@@ -122,7 +125,11 @@ def test_nomis_unknown_metadata_does_not_derive_from_title_or_category():
     assert result["measures"] == []
     assert result["coverage"] is None
     assert result["licence"] is None
-    assert [item["field"] for item in result["metadata_mapping"]["evidence"]] == ["access"]
+    assert {item["field"] for item in result["metadata_mapping"]["evidence"]} == {
+        "access",
+        "dimensions",
+    }
+    assert result["field_status"]["description"]["status"] == "not_provided"
 
 
 @pytest.mark.parametrize(
@@ -187,3 +194,126 @@ def test_nomis_dataset_units_are_not_universal_for_varying_series(varying):
         "annotationtext" in item["source_path"] for item in result["metadata_mapping"]["evidence"]
     )
     assert result["source_metadata"] == document
+
+
+def test_nomis_annotation_prose_classifications_languages_and_codelists_are_normalized():
+    document = definition()
+    family = document["structure"]["keyfamilies"]["keyfamily"][0]
+    family.pop("description")
+    family["agencyid"] = "INVENTED_AGENCY"
+    family["name"]["lang"] = "en"
+    family["annotations"]["annotation"] += [
+        {"annotationtitle": "SubDescription", "annotationtext": "Invented population base."},
+        {"annotationtitle": "MetadataTitle0", "annotationtext": "Invented methods"},
+        {
+            "annotationtitle": "MetadataText0",
+            "annotationtext": "<p>Invented notes &amp; caveats.</p>",
+        },
+        {"annotationtitle": "Keywords", "annotationtext": "libraries, visits, libraries"},
+        {"annotationtitle": "contenttype/sources", "annotationtext": "invented_survey"},
+        {"annotationtitle": "contenttype/geoglevel", "annotationtext": "invented_level"},
+    ]
+    result = describe(document)
+    assert (
+        result["description"]
+        == "Invented population base.\n\nInvented methods\nInvented notes & caveats."
+    )
+    assert result["publishers"] == [{"id": "INVENTED_AGENCY", "role": "metadata_agency"}]
+    assert result["languages"] == ["en"]
+    assert result["subjects"] == [
+        {"label": "libraries", "scheme": "nomis:Keywords"},
+        {"label": "visits", "scheme": "nomis:Keywords"},
+        {"id": "invented_survey", "scheme": "nomis:contenttype/sources"},
+        {"id": "invented_level", "scheme": "nomis:contenttype/geoglevel"},
+    ]
+    assert result["related"] == [
+        {"relation": "codelist", "target_id": "CL_INVENTED_AREA"},
+        {"relation": "codelist", "target_id": "CL_INVENTED_CATEGORY"},
+        {"relation": "codelist", "target_id": "CL_INVENTED_TIME"},
+    ]
+    assert result["dimensions"][-1]["id"] == "time"
+    assert result["field_status"]["description"]["status"] == "mapped"
+    assert result["field_status"]["licence"]["status"] == "not_provided"
+    assert result["field_status"]["distributions"]["status"] == "not_requested"
+    assert result["source_metadata"] == document
+
+
+def test_nomis_conflicting_description_has_explicit_status_without_inventing_text():
+    document = definition()
+    family = document["structure"]["keyfamilies"]["keyfamily"][0]
+    family["description"] = [
+        {"lang": "en", "value": "Account A"},
+        {"lang": "en", "value": "Account B"},
+    ]
+    result = describe(document)
+    assert result["description"] is None
+    assert result["field_status"]["description"]["status"] == "ambiguous"
+    assert result["field_status"]["publishers"]["status"] == "not_provided"
+    assert result["source_metadata"] == document
+
+
+def test_nomis_unreadable_native_metadata_is_unmapped_rather_than_absent():
+    document = definition()
+    family = document["structure"]["keyfamilies"]["keyfamily"][0]
+    family["agencyid"] = {"unexpected": "object"}
+    family["description"] = {"value": {"unsupported": "shape"}}
+    family["name"]["lang"] = {"unsupported": "shape"}
+    family["annotations"]["annotation"].append(
+        {"annotationtitle": "Keywords", "annotationtext": {"unsupported": "shape"}}
+    )
+    result = describe(document)
+    for field in ("description", "publishers", "subjects", "languages"):
+        assert result["field_status"][field]["status"] == "unmapped"
+    assert result["source_metadata"] == document
+
+
+@pytest.mark.parametrize("selector", ["time", "date"])
+def test_declared_time_dimension_supports_time_and_date_code_requests(selector):
+    document = definition()
+    calls = []
+
+    def handler(request):
+        calls.append(request.url.path)
+        if request.url.path == f"/api/v01/dataset/{DATASET}/def.sdmx.json":
+            return httpx.Response(200, json=document)
+        assert request.url.path == f"/api/v01/dataset/{DATASET}/time.def.sdmx.json"
+        return httpx.Response(
+            200,
+            json={
+                "structure": {
+                    "codelists": {
+                        "codelist": {
+                            "code": [
+                                {
+                                    "value": "invented-period",
+                                    "description": {"value": "Invented period"},
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+        )
+
+    with HttpClient(transport=httpx.MockTransport(handler), retries=0) as client:
+        descriptor = nomis.describe_dataset(DATASET, client)
+        result = nomis.list_dimension_values(DATASET, selector, client)
+    assert descriptor["dimensions"][-1]["id"] == "time"
+    assert result["items"] == [
+        {
+            "value": "invented-period",
+            "label": "Invented period",
+            "source_metadata": {
+                "value": "invented-period",
+                "description": {"value": "Invented period"},
+            },
+        }
+    ]
+    assert result["total"] == 1
+    assert calls == [
+        f"/api/v01/dataset/{DATASET}/def.sdmx.json",
+        f"/api/v01/dataset/{DATASET}/def.sdmx.json",
+        f"/api/v01/dataset/{DATASET}/time.def.sdmx.json",
+    ]
+    assert descriptor["coverage"]["temporal"]["scope"] == "declared_dimension"
+    assert "start" not in descriptor["coverage"]["temporal"]

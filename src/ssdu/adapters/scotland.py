@@ -1,9 +1,8 @@
-"""Bounded linked-data cube retrieval from statistics.gov.scot.
+"""Current Scottish catalogue discovery and retained legacy cube retrieval.
 
-Fixed SELECT templates retain complete selected observation triples and labels in
-one response. Dataset and data-structure metadata bracket that response. This
-checks observed metadata stability, not an unavailable historical revision pin.
-File/ZIP datasets and slice-attached components are deliberately unsupported.
+Catalogue listing uses data.gov.scot's current public CKAN metadata service.
+Explicit plain legacy slugs retain bounded statistics.gov.scot cube retrieval for
+historical local snapshots. Current ``ckan:`` identities are metadata-only.
 """
 
 from __future__ import annotations
@@ -73,6 +72,13 @@ def _window(limit, offset):
 def validate_request(request: Request) -> None:
     if request.provider != "scotland":
         raise RetrievalError("Scotland adapter received a different provider")
+    if isinstance(request.dataset_id, str) and request.dataset_id.startswith("ckan:"):
+        from ssdu.adapters.scotland_ckan import _identifier
+
+        _identifier(request.dataset_id)
+        raise RetrievalError(
+            "Current Scotland portal records are metadata-only; resource acquisition is not implemented"
+        )
     _dataset_id(request.dataset_id)
     if not isinstance(request.params, dict):
         raise RetrievalError("Scotland params must be an object")
@@ -300,7 +306,7 @@ def _frame(rows, structure, request):
     }
 
 
-def search(query: str, client: HttpClient) -> list[dict]:
+def search_legacy(query: str, client: HttpClient) -> list[dict]:
     """At most 25 linked cube titles; intentionally not an exhaustive catalogue."""
     if not isinstance(query, str) or len(query) > 200:
         raise RetrievalError("Scotland search must be at most 200 characters")
@@ -323,7 +329,7 @@ FILTER(CONTAINS(LCASE(STR(?title)), LCASE({literal})))
     return result
 
 
-def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict:
+def list_legacy_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict:
     """Page linked observation cubes, with one deterministic title per dataset.
 
     A lookahead row establishes continuation without enumerating the catalogue.
@@ -373,6 +379,24 @@ FILTER(CONTAINS(LCASE(?name), LCASE({literal})))
         "catalogue_scope": "linked_cubes_with_declared_dimensions_and_measures",
         "compatibility": "component attachment and shape verified by describe_dataset",
     }
+
+
+def list_datasets(query: str, client: HttpClient, *, limit=20, offset=0) -> dict:
+    """Discover the current public Scottish catalogue, including file datasets."""
+    from ssdu.adapters import scotland_ckan
+
+    return scotland_ckan.list_datasets(query, client, limit=limit, offset=offset)
+
+
+def search(query: str, client: HttpClient) -> list[dict]:
+    return list_datasets(query, client, limit=25)["items"]
+
+
+def catalogue_inventory(query, client, *, max_records=1000):
+    """Independently reconcile bounded current-portal search and native names."""
+    from ssdu.adapters import scotland_ckan
+
+    return scotland_ckan.catalogue_inventory(query, client, max_records=max_records)
 
 
 def _definition(dataset_id, client):
@@ -486,6 +510,10 @@ def _mapped_metadata(dataset_id, rows, structure):
 
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
     """Inspect dataset and data-structure metadata without retrieving observations."""
+    if isinstance(dataset_id, str) and dataset_id.startswith("ckan:"):
+        from ssdu.adapters import scotland_ckan
+
+        return scotland_ckan.describe_dataset(dataset_id, client)
     rows, structure = _definition(dataset_id, client)
     title = _single(
         structure["dataset"],
@@ -553,6 +581,10 @@ def list_dimension_values(
     grouped English/unlabelled label prevents multilingual duplicate code rows.
     """
     _window(limit, offset)
+    if isinstance(dataset_id, str) and dataset_id.startswith("ckan:"):
+        raise RetrievalError(
+            "Current Scotland portal metadata does not assert statistical dimension values"
+        )
     _dataset_id(dataset_id)
     _uri(dimension)
     if not isinstance(search, str) or len(search) > 512:
