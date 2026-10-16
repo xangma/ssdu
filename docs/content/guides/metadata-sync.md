@@ -10,6 +10,13 @@ declared dates, coverage or access conditions. Finding a catalogue entry does
 not guarantee that SSDU can download every format it describes. Check the
 [provider coverage matrix](../reference/sources.md) before retrieving values.
 
+**Scottish metadata freshness:** SSDU's Scotland connector targets the legacy
+portal, which stopped receiving updates on 25 August 2026 and is scheduled to
+close on 31 October. A successful check of that endpoint does not establish
+current Scottish coverage. Integration with the replacement `data.gov.scot`
+CKAN catalogue remains to be implemented. See the
+[official transition notice](https://blogs.gov.scot/digital/2026/08/19/data-gov-scot-public-beta-launches-on-25-august/).
+
 ## Try it without contacting a provider
 
 After [installation](../start/install.md), run from the project folder:

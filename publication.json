@@ -102,13 +102,13 @@
     {
       "path": "docs/content/guides/metadata-sync.md",
       "kind": "documentation",
-      "sha256": "2dff3a4b64fe20be93c8e435032887e0c9bcac4b45a0ffef00f0386e25832210",
+      "sha256": "4081c7e307c972c2686583a837c365ad3d8791643ff39c34e427546d185f2361",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
       "path": "docs/content/guides/provider-workflow.md",
       "kind": "documentation",
-      "sha256": "e66c00c18ea0893f70d017d6abb015fa86c96f1de5b5eaf6079019720123f988",
+      "sha256": "65aa928aaa94cbdfaf0cb92f57ae053b4dfaf21185fa000302a6ad69372a165f",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
@@ -360,7 +360,7 @@
     {
       "path": "src/ssdu/adapters/mhclg.py",
       "kind": "source",
-      "sha256": "42a7f0baa94cffa83cbd446c7940a4c05dc0a734820a252492c316e2c6369761",
+      "sha256": "1968979e699c72ab7fcd17b4bab7bf82035ceb317faf65463f373c9adcd75528",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
@@ -378,7 +378,7 @@
     {
       "path": "src/ssdu/adapters/scotland.py",
       "kind": "source",
-      "sha256": "77fb7e7d434c6cd1e09515be02d85ebcda039803e63efc89364bf221827be375",
+      "sha256": "35b6fd23108f019f4c66c51c9d3d894b70b411c6bc643f2c4e425bfab33ed0c4",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -708,7 +708,7 @@
     {
       "path": "src/ssdu/source_coverage.py",
       "kind": "source",
-      "sha256": "c563a6a3b4096fbb412590fd4e82a69fc2e24658aa366847956415a554972c6b",
+      "sha256": "703babb1cb84cbb0f95f60a4e8b6047a8b46bbfa33eda0bbde901b43380821fd",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -1242,7 +1242,7 @@
     {
       "path": "tests/test_mhclg.py",
       "kind": "source",
-      "sha256": "2034324c61dd54ac93adcee771822b8e3332d2a2d9f4591a573097d240eea1d8",
+      "sha256": "b83303631ee6ee59ee432881929ff6e6a1e2625157bea7710bd46e8e838251e2",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
@@ -1368,7 +1368,7 @@
     {
       "path": "tests/test_scotland.py",
       "kind": "source",
-      "sha256": "07e814ef9d090da50b3dac50d215faed0083891bb6e1fbbc2c59fb60c28f5bba",
+      "sha256": "fa3ce0f895c9ea74946f87ed60857438bf8dbecf1247bacfd560c3a68574052e",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1392,7 +1392,7 @@
     {
       "path": "tests/test_source_coverage.py",
       "kind": "source",
-      "sha256": "f4747990ad74f2424136e37f1a5cffe103dec3196b7743884a035a30330ec6e2",
+      "sha256": "112eef576419bc50aa9943cbb1fad2c04d726cb773d41e7976d07f1f52c598ae",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {

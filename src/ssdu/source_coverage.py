@@ -211,7 +211,7 @@ SOURCE_COVERAGE = CoverageMatrix(
         ProviderCoverage(
             provider_id="scottish_government",
             name="Scottish Government",
-            overview="Selected Scottish official statistics through statistics.gov.scot.",
+            overview="Legacy Scottish linked-data statistics; the current data.gov.scot service is not yet integrated.",
             source_ids=("scotland",),
             source_urls=("https://www.gov.scot/",),
         ),
@@ -476,6 +476,7 @@ SOURCE_COVERAGE = CoverageMatrix(
             capabilities=_network_capabilities(),
             access="Public SPARQL endpoint through shared cached, rate-limited HTTP requests.",
             limits=(
+                "Legacy portal: publishing stopped on 2026-08-25; statistics.gov.scot is scheduled to close on 2026-10-31. The replacement data.gov.scot CKAN catalogue is not yet an implemented connector.",
                 "Linked RDF cubes only; file/ZIP routes and slice-attached components are unsupported.",
                 "Native URI/code selectors and request budgets remain dataset-specific.",
                 "Metadata is checked around retrieval; provider historical release pinning is not claimed.",
@@ -483,6 +484,8 @@ SOURCE_COVERAGE = CoverageMatrix(
                 "Fixture certification covers declared shapes, not every Scottish table or cross-nation comparability.",
             ),
             source_urls=(
+                "https://blogs.gov.scot/digital/2026/08/19/data-gov-scot-public-beta-launches-on-25-august/",
+                "https://data.gov.scot/help/technical-support/how-to-access-data-using-the-api",
                 "https://guides.statistics.gov.scot/article/22-querying-data-with-sparql",
                 "https://guides.statistics.gov.scot/article/34-understanding-the-data-structure",
             ),

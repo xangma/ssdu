@@ -176,6 +176,10 @@ def test_catalogue_pagination_parameters_and_no_attachment_download():
         calls.append(request)
         offset = int(request.url.params["start"])
         assert request.url.params.get_list("filter_organisations") == list(mhclg.ORGANISATIONS)
+        assert (
+            "ministry-of-housing-communities-and-local-government-2018-2021"
+            not in request.url.params.get_list("filter_organisations")
+        )
         assert request.url.params["q"] == "housing"
         return httpx.Response(
             200,
@@ -238,6 +242,21 @@ def test_statistical_data_set_ids_round_trip_transport_identifier():
 def test_current_and_predecessor_publishers(organisation):
     with client_for(publication(organisation=organisation)) as client:
         assert mhclg.describe_dataset("synthetic-housing", client)["provider"] == "mhclg"
+
+
+def test_exact_historical_mhclg_primary_publisher_is_accepted():
+    document = publication()
+    document["links"]["primary_publishing_organisation"] = [
+        {
+            "base_path": (
+                "/government/organisations/"
+                "ministry-of-housing-communities-and-local-government-2018-2021"
+            )
+        }
+    ]
+    with client_for(document) as client:
+        assert mhclg.describe_dataset("synthetic-housing", client)["provider"] == "mhclg"
+        assert mhclg.fetch(Request("mhclg", "synthetic-housing"), client).provider == "mhclg"
 
 
 def test_wrong_publisher_rejected_before_attachment():

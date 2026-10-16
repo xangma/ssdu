@@ -9,6 +9,12 @@ The common workflow is available for **Nomis, StatsWales, MHCLG, NISRA and
 Scotland**. Their selection codes and supported formats differ; check the
 [coverage matrix](../reference/sources.md) before choosing a source.
 
+**Scotland:** the connector uses the legacy `statistics.gov.scot` service.
+Publishing moved to `data.gov.scot` on 25 August 2026, and the legacy service is
+scheduled to close on 31 October 2026. SSDU does not yet integrate the replacement
+CKAN service. Saved snapshots and synthetic examples can still be replayed
+offline. See the [official transition notice](https://blogs.gov.scot/digital/2026/08/19/data-gov-scot-public-beta-launches-on-25-august/).
+
 To collect descriptions for discovery before choosing a table, see
 [keeping a searchable metadata catalogue](metadata-sync.md).
 

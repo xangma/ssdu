@@ -25,6 +25,9 @@ ORGANISATIONS = (
     "department-for-levelling-up-housing-and-communities",
     "department-for-communities-and-local-government",
 )
+ACCEPTED_PUBLISHERS = frozenset(
+    (*ORGANISATIONS, "ministry-of-housing-communities-and-local-government-2018-2021")
+)
 HOSTS = frozenset(
     {"www.gov.uk", "assets.publishing.service.gov.uk", "open-data.communities.gov.uk"}
 )
@@ -95,7 +98,7 @@ def _publisher(values):
     for entry in values:
         if isinstance(entry, dict):
             entry = entry.get("slug") or entry.get("base_path") or entry.get("link", "")
-        if isinstance(entry, str) and entry.rstrip("/").rsplit("/", 1)[-1] in ORGANISATIONS:
+        if isinstance(entry, str) and entry.rstrip("/").rsplit("/", 1)[-1] in ACCEPTED_PUBLISHERS:
             return True
     return False
 

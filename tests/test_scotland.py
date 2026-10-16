@@ -11,11 +11,13 @@ import pytest
 from ssdu.adapters.scotland import (
     AREA,
     BASE,
+    DCT,
     MAX_METADATA_ROWS,
     QB,
     STATUS,
     UNIT,
     default_request,
+    describe_dataset,
     fetch,
     metadata_query,
     observations_query,
@@ -60,6 +62,62 @@ def retrieve(name="series"):
     assert len(calls) == 3
     assert str(calls[0].url) == str(calls[-1].url)
     return result
+
+
+@pytest.mark.parametrize("operation", ["describe", "fetch"])
+@pytest.mark.parametrize(
+    "issued,expected",
+    [
+        ([], None),
+        (["2024-01-01T00:00:00Z"], "2024-01-01T00:00:00Z"),
+        (["2024-01-01T00:00:00Z"] * 2, "2024-01-01T00:00:00Z"),
+        (["2024-01-01T00:00:00Z", "2024-02-01T00:00:00Z"], None),
+        (["14:26:53Z", "2024-01-01T00:00:00Z"], None),
+    ],
+)
+def test_optional_issued_ambiguity_preserves_source_metadata(operation, issued, expected):
+    request, metadata, observations = fixture()
+    rows = metadata["results"]["bindings"]
+    template = next(row for row in rows if row["property"]["value"] == DCT + "issued")
+    rows.remove(template)
+    for value in issued:
+        row = copy.deepcopy(template)
+        row["value"]["value"] = value
+        rows.append(row)
+    with client_for(metadata, observations) as client:
+        if operation == "describe":
+            result = describe_dataset(request["dataset_id"], client)
+            assert result["release"]["issued"] == expected
+            assert result["source_metadata"]["bindings"] == rows
+        else:
+            result = fetch(Request(**request), client)
+            assert result.release["issued"] == expected
+            assert result.metadata["structure"]["dataset"].get(DCT + "issued", []) == sorted(
+                set(issued)
+            )
+        assert client.resources[0].json() == metadata
+
+
+@pytest.mark.parametrize("operation", ["describe", "fetch"])
+@pytest.mark.parametrize(
+    "predicate,match",
+    [
+        (DCT + "title", "Ambiguous Scotland dataset metadata"),
+        (DCT + "modified", "Ambiguous Scotland dataset metadata"),
+        (QB + "structure", "not a supported linked-data observation cube"),
+    ],
+)
+def test_required_metadata_ambiguity_still_fails(operation, predicate, match):
+    request, metadata, observations = fixture()
+    rows = metadata["results"]["bindings"]
+    row = copy.deepcopy(next(row for row in rows if row["property"]["value"] == predicate))
+    row["value"]["value"] += "-conflicting"
+    rows.append(row)
+    with client_for(metadata, observations) as client, pytest.raises(RetrievalError, match=match):
+        if operation == "describe":
+            describe_dataset(request["dataset_id"], client)
+        else:
+            fetch(Request(**request), client)
 
 
 def test_series_preserves_uri_codes_and_raw_lexemes():

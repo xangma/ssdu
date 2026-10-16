@@ -230,6 +230,12 @@ def _single(dataset, prop, *, default=None):
     return values[0] if values else default
 
 
+def _optional_single(dataset, prop):
+    # Conflicting optional assertions stay unknown; source metadata retains all values.
+    values = dataset.get(prop, [])
+    return values[0] if len(values) == 1 else None
+
+
 def _frame(rows, structure, request):
     limit = min(MAX_CELLS, max(1000, request.max_rows * 64))
     if len(rows) > limit:
@@ -503,7 +509,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         "release": {
             "kind": "observed_snapshot",
             "modified": _single(structure["dataset"], DCT + "modified"),
-            "issued": _single(structure["dataset"], DCT + "issued"),
+            "issued": _optional_single(structure["dataset"], DCT + "issued"),
             "metadata_sha256": _digest(_canonical_metadata(rows)),
             "historical_revision_addressable": False,
             "revision_status": "metadata_checked_unpinned",
@@ -658,7 +664,7 @@ def fetch(request: Request, client: HttpClient) -> Acquisition:
         },
         release={
             "modified": modified,
-            "issued": _single(structure["dataset"], DCT + "issued"),
+            "issued": _optional_single(structure["dataset"], DCT + "issued"),
             "metadata_sha256": _digest(canonical(before)),
             "revision_status": "metadata_checked_unpinned",
         },
