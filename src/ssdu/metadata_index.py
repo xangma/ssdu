@@ -87,6 +87,95 @@ def _inventory(report, count):
     )
 
 
+PROJECTION_VERSION = "1.0.0"
+_DESCRIPTOR_FIELDS = (
+    "description",
+    "kind",
+    "dimensions",
+    "measures",
+    "distributions",
+    "release",
+    "coverage",
+    "access",
+    "licence",
+    "publishers",
+    "subjects",
+    "languages",
+    "related",
+)
+
+
+def _revision_value(value):
+    if not isinstance(value, str):
+        return canonical(value)
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+    return parsed.astimezone(UTC).isoformat() if parsed.tzinfo else parsed.isoformat()
+
+
+def _compatibility(current, descriptor):
+    """Identity alone permits a labelled projection, never revision validation."""
+    comparisons = []
+    for key in ("provider_modified_at",):
+        if current.get(key) and descriptor.get(key):
+            comparisons.append(_revision_value(current[key]) == _revision_value(descriptor[key]))
+    a, b = current.get("release"), descriptor.get("release")
+    if isinstance(a, dict) and isinstance(b, dict):
+        for key in ("revision_id", "revision", "version", "edition", "release_id"):
+            if a.get(key) is not None and b.get(key) is not None:
+                comparisons.append(_revision_value(a[key]) == _revision_value(b[key]))
+    if comparisons:
+        return "revision_match" if all(comparisons) else "revision_conflict"
+    return "identity_only"
+
+
+def _search_columns(document):
+    """Bounded public prose/labels; native documents and provenance never become terms."""
+    parts, remaining = [], 100_000
+
+    def add(value):
+        nonlocal remaining
+        if isinstance(value, str) and remaining > 0:
+            text = value[: min(8192, remaining)].strip()
+            if text:
+                parts.append(text)
+                remaining -= len(text) + 1
+
+    def labels(value, depth=0):
+        if remaining <= 0 or depth > 8:
+            return
+        if isinstance(value, list):
+            for item in value[:10_000]:
+                labels(item, depth + 1)
+        elif isinstance(value, dict):
+            for key in ("id", "label", "name", "title", "description", "code", "unit"):
+                item = value.get(key)
+                if isinstance(item, str):
+                    add(item)
+                elif key == "unit":
+                    labels(item, depth + 1)
+            for key in ("values", "categories", "dimensions", "areas", "periods", "levels"):
+                labels(value.get(key), depth + 1)
+
+    for key in ("subjects", "publishers", "dimensions", "measures", "distributions", "related"):
+        labels(document.get(key))
+    coverage = document.get("coverage")
+    if isinstance(coverage, dict):
+        labels(coverage.get("spatial"))
+        labels(coverage.get("temporal"))
+    licence = document.get("licence")
+    add(licence) if isinstance(licence, str) else labels(licence)
+    for language in document.get("languages", []):
+        add(language)
+    return (
+        document.get("title", "")[:8192],
+        (document.get("description") or "")[:100_000],
+        "\n".join(parts),
+    )
+
+
 class MetadataIndex:
     """Offline lexical discovery over verified immutable metadata snapshots.
 
@@ -112,6 +201,7 @@ class MetadataIndex:
                     snapshot_id TEXT NOT NULL, dataset_id TEXT NOT NULL,
                     metadata_version TEXT NOT NULL, PRIMARY KEY(snapshot_id,dataset_id)
                 );
+                CREATE INDEX IF NOT EXISTS observations_dataset ON observations(dataset_id);
                 CREATE TABLE IF NOT EXISTS current (
                     dataset_id TEXT PRIMARY KEY, provider TEXT NOT NULL, native_id TEXT NOT NULL,
                     metadata_version TEXT NOT NULL, snapshot_id TEXT NOT NULL,
@@ -126,7 +216,25 @@ class MetadataIndex:
                 CREATE VIRTUAL TABLE IF NOT EXISTS discovery_search USING fts5(
                     dataset_id UNINDEXED, title, description, metadata_text
                 );
+                CREATE TABLE IF NOT EXISTS projection_state (version TEXT PRIMARY KEY);
             """)
+        # Only derived rows are migrated. Immutable documents and import/history
+        # provenance remain byte-for-byte unchanged.
+        with self._locked(), self.connect() as db:
+            if (
+                db.execute(
+                    "SELECT 1 FROM projection_state WHERE version=?", (PROJECTION_VERSION,)
+                ).fetchone()
+                is None
+            ):
+                db.execute("DELETE FROM discovery_search")
+                for row in db.execute(
+                    "SELECT c.*,v.document FROM current c JOIN versions v "
+                    "ON c.metadata_version=v.metadata_version"
+                ).fetchall():
+                    self._refresh_search(db, row)
+                db.execute("DELETE FROM projection_state")
+                db.execute("INSERT INTO projection_state VALUES (?)", (PROJECTION_VERSION,))
 
     @contextmanager
     def connect(self):
@@ -196,11 +304,13 @@ class MetadataIndex:
             if previous:
                 return {**json.loads(previous[0]), "reused": True}
             updated, retired, ignored = 0, 0, 0
+            affected = set()
             for source in document["records"]:
                 row = copy.deepcopy(source)
                 provider = row["provider"]
                 report = reports[provider]
                 key = row["dataset_id"]
+                affected.add(key)
                 checked = _stamp(
                     row.get("last_checked_at", report["freshness"].get("last_checked_at"))
                 )
@@ -266,11 +376,6 @@ class MetadataIndex:
                         checked or captured,
                     ),
                 )
-                db.execute("DELETE FROM discovery_search WHERE dataset_id=?", (key,))
-                db.execute(
-                    "INSERT INTO discovery_search VALUES (?,?,?,?)",
-                    (key, row["title"], row.get("description") or "", canonical(row).decode()),
-                )
                 updated += 1
             for provider, report in reports.items():
                 checked = _stamp(report["freshness"].get("last_checked_at"))
@@ -324,7 +429,17 @@ class MetadataIndex:
                         WHERE dataset_id=?""",
                         (inventory_id, inventory["checked_at"], old["dataset_id"]),
                     )
+                    affected.add(old["dataset_id"])
                     retired += 1
+            # Descriptors arriving after a newer inventory still contribute to the
+            # projection, even when they correctly lose the membership rank.
+            for key in affected:
+                row = db.execute(
+                    "SELECT c.*,v.document FROM current c JOIN versions v "
+                    "ON c.metadata_version=v.metadata_version WHERE c.dataset_id=?",
+                    (key,),
+                ).fetchone()
+                self._refresh_search(db, row)
             result = {
                 "snapshot_id": snapshot_id,
                 "indexed": len(document["records"]),
@@ -351,50 +466,154 @@ class MetadataIndex:
         return {
             "requested_detail": detail,
             "description_available": described,
+            "descriptor_available": described,
+            "description_text_available": bool((document.get("description") or "").strip()),
             "scope": report["scope"],
             "completeness": report["completeness"],
         }
 
-    def _document(self, row, max_age_seconds):
+    def _project(self, db, row):
+        """Separate the current observation from independently checked rich fields."""
         document = json.loads(row["document"])
-        with self.connect() as db:
-            report = json.loads(
-                db.execute(
-                    "SELECT report FROM provider_runs WHERE provider=? AND snapshot_id=?",
-                    (document["provider"], row["snapshot_id"]),
-                ).fetchone()[0]
+        report = json.loads(
+            db.execute(
+                "SELECT report FROM provider_runs WHERE provider=? AND snapshot_id=?",
+                (document["provider"], row["snapshot_id"]),
+            ).fetchone()[0]
+        )
+        profile = self._profile(document, report)
+        if row["status"] == "historical":
+            return document, profile
+        current_source = {
+            "metadata_snapshot_id": row["snapshot_id"],
+            "metadata_version": document["metadata_version"],
+            "last_checked_at": row["checked_at"],
+            "captured_at": row["captured_at"],
+            "provider_modified_at": document.get("provider_modified_at"),
+            "mapping_version": document.get("mapping_version"),
+            "provider_timestamps": copy.deepcopy(
+                document.get("source_metadata", {}).get("provider_timestamps", {})
+            ),
+        }
+        descriptor, descriptor_source, retained = None, None, []
+        if profile["description_available"]:
+            descriptor, descriptor_source = (
+                document,
+                {
+                    **current_source,
+                    "compatibility": "current",
+                    "revision_status": "current",
+                    "current": True,
+                },
             )
-            profile = self._profile(document, report)
-            retained = []
-            if not profile["description_available"] and row["status"] != "historical":
-                for prior in db.execute(
-                    """SELECT o.snapshot_id,v.document,r.report FROM observations o
-                    JOIN versions v ON o.metadata_version=v.metadata_version
-                    JOIN provider_runs r ON r.snapshot_id=o.snapshot_id AND r.provider=?
-                    WHERE o.dataset_id=? AND o.snapshot_id!=?""",
-                    (document["provider"], document["dataset_id"], row["snapshot_id"]),
+        else:
+            for prior in db.execute(
+                """SELECT o.snapshot_id,v.document,r.report FROM observations o
+                JOIN versions v ON o.metadata_version=v.metadata_version
+                JOIN provider_runs r ON r.snapshot_id=o.snapshot_id AND r.provider=?
+                WHERE o.dataset_id=? AND o.snapshot_id!=?""",
+                (document["provider"], document["dataset_id"], row["snapshot_id"]),
+            ):
+                old, old_report = json.loads(prior["document"]), json.loads(prior["report"])
+                if (
+                    not self._profile(old, old_report)["description_available"]
+                    or old.get("deleted")
+                    or old.get("tombstone")
                 ):
-                    old, old_report = json.loads(prior["document"]), json.loads(prior["report"])
-                    if not self._profile(old, old_report)["description_available"]:
-                        continue
-                    checked = _stamp(
-                        old.get("last_checked_at", old_report["freshness"].get("last_checked_at"))
+                    continue
+                checked = _stamp(
+                    old.get("last_checked_at", old_report["freshness"].get("last_checked_at"))
+                )
+                captured = _stamp(old.get("captured_at") or old_report["freshness"]["captured_at"])
+                rank = _rank(checked, captured, prior["snapshot_id"])
+                rank = (*rank[:2], _detail_rank(old, old_report), *rank[2:])
+                compatibility = _compatibility(document, old)
+                retained.append(
+                    (
+                        rank,
+                        old,
+                        {
+                            "metadata_snapshot_id": prior["snapshot_id"],
+                            "metadata_version": old["metadata_version"],
+                            "last_checked_at": checked,
+                            "captured_at": captured,
+                            "provider_modified_at": old.get("provider_modified_at"),
+                            "mapping_version": old.get("mapping_version"),
+                            "provider_timestamps": copy.deepcopy(
+                                old.get("source_metadata", {}).get("provider_timestamps", {})
+                            ),
+                            "compatibility": compatibility,
+                            "revision_status": {
+                                "revision_match": "matched",
+                                "identity_only": "unverified",
+                                "revision_conflict": "conflicting",
+                            }[compatibility],
+                            "current": False,
+                        },
                     )
-                    captured = _stamp(
-                        old.get("captured_at") or old_report["freshness"]["captured_at"]
-                    )
-                    retained.append(
-                        (
-                            _rank(checked, captured, prior["snapshot_id"]),
-                            {
-                                "metadata_snapshot_id": prior["snapshot_id"],
-                                "metadata_version": old["metadata_version"],
-                                "last_checked_at": checked,
-                                "captured_at": captured,
-                                "compatibility": "unverified",
-                                "current": False,
-                            },
-                        )
+                )
+            eligible = [
+                item for item in retained if item[2]["compatibility"] != "revision_conflict"
+            ]
+            if eligible and row["status"] == "active":
+                _, descriptor, descriptor_source = max(eligible, key=lambda item: item[0])
+        field_sources = {key: row["snapshot_id"] for key in _DESCRIPTOR_FIELDS if key in document}
+        if descriptor is not None:
+            for key in _DESCRIPTOR_FIELDS:
+                # A descriptor can omit prose which the catalogue supplies. An
+                # absent rich value must not erase a useful current assertion.
+                if key in descriptor and (
+                    descriptor[key] not in (None, "", [], {})
+                    or document.get(key) in (None, "", [], {})
+                ):
+                    document[key] = copy.deepcopy(descriptor[key])
+                    field_sources[key] = descriptor_source["metadata_snapshot_id"]
+            for key, status in descriptor.get("field_status", {}).items():
+                if (
+                    field_sources.get(key.split(".")[0])
+                    == descriptor_source["metadata_snapshot_id"]
+                ):
+                    document.setdefault("field_status", {})[key] = copy.deepcopy(status)
+        profile["descriptor_available"] = descriptor is not None
+        profile["description_text_available"] = bool((document.get("description") or "").strip())
+        document["metadata_projection"] = {
+            "version": PROJECTION_VERSION,
+            "catalogue": current_source,
+            "descriptor": descriptor_source,
+            "field_sources": field_sources,
+        }
+        if retained:
+            # Legacy pointer remains explicitly non-current; enriched values have
+            # precise compatibility and clocks in metadata_projection.
+            best = descriptor_source or max(retained, key=lambda item: item[0])[2]
+            document["retained_description"] = {
+                **best,
+                "compatibility": "unverified"
+                if best["compatibility"] == "identity_only"
+                else best["compatibility"],
+            }
+        return document, profile
+
+    def _refresh_search(self, db, row):
+        document, _ = self._project(db, row)
+        db.execute("DELETE FROM discovery_search WHERE dataset_id=?", (row["dataset_id"],))
+        db.execute(
+            "INSERT INTO discovery_search VALUES (?,?,?,?)",
+            (row["dataset_id"], *_search_columns(document)),
+        )
+
+    def _document(self, row, max_age_seconds):
+        with self.connect() as db:
+            document, profile = self._project(db, row)
+        projection = document.get("metadata_projection")
+        if projection:
+            for source in (projection["catalogue"], projection["descriptor"]):
+                if source:
+                    source["freshness"] = self._freshness(
+                        source["last_checked_at"],
+                        source["captured_at"],
+                        source["provider_modified_at"],
+                        max_age_seconds,
                     )
         document.update(
             {
@@ -416,8 +635,6 @@ class MetadataIndex:
                 ),
             }
         )
-        if retained:
-            document["retained_description"] = max(retained, key=lambda item: item[0])[1]
         return document
 
     def get(self, dataset_id, *, snapshot_id=None, max_age_seconds=86400):

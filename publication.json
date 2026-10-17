@@ -102,7 +102,7 @@
     {
       "path": "docs/content/guides/metadata-sync.md",
       "kind": "documentation",
-      "sha256": "1015a480c428108d3506e4d91e36546b6449b4d393e644d6a2d47f7217ac89ff",
+      "sha256": "c9e03c70453234a1f1c5a25e0a173eaddf7229fffeb42321baabfe30c8ef477a",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
@@ -270,7 +270,7 @@
     {
       "path": "examples/metadata_capture.py",
       "kind": "source",
-      "sha256": "7efa17cc46c12add2a8b08e4f5c944f3ddd990608d27defc7896fd35ddb66220",
+      "sha256": "266562dad577a0fafe3e75baee5ee34378833967ce8ee9756eb89b352f35b476",
       "review": "Author-owned metadata capture implementation and independently invented protocol tests/example; no captured provider payloads."
     },
     {
@@ -366,19 +366,19 @@
     {
       "path": "src/ssdu/adapters/mhclg.py",
       "kind": "source",
-      "sha256": "168edb7271ebe7f63844e6f1c1aebe943d29b0b259eaff367ec4aa113a7ce636",
+      "sha256": "61fa841fd15618f7c54d7f5f0f4e56610758362999ef1ef36788dca3d761253e",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "src/ssdu/adapters/nisra.py",
       "kind": "source",
-      "sha256": "348c2383dee4d0dbd81d2b66a1b6c3aa2006bfadf0b82c29f3f9bc7529e49c38",
+      "sha256": "1b8fec913276375ebc483b115f3def08a5bb904171b3d463b2ee49ede1b51e8f",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
       "path": "src/ssdu/adapters/nomis.py",
       "kind": "source",
-      "sha256": "13b73c73a24d7d1544141c983e3fdcfe2baccf7d85f1ba531dad38c336e8d15f",
+      "sha256": "bb7d85bd4a03b6524935c11b9bfa680d4d52b947fed8b3082b8fd999a0e4260b",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -390,13 +390,13 @@
     {
       "path": "src/ssdu/adapters/scotland_ckan.py",
       "kind": "source",
-      "sha256": "bf47c7c87d355c59b3f4466f8faa25f4b24aaf2fc0ed239af1e342b400b30476",
+      "sha256": "0223bb6eb10c8a2995b5e2cf69078f085730c0d2e0b352aed4cbc7f9fcfb0b6b",
       "review": "Author-owned metadata capture implementation and independently invented protocol tests/example; no captured provider payloads."
     },
     {
       "path": "src/ssdu/adapters/statswales.py",
       "kind": "source",
-      "sha256": "e23007b606be83cea623c262c485f3fded70e0f53429ffc59e186c475c2b0e5b",
+      "sha256": "413fc36dc556cfdd2fc78155471484c63741514a21c35097a19f57a52e1b002d",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -612,13 +612,13 @@
     {
       "path": "src/ssdu/metadata_index.py",
       "kind": "source",
-      "sha256": "2d08b253d8625e60539a69254da68f63fe581e7a59a6c572bcdbd61066d37325",
+      "sha256": "140b4cd0669a7c212526cfd9c727677d6e4fac852b4ba759c88bdebfa070a33c",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
       "path": "src/ssdu/metadata_mapping.py",
       "kind": "source",
-      "sha256": "764df7fdc7edf1cba9a1888a7f705c9f2f436b0ac3393d816cc80fd36eacbdff",
+      "sha256": "c8edef31bfa57c5b57893c3d9a170925285e36f593d14d902a768c756dc8f025",
       "review": "Author-owned pure metadata mappings or independently invented protocol, provenance and offline replay tests; no captured provider metadata or observations."
     },
     {
@@ -630,7 +630,7 @@
     {
       "path": "src/ssdu/metadata_sync.py",
       "kind": "source",
-      "sha256": "a28cb47fadb37fab7d43f08fb603939dd2a2294fb2e2cbb88e2e8429c46b1508",
+      "sha256": "20aacb906542cba569f5515354ba75825e4f292b111b42c25649927696232c37",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
@@ -726,7 +726,7 @@
     {
       "path": "src/ssdu/service.py",
       "kind": "source",
-      "sha256": "661ad3f492c49301d0cb5f251e8e523f8adf86b18f84de13b74a9af3c003b876",
+      "sha256": "bbb52e3ed3e12891dddc623da6a9868b51f7baa727e1c4ade4fffee7c0abb413",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -1200,7 +1200,7 @@
     {
       "path": "tests/test_metadata_capture_example.py",
       "kind": "source",
-      "sha256": "5d409151b94b8e4c74fcd2dd15ccc2b94670e3f67ecb67dce271cefbfbb1bf85",
+      "sha256": "af14e1ffa200af71d8139d73242d6f8d26e1b783205318598d3b2ef0296edf7e",
       "review": "Author-owned metadata capture implementation and independently invented protocol tests/example; no captured provider payloads."
     },
     {
@@ -1218,37 +1218,37 @@
     {
       "path": "tests/test_metadata_index.py",
       "kind": "source",
-      "sha256": "dda41eb714a86b419a0af5c33dbd34c22f6f4f288c71721e061e0d3ca6b252f7",
+      "sha256": "77082304c79dbd907662124e92968732fdc0b413bc92a73ac0965a7a0ab6a74d",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
       "path": "tests/test_metadata_interfaces.py",
       "kind": "source",
-      "sha256": "14e276114d74347fce20c29d0ad88fb64aa019a5dd8a818339a6891bba22bc46",
+      "sha256": "16d2903b86e32aff6949bf426166e2011612c2f4f334a27d8599ab24fee9cf0c",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
       "path": "tests/test_metadata_mapping.py",
       "kind": "source",
-      "sha256": "bfaa59754197e64b44601b1f00094b26084161e8bc7cc147f8ee6bb5032bb9cf",
+      "sha256": "7dabe0f3908511002432f664f320589d80eac7083dbcb3e887fc42350b25a1d7",
       "review": "Author-owned pure metadata mappings or independently invented protocol, provenance and offline replay tests; no captured provider metadata or observations."
     },
     {
       "path": "tests/test_metadata_mapping_mhclg.py",
       "kind": "source",
-      "sha256": "02532fafdf2900ae0065950012a30da6bb39b51dac08621c3c0c0216c32a7817",
+      "sha256": "443aeefd2c12ba768e9d98f9cefdb13c2389d23beaf856cb8ec08e2fb375bab9",
       "review": "Author-owned pure metadata mappings or independently invented protocol, provenance and offline replay tests; no captured provider metadata or observations."
     },
     {
       "path": "tests/test_metadata_mapping_nisra.py",
       "kind": "source",
-      "sha256": "a1bb3f67b64bcf06945c6dec30be39d920de545927dc6070e7a6319a9c35d444",
+      "sha256": "e1ad0079baec27205177ac2e053f50f351bf945509ad4f143e477e9f5ab8899e",
       "review": "Author-owned pure metadata mappings or independently invented protocol, provenance and offline replay tests; no captured provider metadata or observations."
     },
     {
       "path": "tests/test_metadata_mapping_nomis.py",
       "kind": "source",
-      "sha256": "5b15ba48c10c63ae77a48b565c563c0921a49af371abc51b46ea7781e822c0b1",
+      "sha256": "efbf8d4382d28a29b989aa8313059f050e0c7a663e944cf487e9e2a4f68b6611",
       "review": "Author-owned pure metadata mappings or independently invented protocol, provenance and offline replay tests; no captured provider metadata or observations."
     },
     {
@@ -1266,7 +1266,7 @@
     {
       "path": "tests/test_metadata_mapping_statswales.py",
       "kind": "source",
-      "sha256": "3f70520f2f7ba9cde099ec4b1b002a549d5b259971f17dc7a894d26cf5514839",
+      "sha256": "b88e9c9e3dea2c8795dbdb626c0251f42fa177c002f56136be2b06ab3167c66b",
       "review": "Author-owned pure metadata mappings or independently invented protocol, provenance and offline replay tests; no captured provider metadata or observations."
     },
     {
@@ -1278,13 +1278,13 @@
     {
       "path": "tests/test_metadata_sync.py",
       "kind": "source",
-      "sha256": "c61e1a1fe3824134e8c3bc4b5d291e3919f5357a404fa67a34db36364ef97a31",
+      "sha256": "d3cd00debd25abe3a6766309b62c78679bcf9b6b62b47c7d478d52ec236f25a3",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
       "path": "tests/test_metadata_sync_example.py",
       "kind": "source",
-      "sha256": "835e6308fec422115d577d31ae908550091e10639abb73d1048616b6b6432198",
+      "sha256": "e321e3a90ed7dd125984a58e4c049a1bde9d3bd40abd11a3587d8210a12ada32",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
@@ -1296,7 +1296,7 @@
     {
       "path": "tests/test_mhclg_metadata_capture.py",
       "kind": "source",
-      "sha256": "6f86e32f7d70d088b09bb07a3e6c5d6d2bace56c76b6355777bae644d4daaac0",
+      "sha256": "07f8a1041b7a5933b901fee59cc4334ff84a3dbcce358120be5ab8623334ec7f",
       "review": "Author-owned metadata capture implementation and independently invented protocol tests/example; no captured provider payloads."
     },
     {
@@ -1428,7 +1428,7 @@
     {
       "path": "tests/test_scotland_ckan.py",
       "kind": "source",
-      "sha256": "7ccc5943ceb5b774eabcc42c283ce343ce02ed30d07a81b64eee13bc1f1c44d1",
+      "sha256": "eddf5aa6f39d562234a7bffac47e9ed1fc9aa6d22fa078eaaaeed40fbd0a67e9",
       "review": "Author-owned metadata capture implementation and independently invented protocol tests/example; no captured provider payloads."
     },
     {

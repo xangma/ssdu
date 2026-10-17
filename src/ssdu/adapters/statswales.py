@@ -21,7 +21,7 @@ from uuid import UUID
 import pandas as pd
 
 from ssdu.http import HttpClient
-from ssdu.metadata_mapping import mapping_metadata, plain_text
+from ssdu.metadata_mapping import mapping_metadata, normalized_metadata_fields, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 BASE = "https://api.stats.gov.wales/v2"
@@ -416,11 +416,11 @@ def _discovery_fields(metadata):
         {
             "measures": {
                 "status": "unmapped",
-                "reason": "Filter categories are retained, but the captured API response does not declare their measure roles.",
+                "reason": "Filter categories are retained; no recognized native filter identity and label establish a measure role.",
             },
             "coverage.spatial": {
                 "status": "unmapped",
-                "reason": "Filter categories are retained, but the captured API response does not declare geographic roles or spatial extents.",
+                "reason": "Filter categories are retained; no recognized native filter identity and label establish a geographic role.",
             },
             "licence": {
                 "status": "not_provided",
@@ -462,25 +462,8 @@ def _description_fields(dataset_id, metadata):
                 )
             break
 
-    temporal = {}
-    for bound in ("start", "end"):
-        value = revision.get(f"coverage_{bound}_date")
-        if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
-            try:
-                date.fromisoformat(value)
-            except ValueError:
-                continue
-            temporal[bound] = value
-    if temporal.get("start", "") > temporal.get("end", "9999-12-31"):
-        temporal = {}
-    for bound in temporal:
-        evidence.append(
-            {
-                "field": "coverage.temporal",
-                "source_path": f"/published_revision/coverage_{bound}_date",
-                "method": "provider_assertion",
-            }
-        )
+    temporal, temporal_status, temporal_evidence = _temporal_coverage(metadata)
+    evidence.extend(temporal_evidence)
     fields, status, extra_evidence = _discovery_fields(metadata)
     evidence.extend(extra_evidence)
     status["description"] = {"status": "mapped" if description else "not_provided"}
@@ -492,15 +475,7 @@ def _description_fields(dataset_id, metadata):
             "status": "ambiguous",
             "reason": "Preferred-language summary assertions disagree.",
         }
-    status["coverage.temporal"] = {"status": "mapped" if temporal else "not_provided"}
-    if any(
-        revision.get(f"coverage_{bound}_date") not in (None, "") and bound not in temporal
-        for bound in ("start", "end")
-    ):
-        status["coverage.temporal"] = {
-            "status": "unmapped",
-            "reason": "Native coverage dates are invalid or contradictory; originals are retained.",
-        }
+    status["coverage.temporal"] = temporal_status
     for field, native_keys in (
         ("licence", ("licence", "license", "licence_url", "license_url")),
         ("distributions", ("distributions", "resources")),
@@ -519,11 +494,165 @@ def _description_fields(dataset_id, metadata):
         "field_status": status,
         "description": description,
         "measures": [],
-        "coverage": {"temporal": {**temporal, "scope": "provider_declared"}} if temporal else None,
+        "coverage": {"temporal": temporal} if temporal else None,
         "licence": None,
         "access": {"metadata_url": endpoint, "data_access": "not_asserted"},
         "metadata_mapping": mapping_metadata(evidence),
     }
+
+
+def _temporal_coverage(metadata):
+    """Keep revision dates authoritative and catalogue fallback explicitly scoped."""
+    revision = metadata.get("published_revision", {})
+
+    def bounds(source, prefix):
+        result, present, invalid = {}, False, False
+        for bound in ("start", "end"):
+            value = source.get(f"{prefix}{bound}_date")
+            if value in (None, ""):
+                continue
+            present = True
+            if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                try:
+                    date.fromisoformat(value)
+                except ValueError:
+                    pass
+                else:
+                    result[bound] = value
+                    continue
+            invalid = True
+        if result.get("start", "") > result.get("end", "9999-12-31"):
+            return {}, present, True
+        return result, present, invalid
+
+    selected, revision_present, invalid = bounds(revision, "coverage_")
+    catalogue, catalogue_present, catalogue_invalid = bounds(metadata, "")
+    basis = "/published_revision/coverage_"
+    # These older catalogue dates may differ from the published revision. Never
+    # fill an individual revision bound with a differently scoped assertion.
+    fallback = not revision_present and len(catalogue) == 2 and not catalogue_invalid
+    if fallback:
+        selected, basis = catalogue, "/"
+    evidence = [
+        {
+            "field": "coverage.temporal",
+            "source_path": f"{basis}{bound}_date",
+            "method": "provider_assertion",
+        }
+        for bound in selected
+    ]
+    temporal = {**selected, "scope": "provider_declared"} if selected else None
+    status = {"status": "mapped" if temporal else "not_provided"}
+    if fallback:
+        temporal["basis"] = "dataset_catalogue_dates"
+        temporal["revision_coverage"] = "not_provided"
+    elif temporal and catalogue and catalogue != selected:
+        temporal["basis"] = "published_revision"
+        temporal["alternatives"] = [{**catalogue, "basis": "dataset_catalogue_dates"}]
+        if any(catalogue[bound] != selected[bound] for bound in catalogue.keys() & selected.keys()):
+            temporal["assertions_disagree"] = True
+            status = {
+                "status": "ambiguous",
+                "reason": "Revision and catalogue dates disagree; published revision bounds take precedence.",
+            }
+        evidence.extend(
+            {
+                "field": "coverage.temporal",
+                "source_path": f"/{bound}_date",
+                "method": "provider_assertion",
+            }
+            for bound in catalogue
+        )
+    if invalid or (catalogue_present and catalogue_invalid):
+        status = {
+            "status": "unmapped",
+            "reason": "Some native coverage dates are invalid or contradictory; originals are retained.",
+        }
+    elif not temporal and catalogue_present:
+        status = {
+            "status": "unmapped",
+            "reason": "Catalogue fallback needs a complete valid date pair; revision coverage is absent.",
+        }
+    return temporal, status, evidence
+
+
+# A bounded vocabulary of native filter identities AND labels. Neither a table
+# title nor a matching category code establishes a statistical/geographic role.
+_MEASURE_KEYS = frozenset(
+    {
+        "measure",
+        "measurecode",
+        "measureid",
+        "datadescription",
+        "datatypecode",
+        "measure_code",
+        "measureref",
+        "refcode",
+        "columnref",
+        "datatype",
+        "measures",
+        "measure labels",
+    }
+)
+_AREA_KEYS = frozenset(
+    {
+        "areacode",
+        "areacode_pub",
+        "area_code",
+        "lacode",
+        "lea",
+        "area",
+        "local_authority_code",
+        "uacode",
+        "leacode",
+        "lhb",
+        "gsscode",
+        "lhbcode",
+        "health_board_code",
+    }
+)
+_AREA_LABELS = frozenset(
+    {"area", "area code", "area name", "local authority", "authority", "local health board"}
+)
+
+
+def _dimension_roles(dimensions):
+    """Project recognized native filter semantics without guessing units or GSS codes."""
+    measures, areas, axes, evidence = [], [], [], []
+    for dimension in dimensions:
+        identity, label = dimension["id"].casefold(), str(dimension["label"]).casefold()
+        measure = identity in _MEASURE_KEYS and label == "data description"
+        area = identity in _AREA_KEYS and label in _AREA_LABELS
+        if not (measure or area):
+            continue
+        role = "metric" if measure else "geo"
+        dimension["role"] = role
+        dimension["role_basis"] = "statswales_filter_vocabulary_v1"
+        field = "measures" if measure else "coverage.spatial"
+        evidence.append(
+            {"field": field, "source_path": "@filters", "method": "provider_dimension_role"}
+        )
+        members = [
+            {**member, "dimension": dimension["id"], "scheme": "StatsWales filter categories"}
+            for member in dimension["values"]
+        ]
+        if measure:
+            measures.extend(members)
+        else:
+            areas.extend(members)
+            axes.append({"id": dimension["id"], "label": dimension["label"]})
+    spatial = (
+        {
+            "dimensions": axes,
+            "areas": areas,
+            "scope": "dimension_categories",
+            "basis": "statswales_filter_vocabulary_v1",
+            "note": "Declared filter categories may include grouping and historical areas; observation availability is not asserted.",
+        }
+        if axes
+        else None
+    )
+    return measures, spatial, evidence
 
 
 def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
@@ -551,15 +680,23 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         )
     revision = metadata.get("published_revision", {})
     fields = _description_fields(dataset_id, metadata)
+    measures, spatial, role_evidence = _dimension_roles(dimensions)
+    fields["measures"] = measures
+    if measures:
+        fields["field_status"]["measures"] = {"status": "mapped"}
+    if spatial:
+        fields["coverage"] = {**(fields["coverage"] or {}), "spatial": spatial}
+        fields["field_status"]["coverage.spatial"] = {"status": "mapped"}
     if dimensions:
         fields["metadata_mapping"] = mapping_metadata(
             [
                 *fields["metadata_mapping"]["evidence"],
+                *role_evidence,
                 {"field": "dimensions", "source_path": "@filters", "method": "declared_dimension"},
             ]
         )
     fields["field_status"]["dimensions"] = {"status": "mapped" if dimensions else "not_provided"}
-    return {
+    result = {
         "provider": "statswales",
         "dataset_id": dataset_id,
         "title": _title(metadata, dataset_id),
@@ -570,9 +707,40 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
             "revision_id": revision.get("id"),
             "revision_index": revision.get("revision_index"),
             "publish_at": revision.get("publish_at"),
+            "updated": revision.get("updated_at"),
+            "lifecycle": {
+                "status": (
+                    "archived"
+                    if _text(metadata.get("archived_at"))
+                    else "replaced"
+                    if isinstance(metadata.get("replaced_by"), dict)
+                    and _text(metadata["replaced_by"].get("dataset_id"))
+                    else "not_asserted"
+                ),
+                **(
+                    {"archived_at": metadata["archived_at"], "source_path": "/archived_at"}
+                    if _text(metadata.get("archived_at"))
+                    else {}
+                ),
+                **(
+                    {
+                        "replacement": metadata["replaced_by"],
+                        "replacement_source_path": "/replaced_by",
+                    }
+                    if isinstance(metadata.get("replaced_by"), dict)
+                    else {}
+                ),
+            },
             "requested_revision_pinned": False,
         },
         "capabilities": {
+            "retrieval": True,
+            "retrieval_reason": "The connector supports bounded StatsWales data queries.",
+            "retrieval_constraints": {
+                "selection_method": "server_side_native_filters",
+                "published_revision_only": True,
+                "bounded_query": True,
+            },
             "dimension_values": True,
             "server_side_selection": True,
             "selection_syntax": "filters: [{factTableColumn: [reference, ...]}]; lang; sort_by",
@@ -584,6 +752,7 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         "references": [{"title": "StatsWales API documentation", "url": f"{BASE}/docs"}],
         "source_metadata": metadata,
     }
+    return {**result, **normalized_metadata_fields(result)}
 
 
 def list_dimension_values(

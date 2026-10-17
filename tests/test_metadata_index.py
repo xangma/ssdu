@@ -23,6 +23,8 @@ def publish(
     scope=None,
     title=None,
     deleted=(),
+    record_fields=None,
+    contract_version="1.0.0",
 ):
     clock = f"2026-10-{day:02d}T12:00:00+00:00"
     raw = b'{"notice":"Invented metadata; not provider observations"}'
@@ -41,6 +43,7 @@ def publish(
             "captured_at": clock,
             "last_checked_at": clock if checked else None,
             **({"deleted": True} if native in deleted else {}),
+            **copy.deepcopy(record_fields or {}),
         }
         for native in ids
     ]
@@ -59,7 +62,7 @@ def publish(
         "references": [{"title": "Invented catalogue", "url": "https://example.org/catalogue"}],
     }
     document = {
-        "contract_version": "1.0.0",
+        "contract_version": contract_version,
         "captured_at": clock,
         "providers": [report],
         "records": records,
@@ -69,6 +72,211 @@ def publish(
 
 def index(root):
     return MetadataIndex(root, clock=lambda: datetime(2026, 10, 4, 12, tzinfo=UTC))
+
+
+def described_snapshot(root, *, day=1, revision=None):
+    """Invented rich response with vocabulary absent from its catalogue entry."""
+    record = {
+        "description": "Invented prescription dispensing activity",
+        "dimensions": [
+            {"id": "area", "label": "Invented districts", "values": [{"label": "Harbourside"}]}
+        ],
+        "subjects": [{"label": "Invented health"}],
+        "source_metadata": {
+            "descriptor": {"resource_paths": ["provider_assertion metadata_sha256"]}
+        },
+    }
+    if revision:
+        record["release"] = {"revision_id": revision}
+    return publish(
+        root,
+        ("a",),
+        day=day,
+        scope={"detail": "dataset"},
+        record_fields=record,
+        contract_version="1.1.0",
+    )
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_retained_descriptor_search_projection_keeps_separate_clocks(reverse, tmp_path):
+    detail = described_snapshot(tmp_path)
+    summary = publish(tmp_path, ("a",), day=3, scope={"detail": "catalogue"})
+    current = index(tmp_path)
+    for snapshot in (summary, detail) if reverse else (detail, summary):
+        current.import_snapshot(snapshot)
+    row = current.get("nomis:a")
+    assert current.search("prescription")["total"] == 1
+    assert current.search("Harbourside")["total"] == 1
+    assert current.search("resource_paths")["total"] == 0
+    assert current.search("provider_assertion")["total"] == 0
+    assert row["description"] == "Invented prescription dispensing activity"
+    assert row["metadata_snapshot_id"] == summary
+    assert row["freshness"]["last_checked_at"] == "2026-10-03T12:00:00+00:00"
+    projection = row["metadata_projection"]
+    assert projection["descriptor"]["metadata_snapshot_id"] == detail
+    assert projection["descriptor"]["compatibility"] == "identity_only"
+    assert projection["descriptor"]["revision_status"] == "unverified"
+    assert projection["descriptor"]["freshness"]["last_checked_at"] == "2026-10-01T12:00:00+00:00"
+    assert projection["field_sources"]["description"] == detail
+    old = current.get("nomis:a", snapshot_id=summary)
+    assert old["description"] == "Synthetic rents"
+    assert "metadata_projection" not in old
+    history = current.history("nomis:a")
+    current.rebuild()
+    assert current.get("nomis:a") == row
+    assert current.history("nomis:a") == history
+
+
+@pytest.mark.parametrize("revision,expected", [("one", True), ("two", False)])
+def test_projection_requires_nonconflicting_revision_evidence(revision, expected, tmp_path):
+    detail = described_snapshot(tmp_path, revision="one")
+    summary = publish(
+        tmp_path,
+        ("a",),
+        day=3,
+        scope={"detail": "catalogue"},
+        record_fields={"release": {"revision_id": revision}},
+    )
+    current = index(tmp_path)
+    current.import_snapshot(detail)
+    current.import_snapshot(summary)
+    row = current.get("nomis:a")
+    assert bool(current.search("prescription")["total"]) is expected
+    if expected:
+        assert row["metadata_projection"]["descriptor"]["compatibility"] == "revision_match"
+        assert row["metadata_projection"]["descriptor"]["revision_status"] == "matched"
+    else:
+        assert row["metadata_projection"]["descriptor"] is None
+        assert row["description"] == "Synthetic rents"
+        assert row["retained_description"]["compatibility"] == "revision_conflict"
+
+
+def test_retained_descriptor_does_not_resurrect_absent_or_deleted_records(tmp_path):
+    detail = described_snapshot(tmp_path)
+    summary = publish(tmp_path, ("a", "b"), day=2)
+    absent = publish(tmp_path, ("b",), day=3)
+    current = index(tmp_path)
+    for snapshot in (summary, absent, detail):
+        current.import_snapshot(snapshot)
+    row = current.get("nomis:a")
+    assert row["status"] == "not_observed"
+    assert row["metadata_projection"]["descriptor"] is None
+    assert current.search("prescription")["total"] == 0
+    current.import_snapshot(publish(tmp_path, ("a",), day=4, deleted=("a",)))
+    assert current.get("nomis:a")["status"] == "deleted"
+    assert current.search("prescription")["total"] == 0
+
+
+def test_descriptor_availability_is_distinct_from_description_prose(tmp_path):
+    described = publish(
+        tmp_path,
+        ("a",),
+        scope={"detail": "dataset"},
+        record_fields={
+            "description": None,
+            "source_metadata": {"descriptor": {"invented": True}},
+            "field_status": {"description": {"status": "not_provided"}},
+        },
+        contract_version="1.1.0",
+    )
+    current = index(tmp_path)
+    current.import_snapshot(described)
+    profile = current.get("nomis:a")["metadata_profile"]
+    assert profile["descriptor_available"] and profile["description_available"]
+    assert profile["description_text_available"] is False
+    current.import_snapshot(
+        publish(
+            tmp_path,
+            ("a",),
+            day=3,
+            scope={"detail": "catalogue"},
+            record_fields={"field_status": {"description": {"status": "mapped"}}},
+            contract_version="1.1.0",
+        )
+    )
+    row = current.get("nomis:a")
+    assert row["description"] == "Synthetic rents"
+    assert row["metadata_profile"]["description_text_available"] is True
+    assert row["metadata_projection"]["field_sources"]["description"] == row["metadata_snapshot_id"]
+    assert row["field_status"]["description"]["status"] == "mapped"
+
+
+def test_existing_index_migrates_only_derived_search_projection(tmp_path):
+    detail = described_snapshot(tmp_path)
+    summary = publish(tmp_path, ("a",), day=3, scope={"detail": "catalogue"})
+    current = index(tmp_path)
+    current.import_snapshot(detail)
+    current.import_snapshot(summary)
+    historical = current.get("nomis:a", snapshot_id=detail)
+    history = current.history("nomis:a")
+    with current.connect() as db:
+        db.execute("DELETE FROM projection_state")
+        db.execute("DELETE FROM discovery_search")
+        db.execute(
+            "INSERT INTO discovery_search VALUES (?,?,?,?)", ("nomis:a", "", "", "resource_paths")
+        )
+    migrated = index(tmp_path)
+    assert migrated.search("prescription")["total"] == 1
+    assert migrated.search("resource_paths")["total"] == 0
+    assert migrated.history("nomis:a") == history
+    assert migrated.get("nomis:a", snapshot_id=detail) == historical
+
+
+def test_projection_offline_transfer_preserves_clocks_and_search(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "ssdu.http.HttpClient.__init__", lambda *a, **k: pytest.fail("Network forbidden")
+    )
+    source, destination = tmp_path / "source", tmp_path / "fresh"
+    snapshots = [
+        described_snapshot(source),
+        publish(source, ("a",), day=3, scope={"detail": "catalogue"}),
+    ]
+    current = index(source)
+    for sid in snapshots:
+        current.import_snapshot(sid)
+        bundle = MetadataStore(source).export(sid, tmp_path / f"{sid}.zip")
+        MetadataStore(destination).import_bundle(bundle)
+    fresh = index(destination)
+    fresh.rebuild()
+    assert fresh.search("prescription") == current.search("prescription")
+    assert fresh.get("nomis:a") == current.get("nomis:a")
+    assert fresh.search("resource_paths")["total"] == 0
+
+
+def test_projection_binds_timestamp_precision_to_each_source(tmp_path):
+    rich_times = {"modified": {"raw": "2026-10-01 09:30:00", "timezone": "unknown"}}
+    catalogue_times = {"modified": {"raw": "2026-10-01T09:30:00Z", "timezone": "UTC"}}
+    detail = publish(
+        tmp_path,
+        ("a",),
+        scope={"detail": "dataset"},
+        record_fields={
+            "source_metadata": {
+                "descriptor": {"invented": True},
+                "provider_timestamps": rich_times,
+            },
+            "mapping_version": "1.3.0",
+        },
+    )
+    summary = publish(
+        tmp_path,
+        ("a",),
+        day=3,
+        scope={"detail": "catalogue"},
+        record_fields={
+            "source_metadata": {"provider_timestamps": catalogue_times},
+            "mapping_version": "1.2.0",
+        },
+    )
+    current = index(tmp_path)
+    current.import_snapshot(detail)
+    current.import_snapshot(summary)
+    projection = current.get("nomis:a")["metadata_projection"]
+    assert projection["descriptor"]["provider_timestamps"] == rich_times
+    assert projection["descriptor"]["mapping_version"] == "1.3.0"
+    assert projection["catalogue"]["provider_timestamps"] == catalogue_times
+    assert projection["catalogue"]["mapping_version"] == "1.2.0"
 
 
 @pytest.mark.parametrize("reverse", [False, True])
@@ -331,7 +539,7 @@ def test_empty_index_also_validates_freshness_and_search_budgets(tmp_path):
     assert current.status()["providers"] == []
 
 
-def test_catalogue_refresh_exposes_scope_and_keeps_prior_description_separate(tmp_path):
+def test_catalogue_refresh_projects_prior_description_with_its_own_provenance(tmp_path):
     store = MetadataStore(tmp_path)
     draft = publish(tmp_path, ("a",), scope={"query": "", "detail": "dataset"})
     document = store.read(draft)
@@ -350,9 +558,11 @@ def test_catalogue_refresh_exposes_scope_and_keeps_prior_description_separate(tm
     current.import_snapshot(summary)
     row = current.get("nomis:a")
     assert row["title"] == "New catalogue title"
-    assert row.get("dimensions", []) == []
+    assert row["dimensions"] == [{"id": "geography", "label": "Invented areas"}]
     assert row["metadata_profile"]["requested_detail"] == "catalogue"
     assert row["metadata_profile"]["description_available"] is False
+    assert row["metadata_profile"]["descriptor_available"] is True
+    assert row["metadata_profile"]["description_text_available"] is True
     assert row["metadata_profile"]["scope"] == {"query": "", "detail": "catalogue"}
     retained = row["retained_description"]
     assert retained["metadata_snapshot_id"] == detail

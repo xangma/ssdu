@@ -126,7 +126,7 @@ def test_metadata_normalizes_assertions_retains_native_payload_and_never_fetches
         "data.gov.scot/tag",
     }
     assert result["coverage"]["temporal"]["periods"] == [{"start": "2021-Q1", "end": "2025-Q2"}]
-    assert result["coverage"]["spatial"]["areas"] == [{"id": "SYNTHETIC-LEVEL-1"}]
+    assert result["coverage"]["spatial"]["levels"] == [{"id": "SYNTHETIC-LEVEL-1"}]
     assert result["licence"] == source["license_url"]
     assert result["dimensions"] == result["measures"] == []
     assert result["distributions"][0]["supported"] is False
@@ -148,6 +148,135 @@ def test_metadata_normalizes_assertions_retains_native_payload_and_never_fetches
     )
     assert result["field_status"]["coverage.temporal"]["status"] == "mapped"
     assert result["field_status"]["measures"]["status"] == "not_provided"
+
+
+def test_structured_themes_and_precise_evidence_exclude_empty_or_unused_alternatives(tmp_path):
+    source = native()
+    source["theme"] = [{"name": "invented-health", "title": "Invented health"}]
+    del source["license_url"]
+    with client(tmp_path, response([source])) as transport:
+        result = scotland.describe_dataset(DATASET, transport)
+    assert {
+        "id": "invented-health",
+        "label": "Invented health",
+        "scheme": "data.gov.scot/theme",
+    } in result["subjects"]
+    paths = {item["source_path"] for item in result["metadata_mapping"]["evidence"]}
+    assert "/result/theme/0/name" in paths
+    assert "/result/theme/0/title" in paths
+    assert result["source_url"].endswith("?id=" + UUID)
+    assert result["access"]["metadata_url"] == result["source_url"]
+    assert "/result/license_title" in paths
+    assert "/result/license_id" not in paths
+    assert "/result/publisher" not in paths
+    assert "/result/spatial_coverage" not in paths
+    assert "/result/temporal_coverage" not in paths
+    for path in paths:
+        value = {"result": source}
+        for token in path.lstrip("/").split("/"):
+            token = token.replace("~1", "/").replace("~0", "~")
+            value = value[int(token)] if isinstance(value, list) else value[token]
+        assert value not in (None, "", [], {})
+
+
+def test_time_intervals_keep_native_precision_and_do_not_invent_days(tmp_path):
+    source = native()
+    source["reference_period"] = [{"start": "2001/03", "end": "2004"}]
+    with client(tmp_path, response([source])) as transport:
+        result = scotland.describe_dataset(DATASET, transport)
+    temporal = result["coverage"]["temporal"]
+    assert temporal["periods"] == source["reference_period"]
+    assert temporal["intervals"] == [
+        {
+            "start": "2001-03",
+            "start_precision": "month",
+            "end": "2004",
+            "end_precision": "year",
+            "calendar": "gregorian",
+        }
+    ]
+    assert "areas" not in result["coverage"]["spatial"]
+
+
+def test_native_reuse_notice_is_visible_without_promoting_isopen_to_a_licence(tmp_path):
+    source = native()
+    source.pop("license_url")
+    source["license_title"] = "Other (Attribution)"
+    source["completeness"] = "<p>Invented copyright notice: reuse is restricted to research.</p>"
+    with client(tmp_path, response([source])) as transport:
+        result = scotland.describe_dataset(DATASET, transport)
+    assert result["licence"] == "Other (Attribution)"
+    assert (
+        result["access"]["conditions"]
+        == "Invented copyright notice: reuse is restricted to research."
+    )
+    assert result["access"]["data_access"] == "not_asserted"
+    assert result["capabilities"]["retrieval"] is False
+    assert result["capabilities"]["retrieval_reason"]
+    assert any(
+        item["field"] == "access" and item["source_path"] == "/result/completeness"
+        for item in result["metadata_mapping"]["evidence"]
+    )
+
+
+@pytest.mark.parametrize(
+    "period",
+    [
+        {"start": "2001/13", "end": "2004"},
+        {"start": "2001-02-29", "end": "2004"},
+        {"start": "2001/03-01", "end": "2004"},
+        {"start": "2004", "end": "2001"},
+        {"start": "unexplained native period", "end": "2004"},
+    ],
+)
+def test_unparseable_or_reversed_periods_remain_native_without_a_queryable_interval(
+    tmp_path, period
+):
+    source = native()
+    source["reference_period"] = [period]
+    with client(tmp_path, response([source])) as transport:
+        result = scotland.describe_dataset(DATASET, transport)
+    temporal = result["coverage"]["temporal"]
+    assert temporal["periods"] == [period]
+    assert temporal["intervals"] == []
+    assert temporal["interval_status"] == "unmapped"
+    assert result["source_metadata"] == source
+
+
+@pytest.mark.parametrize(
+    "note",
+    [
+        "The invented survey covers 80 percent of the population.",
+        "The invented register counts business licences. Licences exclude refused applications.",
+    ],
+)
+def test_ordinary_completeness_notes_do_not_become_access_conditions(tmp_path, note):
+    source = native()
+    source["isopen"] = False
+    source["completeness"] = note
+    with client(tmp_path, response([source])) as transport:
+        result = scotland.describe_dataset(DATASET, transport)
+    assert "conditions" not in result["access"]
+    assert result["access"]["provider_open"] is False
+    assert result["access"]["data_access"] == "not_asserted"
+
+
+def test_related_metadata_evidence_escapes_keys_and_points_only_to_selected_assertions(tmp_path):
+    source = native()
+    source["metadata"] = {"invented/~schema": "https://example.invalid/schema"}
+    source["relationships_as_subject"] = [{"object": "invented-target", "type": "version"}, {}]
+    with client(tmp_path, response([source])) as transport:
+        result = scotland.describe_dataset(DATASET, transport)
+    paths = {
+        item["source_path"]
+        for item in result["metadata_mapping"]["evidence"]
+        if item["field"] == "related"
+    }
+    assert paths == {
+        "/result/metadata/invented~1~0schema",
+        "/result/relationships_as_subject/0/object",
+        "/result/relationships_as_subject/0/type",
+    }
 
 
 def test_missing_metadata_does_not_infer_roles_dates_rights_or_english_from_title(tmp_path):

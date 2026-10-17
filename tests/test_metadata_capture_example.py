@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from ssdu.metadata_index import MetadataIndex
+from ssdu.metadata_mapping import MAPPING_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -29,7 +30,7 @@ def test_downloaded_metadata_capture_transfers_complete_normalized_cache(tmp_pat
     assert receipt["providers"] == ["mhclg", "nisra", "nomis", "scotland", "statswales"]
     assert receipt["records"] == receipt["search_results"] == 10
     assert receipt["contract_version"] == "1.1.0"
-    assert receipt["mapping_version"] == "1.2.0"
+    assert receipt["mapping_version"] == MAPPING_VERSION
     assert receipt["provider_network_requests"] == receipt["observation_requests"] == 0
     assert receipt["interruption_resumed"] and receipt["retained_prefix_not_refetched"]
     assert receipt["fresh_store_replayed_offline"]

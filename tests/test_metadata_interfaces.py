@@ -295,6 +295,17 @@ def test_large_metadata_is_projected_without_altering_verified_python_evidence(
 ):
     document = synthetic_document()
     document["records"][0]["source_metadata"]["invented_payload"] = "x" * 500_000
+    timestamps = [
+        {
+            "kind": "modified",
+            "raw": "2026-01-02 09:00:00",
+            "value": "2026-01-02T09:00:00",
+            "timezone_status": "unspecified",
+            "precision": "second",
+            "status": "normalized",
+        }
+    ]
+    document["records"][0]["source_metadata"]["provider_timestamps"] = timestamps
     document["records"][0]["dimensions"][0]["values"] = [
         {"code": str(index)} for index in range(5000)
     ]
@@ -305,6 +316,7 @@ def test_large_metadata_is_projected_without_altering_verified_python_evidence(
     result = service.describe_metadata("nomis:FAKE_001")
     assert result["metadata_detail"] == "summary"
     assert "source_metadata" in result["omitted_fields"]
+    assert result["source_metadata"] == {"provider_timestamps": timestamps}
     assert "dimensions[].values" in result["omitted_fields"]
     assert result["metadata_snapshot_id"] == snapshot_id
     assert result["references"]

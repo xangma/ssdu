@@ -154,6 +154,20 @@ class Service:
                         child_path = f"{path}.{key}" if path else key
                         if key in {"source_metadata", "codes", "values", "category", "code_pages"}:
                             omitted.add(child_path)
+                            # Preserve provider date limits when native payloads
+                            # are too large for a response.
+                            if (
+                                key == "source_metadata"
+                                and isinstance(child, dict)
+                                and "provider_timestamps" in child
+                            ):
+                                result[key] = {
+                                    "provider_timestamps": compact(
+                                        child["provider_timestamps"],
+                                        child_path + ".provider_timestamps",
+                                        depth + 1,
+                                    )
+                                }
                         else:
                             result[key] = compact(child, child_path, depth + 1)
                     return result

@@ -61,6 +61,18 @@ def _revisions(family):
     }
 
 
+def _updated(family):
+    """Expose an unambiguous native clock without assigning its timezone."""
+    values = {
+        value
+        for annotation, _ in _metadata_entries(family.get("annotations", {}).get("annotation"), "")
+        if annotation.get("annotationtitle") == "LastUpdated"
+        and isinstance(value := annotation.get("annotationtext"), str)
+        and value.strip()
+    }
+    return next(iter(values)) if len(values) == 1 else None
+
+
 def search(query: str, client: HttpClient) -> list[dict]:
     if not query.strip():
         raise ValueError("Nomis search needs a keyword to avoid downloading the whole catalogue")
@@ -264,7 +276,7 @@ def _mapped_metadata(document, family, dataset_id):
     ):
         concept = item.get("conceptref")
         if isinstance(concept, str) and concept.strip():
-            measures.append({"id": concept, "label": concept})
+            measures.append({"id": concept, "label": concept, "role": "value_column"})
             record("measures", location + "/conceptref")
     units = []
     for annotation, location in annotations:
@@ -277,6 +289,21 @@ def _mapped_metadata(document, family, dataset_id):
         measures[0]["unit"] = units[0][0]
         for _, location in units:
             record("measures", location)
+    elif units:
+        # A dataset annotation is useful for discovery, but is not a unit for
+        # every statistic selected through MEASURES or a series-level unit axis.
+        hints = [
+            {"label": unit, "scope": "dataset_annotation", "applies_to_all_series": False}
+            for unit in dict.fromkeys(unit for unit, _ in units)
+        ]
+        for measure in measures:
+            if len(hints) == 1:
+                measure["dataset_unit_hint"] = hints[0]
+            else:
+                measure["dataset_unit_hints"] = hints
+        if measures:
+            for _, location in units:
+                record("measures", location)
     coverage = {}
     temporal = _metadata_entries(
         components.get("timedimension"), path + "/components/timedimension"
@@ -302,7 +329,11 @@ def _mapped_metadata(document, family, dataset_id):
                 and concept.strip()
                 and (concept_name is None or concept.upper() == concept_name)
             ):
-                dimensions.append({"id": concept.lower(), "label": concept})
+                dimension = {"id": concept.lower(), "label": concept}
+                if isinstance(item.get("codelist"), str) and item["codelist"].strip():
+                    dimension["codelist"] = item["codelist"]
+                    record("coverage." + field, location + "/codelist")
+                dimensions.append(dimension)
                 record("coverage." + field, location + "/conceptref", method)
         if dimensions:
             coverage[field] = {"dimensions": dimensions, "scope": "declared_dimension"}
@@ -336,6 +367,11 @@ def _mapped_metadata(document, family, dataset_id):
     result["field_status"] = {
         field: {"status": "mapped" if value else "not_provided"} for field, value in fields.items()
     }
+    for component in coverage:
+        result["field_status"]["coverage." + component]["reason"] = (
+            "A declared dimension identifies a role, not its available extent; "
+            "category values were not requested."
+        )
     if not description and family.get("description"):
         candidates = []
         for item, _ in _metadata_entries(family["description"], ""):
@@ -434,9 +470,16 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
         "release": {
             "kind": "observed_snapshot",
             "provider_revision": _revisions(family),
+            **({"updated": updated} if (updated := _updated(family)) is not None else {}),
             "historical_revision_addressable": False,
         },
         "capabilities": {
+            "retrieval": True,
+            "retrieval_reason": "Nomis supports bounded CSV retrieval with native selectors.",
+            "retrieval_constraints": {
+                "selection_method": "server_side_native_selectors",
+                "historical_release_selection": False,
+            },
             "dimension_values": True,
             "server_side_selection": True,
             "selection_syntax": "Nomis native codes and expressions; date/time aliases supported",

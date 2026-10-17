@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from calendar import monthrange
+from datetime import date
 from urllib.parse import urlencode, urlsplit
 from uuid import UUID
 
@@ -189,6 +191,49 @@ def _strings(value):
     return sorted({text for item in value if (text := plain_text(item))})
 
 
+def _path(*parts):
+    return "/result/" + "/".join(str(part).replace("~", "~0").replace("/", "~1") for part in parts)
+
+
+def _text_field(value, *keys):
+    for key in keys:
+        if text := plain_text(value.get(key)):
+            return text, key
+    return None, None
+
+
+def _boundary(value):
+    """Canonical spelling and precision, without fabricating day boundaries."""
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"([0-9]{4})(?:[-/]([0-9]{2})(?:-([0-9]{2}))?|(-Q[1-4]))?", value)
+    if not match or not 1 <= int(match[1]) <= 9999:
+        return None
+    if match[3] and "/" in value:
+        return None
+    year = int(match[1])
+    if match[4]:
+        first = 3 * (int(match[4][-1]) - 1) + 1
+        return value, "quarter", (year, first, 1), (year, first + 2, monthrange(year, first + 2)[1])
+    if not match[2]:
+        return value, "year", (year, 1, 1), (year, 12, 31)
+    month = int(match[2])
+    if not 1 <= month <= 12:
+        return None
+    if not match[3]:
+        return (
+            f"{year:04d}-{month:02d}",
+            "month",
+            (year, month, 1),
+            (year, month, monthrange(year, month)[1]),
+        )
+    try:
+        day = date(year, month, int(match[3]))
+    except ValueError:
+        return None
+    return day.isoformat(), "day", (year, month, day.day), (year, month, day.day)
+
+
 def describe_dataset(dataset_id, client):
     """Normalize the current portal's asserted metadata; never follow resource URLs."""
     native = _identifier(dataset_id)
@@ -213,46 +258,84 @@ def describe_dataset(dataset_id, client):
                 asserted(field, path)
 
     description = plain_text(record.get("description"))
-    status("description", bool(description), "/result/description")
+    status(
+        "description",
+        bool(description),
+        "/result/description",
+        native_present=bool(record.get("description")),
+    )
     publishers = []
+    publisher_paths = []
     organization = record.get("organization")
     if isinstance(organization, dict):
-        name = plain_text(organization.get("title")) or plain_text(organization.get("name"))
+        name, key = _text_field(organization, "title", "name")
         if name:
             publishers.append({"name": name, "id": str(organization.get("id") or name)})
-    for item in record.get("publisher", []) if isinstance(record.get("publisher"), list) else []:
+            publisher_paths.append(_path("organization", key))
+            if organization.get("id"):
+                publisher_paths.append(_path("organization", "id"))
+    for index, item in enumerate(
+        record.get("publisher", []) if isinstance(record.get("publisher"), list) else []
+    ):
+        paths = []
         if isinstance(item, str) and (name := plain_text(item)):
             candidate = {"name": name}
+            paths.append(_path("publisher", index))
         elif isinstance(item, dict):
-            name = plain_text(item.get("title")) or plain_text(item.get("name"))
+            name, key = _text_field(item, "title", "name")
             candidate = {"name": name} if name else None
+            if candidate:
+                paths.append(_path("publisher", index, key))
             if candidate and isinstance(item.get("id"), str) and item["id"]:
                 candidate["id"] = item["id"]
+                paths.append(_path("publisher", index, "id"))
             if candidate and (url := _url(item.get("url"))):
                 candidate["url"] = url
+                paths.append(_path("publisher", index, "url"))
         else:
             candidate = None
         if candidate and candidate not in publishers:
             publishers.append(candidate)
+            publisher_paths.extend(paths)
     status(
         "publishers",
         bool(publishers),
-        "/result/organization",
-        "/result/publisher",
+        *publisher_paths,
         native_present=bool(organization or record.get("publisher")),
     )
-    subjects = [
-        {"id": value, "label": value, "scheme": "data.gov.scot/theme"}
-        for value in _strings(record.get("theme"))
-    ]
-    for item in record.get("tags", []) if isinstance(record.get("tags"), list) else []:
-        label = (
-            plain_text(item.get("display_name") or item.get("name"))
-            if isinstance(item, dict)
-            else plain_text(item)
-        )
+    subjects, subject_paths = [], []
+    themes = record.get("theme")
+    if isinstance(themes, str):
+        themes = [themes]
+    for index, item in enumerate(themes if isinstance(themes, list) else []):
+        if isinstance(item, dict):
+            subject_identity = plain_text(item.get("name"))
+            label, key = _text_field(item, "title", "name")
+            paths = [_path("theme", index, key)] if label else []
+            if subject_identity:
+                paths.append(_path("theme", index, "name"))
+        else:
+            subject_identity = label = plain_text(item)
+            paths = [
+                _path("theme", index) if isinstance(record.get("theme"), list) else _path("theme")
+            ]
+        if label:
+            subject = {"label": label, "scheme": "data.gov.scot/theme"}
+            if subject_identity:
+                subject["id"] = subject_identity
+            subjects.append(subject)
+            subject_paths.extend(paths)
+    for index, item in enumerate(
+        record.get("tags", []) if isinstance(record.get("tags"), list) else []
+    ):
+        if isinstance(item, dict):
+            label, key = _text_field(item, "display_name", "name")
+            path = _path("tags", index, key) if label else None
+        else:
+            label, path = plain_text(item), _path("tags", index)
         if label:
             subjects.append({"label": label, "scheme": "data.gov.scot/tag"})
+            subject_paths.append(path)
     subjects = [
         dict(json.loads(value))
         for value in sorted({json.dumps(x, sort_keys=True) for x in subjects})
@@ -260,8 +343,7 @@ def describe_dataset(dataset_id, client):
     status(
         "subjects",
         bool(subjects),
-        "/result/theme",
-        "/result/tags",
+        *subject_paths,
         native_present=bool(record.get("theme") or record.get("tags")),
     )
     languages = _strings(record.get("language"))
@@ -272,17 +354,23 @@ def describe_dataset(dataset_id, client):
         native_present=bool(record.get("language")),
     )
     coverage = {}
-    areas = _strings(record.get("geographical_coverage"))
-    if areas:
+    levels = _strings(record.get("geographical_coverage"))
+    spatial_paths = []
+    if levels:
         coverage["spatial"] = {
-            "areas": [{"id": value} for value in areas],
+            "levels": [{"id": value} for value in levels],
+            "level_scheme": "data.gov.scot/geographical_coverage",
             "scope": "provider_declared",
             "basis": "geographical_coverage",
-            "note": "Provider geography identifiers; these may name levels rather than observation areas.",
+            "extent_status": "not_asserted",
+            "note": "Catalogue geography classifications identify levels; actual observation areas are not asserted.",
         }
+        spatial_paths.append("/result/geographical_coverage")
     spatial = record.get("spatial_coverage")
     if spatial and isinstance(spatial, (list, dict, str)):
         coverage.setdefault("spatial", {"scope": "provider_declared"})["native"] = spatial
+        spatial_paths.append("/result/spatial_coverage")
+    temporal_paths = []
     periods = record.get("reference_period")
     if isinstance(periods, list):
         periods = [
@@ -298,41 +386,54 @@ def describe_dataset(dataset_id, client):
     else:
         periods = []
     if periods:
+        temporal_paths.append("/result/reference_period")
         coverage["temporal"] = {
             "periods": periods,
             "scope": "provider_declared",
             "basis": "reference_period",
         }
+        intervals = []
+        for item in periods:
+            start, end = _boundary(item.get("start")), _boundary(item.get("end"))
+            if not (start or end) or ("start" in item and not start) or ("end" in item and not end):
+                continue
+            if start and end and start[2] > end[3]:
+                continue
+            interval = {"calendar": "gregorian"}
+            for key, boundary in (("start", start), ("end", end)):
+                if boundary:
+                    interval[key], interval[key + "_precision"] = boundary[:2]
+            intervals.append(interval)
+        coverage["temporal"]["intervals"] = intervals
+        coverage["temporal"]["interval_status"] = (
+            "mapped" if len(intervals) == len(periods) else "partial" if intervals else "unmapped"
+        )
     temporal = record.get("temporal_coverage")
     if temporal and isinstance(temporal, (list, dict, str)):
         coverage.setdefault("temporal", {"scope": "provider_declared"})["native"] = temporal
+        temporal_paths.append("/result/temporal_coverage")
     status(
         "coverage.spatial",
         "spatial" in coverage,
-        "/result/geographical_coverage",
-        "/result/spatial_coverage",
+        *spatial_paths,
         native_present=bool(record.get("geographical_coverage") or spatial),
     )
     status(
         "coverage.temporal",
         "temporal" in coverage,
-        "/result/reference_period",
-        "/result/temporal_coverage",
+        *temporal_paths,
         native_present=bool(record.get("reference_period") or temporal),
     )
-    licence = (
-        _url(record.get("license_url"))
-        or plain_text(record.get("license_title"))
-        or plain_text(record.get("license_id"))
-    )
+    licence, licence_path = _url(record.get("license_url")), "/result/license_url"
+    if not licence:
+        licence, key = _text_field(record, "license_title", "license_id")
+        licence_path = _path(key) if key else None
     if licence and licence.casefold() in {"notspecified", "not-specified", "unknown"}:
         licence = None
     status(
         "licence",
         bool(licence),
-        "/result/license_url",
-        "/result/license_title",
-        "/result/license_id",
+        *([licence_path] if licence else []),
     )
     distributions = []
     resources = record.get("resources", [])
@@ -368,7 +469,7 @@ def describe_dataset(dataset_id, client):
             distribution["licence"] = text
         distributions.append(distribution)
     status("distributions", bool(distributions), "/result/resources")
-    related = []
+    related, related_paths = [], []
     metadata = record.get("metadata")
     if isinstance(metadata, dict):
         for format_name, value in sorted(metadata.items()):
@@ -376,9 +477,10 @@ def describe_dataset(dataset_id, client):
                 related.append(
                     {"relation": "alternate_metadata", "url": url, "title": str(format_name)}
                 )
+                related_paths.append(_path("metadata", format_name))
     for relation in ("relationships_as_subject", "relationships_as_object"):
         if isinstance(record.get(relation), list):
-            for item in record[relation]:
+            for index, item in enumerate(record[relation]):
                 if not isinstance(item, dict):
                     continue
                 target = item.get("object" if relation.endswith("subject") else "subject")
@@ -386,12 +488,17 @@ def describe_dataset(dataset_id, client):
                     related.append(
                         {"relation": str(item.get("type") or "related"), "target_id": target}
                     )
+                    related_paths.append(
+                        _path(
+                            relation, index, "object" if relation.endswith("subject") else "subject"
+                        )
+                    )
+                    if item.get("type"):
+                        related_paths.append(_path(relation, index, "type"))
     status(
         "related",
         bool(related),
-        "/result/metadata",
-        "/result/relationships_as_subject",
-        "/result/relationships_as_object",
+        *related_paths,
         native_present=bool(
             metadata
             or record.get("relationships_as_subject")
@@ -402,9 +509,22 @@ def describe_dataset(dataset_id, client):
     access = {"metadata_url": metadata_url, "data_access": "not_asserted"}
     if type(record.get("isopen")) is bool:
         access["provider_open"] = record["isopen"]
-    if conditions := plain_text(record.get("access_right")):
-        access["conditions"] = conditions
+        asserted("access", "/result/isopen")
+    conditions = []
+    if condition := plain_text(record.get("access_right")):
+        conditions.append(condition)
         asserted("access", "/result/access_right")
+    completeness = plain_text(record.get("completeness"))
+    if completeness and re.search(
+        r"\bcopyright\b|\blicen[cs]e (?:terms|conditions|agreement)\b"
+        r"|\bterms (?:and conditions|of (?:use|reuse))\b",
+        completeness,
+        re.IGNORECASE,
+    ):
+        conditions.append(completeness)
+        asserted("access", "/result/completeness")
+    if conditions:
+        access["conditions"] = "\n\n".join(dict.fromkeys(conditions))
     status("access", True, "/result/id")
     statuses["dimensions"] = {
         "status": "not_provided",
@@ -443,6 +563,8 @@ def describe_dataset(dataset_id, client):
         "capabilities": {
             "metadata_only": True,
             "acquisition": False,
+            "retrieval": False,
+            "retrieval_reason": "Current portal resources are discoverable but acquisition is not implemented by this connector.",
             "dimension_values": False,
             "server_side_selection": False,
             "historical_release_selection": False,

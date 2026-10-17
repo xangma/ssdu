@@ -15,7 +15,7 @@ from urllib.parse import unquote, urljoin, urlparse
 
 from ssdu.distributions import parse_csv
 from ssdu.http import HttpClient
-from ssdu.metadata_mapping import mapping_metadata, plain_text
+from ssdu.metadata_mapping import mapping_metadata, normalized_metadata_fields, plain_text
 from ssdu.models import Acquisition, Request, RetrievalError
 
 PROVIDER = "mhclg"
@@ -34,6 +34,7 @@ UNKNOWN_LICENCE = (
     "Licence not stated in publication metadata; consult the publication and attachment"
 )
 DOCUMENT_TYPES = ("national_statistics", "official_statistics", "statistical_data_set")
+MAX_DESCRIPTION_CHARACTERS = 65536
 
 
 def _digest(value):
@@ -165,14 +166,22 @@ def search(query, client):
 def _format(attachment, url):
     declared = str(attachment.get("content_type") or attachment.get("mime_type") or "").lower()
     suffix = unquote(urlparse(url).path).lower()
+    if not declared and attachment.get("attachment_type") == "html":
+        return "text/html"
+    if not declared and attachment.get("attachment_type") == "external":
+        return "unknown"
     if declared in {"application/csvm+json", "application/csvw+json"} or suffix.endswith(
         (".csv-metadata.json", ".csvw.json")
     ):
         return "csvw"
     if declared in {"text/csv", "application/csv"} or suffix.endswith(".csv"):
         return "csv"
+    if declared:
+        return declared
     # Unknown JSON must not be treated as a valid schema without explicit selection.
-    return declared or suffix.rsplit(".", 1)[-1] or "unknown"
+    filename = suffix.rsplit("/", 1)[-1]
+    extension = filename.rsplit(".", 1)[-1] if "." in filename else ""
+    return extension if re.fullmatch(r"[a-z0-9]{1,16}", extension) else "unknown"
 
 
 def _pointer(value):
@@ -206,6 +215,7 @@ def _organisation_metadata(links, record):
     publishers, related, seen = [], [], set()
     for key, role in (
         ("primary_publishing_organisation", "primary"),
+        ("original_primary_publishing_organisation", "original"),
         ("organisations", "associated"),
     ):
         entries = links.get(key, [])
@@ -217,6 +227,9 @@ def _organisation_metadata(links, record):
                 continue
             source = "/links/" + key + "/" + str(index)
             signature = identity.get("url") or identity.get("id") or identity.get("name")
+            # An organisation can be both the original and current publisher.
+            # Preserve that source role while deduplicating associated identities.
+            signature = (signature, role) if role == "original" else signature
             if signature not in seen:
                 publishers.append({**identity, "role": role})
                 seen.add(signature)
@@ -240,12 +253,19 @@ def _mapped_metadata(document, details, path, distributions):
     def record(field, source_path, method="provider_assertion"):
         evidence.append({"field": field, "source_path": source_path, "method": method})
 
-    description = plain_text(document.get("description"))
-    if description:
+    summary = plain_text(document.get("description"))
+    summary = summary[:MAX_DESCRIPTION_CHARACTERS] if summary else None
+    body = plain_text(details.get("body"))
+    description = summary
+    if summary:
         record("description", "/description")
-    else:
-        description = plain_text(details.get("body"))
-        if description:
+    # A publication's short summary commonly omits its substantive context.
+    # Keep the summary separate and include bounded body prose for discovery;
+    # neither text is interpreted as structured observation coverage.
+    if body and body != summary:
+        prefix = summary + "\n\n" if summary else ""
+        if len(prefix) < MAX_DESCRIPTION_CHARACTERS:
+            description = (prefix + body)[:MAX_DESCRIPTION_CHARACTERS]
             record("description", "/details/body")
     areas = []
     applicability = details.get("national_applicability")
@@ -298,6 +318,7 @@ def _mapped_metadata(document, details, path, distributions):
         ("part_of_statistical_series", "is_part_of"),
         ("ordered_related_items", "related"),
         ("related_statistical_data_sets", "related"),
+        ("children", "has_part"),
     ):
         entries = links.get(key, [])
         if not isinstance(entries, list):
@@ -349,7 +370,11 @@ def _mapped_metadata(document, details, path, distributions):
     }
     inspected = {
         "description": document.get("description") or details.get("body"),
-        "publishers": links.get("primary_publishing_organisation") or links.get("organisations"),
+        "publishers": (
+            links.get("primary_publishing_organisation")
+            or links.get("original_primary_publishing_organisation")
+            or links.get("organisations")
+        ),
         "subjects": any(
             links.get(key)
             for key in ("taxons", "topics", "mainstream_browse_pages", "policy_areas")
@@ -363,6 +388,7 @@ def _mapped_metadata(document, details, path, distributions):
                 "part_of_statistical_series",
                 "ordered_related_items",
                 "related_statistical_data_sets",
+                "children",
             )
         ),
         "licence": details.get("licence"),
@@ -388,6 +414,7 @@ def _mapped_metadata(document, details, path, distributions):
         "reason": "Public metadata endpoint is known; data access conditions are not asserted.",
     }
     return {
+        "summary": summary,
         "description": description,
         "measures": [],
         "coverage": coverage,
@@ -446,13 +473,23 @@ def _describe(dataset_id, client, *, metadata_only):
             raise RetrievalError("MHCLG publication contains repeated attachment identities")
         ids.add(identity)
         file_format = _format(item, url)
+        supported = download_supported and trusted and file_format in {"csv", "csvw"}
+        if not download_supported:
+            unsupported_reason = "The primary publisher is outside the download policy."
+        elif not trusted:
+            unsupported_reason = "The resource URL is outside the trusted HTTPS hosts."
+        else:
+            unsupported_reason = (
+                "The resource format is not supported; only CSV and CSVW can be retrieved."
+            )
         distributions.append(
             {
                 "id": identity,
                 "title": item.get("title") or identity,
                 "url": url,
                 "format": file_format,
-                "supported": download_supported and trusted and file_format in {"csv", "csvw"},
+                "supported": supported,
+                **({"unsupported_reason": unsupported_reason} if not supported else {}),
                 "content_type": item.get("content_type") or item.get("mime_type"),
                 "bytes": item.get("file_size"),
             }
@@ -466,6 +503,7 @@ def _describe(dataset_id, client, *, metadata_only):
         "release_page": BASE + path,
     }
     mapped = _mapped_metadata(document, details, path, distributions)
+    supported_distributions = [item for item in distributions if item["supported"]]
     primary = [item for item in mapped["publishers"] if item["role"] == "primary"]
     publisher_names = [
         item.get("name") or item.get("id") or item["url"]
@@ -476,31 +514,42 @@ def _describe(dataset_id, client, *, metadata_only):
         "dataset_id": _identifier(path),
         "title": title,
         "kind": "publication",
+        "publication_type": document.get("document_type"),
         **mapped,
         "source_url": BASE + path,
         "dimensions": [],
         "release": release,
         "distributions": distributions,
         "capabilities": {
-            "formats": ["csv", "csvw"] if download_supported else [],
+            "formats": sorted({item["format"] for item in supported_distributions}),
             "profile": "records",
             "selectors": "local_exact_string",
             "dimension_values": False,
             "release_history": False,
             "immutable_upstream_release": False,
-            "retrieval": download_supported,
+            "publisher_eligible": download_supported,
+            "supported_distribution_count": len(supported_distributions),
+            "retrieval": bool(supported_distributions),
+            "retrieval_constraints": {
+                "distribution": "Select an explicit distribution when multiple supported resources exist.",
+                "schema": "Source columns and types are checked when the selected resource is retrieved.",
+            },
         },
         "publisher": "; ".join(publisher_names),
     }
+    if not download_supported:
+        result["capabilities"]["retrieval_reason"] = (
+            "Associated with MHCLG, but its primary publisher is outside the download policy."
+        )
+    elif not supported_distributions:
+        result["capabilities"]["retrieval_reason"] = (
+            "No supported CSV or CSVW distribution with a trusted URL is declared in the publication metadata."
+        )
     if metadata_only:
         # Preserve all native assertions, including fields the common mapping
         # does not interpret. Content stays local with the verified response.
         result["source_metadata"] = {"document": document}
-        if not download_supported:
-            result["capabilities"]["retrieval_reason"] = (
-                "Associated with MHCLG, but its primary publisher is outside the download policy."
-            )
-    return result
+    return {**result, **normalized_metadata_fields(result)}
 
 
 def describe_dataset(dataset_id, client):

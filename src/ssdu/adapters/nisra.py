@@ -36,6 +36,9 @@ UNKNOWN_LICENCE = "Not stated in NISRA API metadata; consult source terms"
 COLLECTION_URL = f"{BASE}/PxStat.Data.Cube_API.ReadCollection"
 MAX_CATALOGUE_ITEMS = 100_000
 MAX_METADATA_CATEGORIES = 100_000
+# Native classification identity plus its controlled members establishes a
+# geography. Similar-looking identifiers alone are only unresolved candidates.
+LGD2014_CODES = frozenset({f"N090000{number:02d}" for number in range(1, 12)} | {"N92000002"})
 REFERENCES = [
     {
         "title": "PxStat RESTful cube and collection API",
@@ -343,6 +346,27 @@ def _mapped_metadata(cube, codes, metadata_url):
                 "scope": "dimension_categories",
             }
 
+    if not roles.get("geo"):
+        excluded = set(roles.get("time", [])) | set(roles.get("metric", []))
+        geographic = [
+            axis
+            for axis in cube["id"]
+            if axis == "LGD2014"
+            and axis not in excluded
+            and codes[axis]
+            and set(codes[axis]) <= LGD2014_CODES
+        ]
+        if geographic:
+            field = "coverage.spatial"
+            for axis in geographic:
+                asserted(field, "/dimension/" + axis, "declared_dimension")
+            coverage["spatial"] = {
+                "dimensions": [dimension(axis, field) for axis in geographic],
+                "areas": [member for axis in geographic for member in categories(axis, field)],
+                "scope": "dimension_categories",
+                "basis": "known_native_classification",
+            }
+
     licence = _licence_reference(cube["extension"].get("copyright"))
     if licence == UNKNOWN_LICENCE:
         licence = None
@@ -380,16 +404,41 @@ def _mapped_metadata(cube, codes, metadata_url):
         ("time", "coverage.temporal"),
         ("metric", "measures"),
     ):
-        if not roles.get(role):
+        if not roles.get(role) and not (role == "geo" and coverage["spatial"] is not None):
             result["field_status"][field]["reason"] = (
                 f"No explicit JSON-stat {role} role; axis labels are not interpreted as roles."
             )
+
+    if coverage["spatial"] is None and any(
+        axis not in set(roles.get("time", [])) | set(roles.get("metric", []))
+        and any(re.fullmatch(r"N[0-9]{8}", code) for code in codes[axis])
+        for axis in cube["id"]
+    ):
+        result["field_status"]["coverage.spatial"] = {
+            "status": "unmapped",
+            "reason": (
+                "Native categories contain possible geographic identifiers, but no explicit "
+                "geo role or supported classification establishes an extent."
+            ),
+        }
+
+    def meaningful(value):
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return bool(value.strip())
+        if isinstance(value, (list, dict)):
+            return any(
+                meaningful(item) for item in (value.values() if isinstance(value, dict) else value)
+            )
+        return True
+
     for field, native in (
         ("description", notes),
         ("subjects", [extension.get("subject"), extension.get("product")]),
         ("languages", language),
     ):
-        if not result[field] and native and native != [None, None]:
+        if not result[field] and meaningful(native):
             result["field_status"][field] = {
                 "status": "unmapped",
                 "reason": "Native metadata is present in an unsupported shape or has no readable value.",
@@ -474,6 +523,18 @@ def describe_dataset(dataset_id: str, client: HttpClient) -> dict:
             "requested_revision_pinned": False,
         },
         "capabilities": {
+            "retrieval": cells <= MAX_CUBE_CELLS,
+            "retrieval_reason": (
+                "The complete JSON-stat cube fits the adapter cell limit; selectors apply locally."
+                if cells <= MAX_CUBE_CELLS
+                else "The complete JSON-stat cube exceeds the adapter cell limit; local selectors do not reduce its download."
+            ),
+            "retrieval_constraints": {
+                "max_full_cube_cells": MAX_CUBE_CELLS,
+                "full_cube_cells": cells,
+                "selection_method": "complete_bounded_cube_then_native_code_local_selection",
+                "language": "en",
+            },
             "dimension_values": True,
             "server_side_selection": False,
             "selection_syntax": "selectors: {native_axis: [native_code, ...]}; language=en",

@@ -1,12 +1,15 @@
 """Synthetic StatsWales revision assertions; no captured provider payloads."""
 
 import copy
+import socket
 
 import httpx
 import pytest
 
 from ssdu.adapters import statswales
+from ssdu.connector_cache import CachedClient
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import MAPPING_VERSION
 
 DATASET = "00000000-0000-4000-8000-000000000041"
 
@@ -61,11 +64,9 @@ def test_maps_summary_and_declared_dates_with_native_evidence():
             "scope": "provider_declared",
         }
     }
-    assert result["access"] == {
-        "metadata_url": f"{statswales.BASE}/{DATASET}?lang=en-gb",
-        "data_access": "not_asserted",
-    }
-    assert result["metadata_mapping"]["version"] == "1.2.0"
+    assert result["access"]["metadata_url"] == f"{statswales.BASE}/{DATASET}?lang=en-gb"
+    assert result["access"]["data_access"] == "not_asserted"
+    assert result["metadata_mapping"]["version"] == MAPPING_VERSION
     assert {
         (item["field"], item["source_path"], item["method"])
         for item in result["metadata_mapping"]["evidence"]
@@ -102,7 +103,7 @@ def test_missing_assertions_do_not_use_title_publication_or_dimension_labels():
         }
         for key, label in (
             ("category", "Data description"),
-            ("Areacode", "Area name"),
+            ("unrecognized_place_axis", "Area name"),
             ("YearID", "Financial year"),
         )
     ]
@@ -280,3 +281,193 @@ def test_invalid_optional_assertions_remain_native_and_have_visible_mapping_gap(
     for field in ("publishers", "subjects", "related"):
         assert result["field_status"][field]["status"] == "unmapped"
     assert result["source_metadata"] == metadata
+
+
+def native_dimension(identity, label, *members):
+    return {
+        "factTableColumn": identity,
+        "columnName": label,
+        "values": [{"reference": identity, "description": label} for identity, label in members],
+    }
+
+
+def test_controlled_filter_roles_project_measures_and_native_geography_categories():
+    native = [
+        native_dimension("DataDescription", "Data description", ("m1", "Invented workshop count")),
+        native_dimension("area_code", "Area", ("a1", "Invented region")),
+        native_dimension("MeasureID", "Area and measure", ("x1", "Ambiguous category")),
+        native_dimension("unexpected_axis", "Area", ("W99999999", "Unverified place")),
+    ]
+    original = copy.deepcopy(native)
+    result = describe(revision(), native)
+    assert result["measures"] == [
+        {
+            "id": "m1",
+            "label": "Invented workshop count",
+            "dimension": "DataDescription",
+            "scheme": "StatsWales filter categories",
+        }
+    ]
+    spatial = result["coverage"]["spatial"]
+    assert spatial["areas"] == [
+        {
+            "id": "a1",
+            "label": "Invented region",
+            "dimension": "area_code",
+            "scheme": "StatsWales filter categories",
+        }
+    ]
+    assert spatial["scope"] == "dimension_categories"
+    assert spatial["basis"] == "statswales_filter_vocabulary_v1"
+    assert [item.get("role") for item in result["dimensions"]] == ["metric", "geo", None, None]
+    assert "unit" not in result["measures"][0]
+    for field in ("measures", "coverage.spatial"):
+        assert result["field_status"][field]["status"] == "mapped"
+        assert {
+            "field": field,
+            "source_path": "@filters",
+            "method": "provider_dimension_role",
+        } in result["metadata_mapping"]["evidence"]
+    assert native == original
+
+
+def test_revision_dates_take_precedence_and_preserve_conflicting_catalogue_assertions():
+    metadata = revision(coverage_start_date="2030-01-01", coverage_end_date="2031-12-31")
+    metadata.update(start_date="2020-01-01", end_date="2032-12-31")
+    result = describe(metadata)
+    temporal = result["coverage"]["temporal"]
+    assert temporal["start"] == "2030-01-01" and temporal["end"] == "2031-12-31"
+    assert temporal["basis"] == "published_revision"
+    assert temporal["alternatives"] == [
+        {"start": "2020-01-01", "end": "2032-12-31", "basis": "dataset_catalogue_dates"}
+    ]
+    assert temporal["assertions_disagree"] is True
+    assert result["field_status"]["coverage.temporal"]["status"] == "ambiguous"
+    assert {
+        item["source_path"]
+        for item in result["metadata_mapping"]["evidence"]
+        if item["field"] == "coverage.temporal"
+    } == {
+        "/published_revision/coverage_start_date",
+        "/published_revision/coverage_end_date",
+        "/start_date",
+        "/end_date",
+    }
+
+
+def test_complete_catalogue_fallback_is_explicitly_scoped_and_never_fills_revision_bounds():
+    metadata = revision()
+    metadata.update(start_date="2030-01-01", end_date="2031-12-31")
+    result = describe(metadata)
+    assert result["coverage"]["temporal"] == {
+        "start": "2030-01-01",
+        "end": "2031-12-31",
+        "scope": "provider_declared",
+        "basis": "dataset_catalogue_dates",
+        "revision_coverage": "not_provided",
+    }
+    metadata["published_revision"]["coverage_start_date"] = "2030-06-01"
+    result = describe(metadata)
+    assert result["coverage"]["temporal"]["start"] == "2030-06-01"
+    assert "end" not in result["coverage"]["temporal"]
+
+
+def test_matching_partial_assertions_do_not_claim_a_date_disagreement():
+    metadata = revision(coverage_start_date="2030-01-01")
+    metadata.update(start_date="2030-01-01", end_date="2031-12-31")
+    result = describe(metadata)
+    temporal = result["coverage"]["temporal"]
+    assert temporal["start"] == "2030-01-01" and "end" not in temporal
+    assert "assertions_disagree" not in temporal
+    assert temporal["alternatives"] == [
+        {"start": "2030-01-01", "end": "2031-12-31", "basis": "dataset_catalogue_dates"}
+    ]
+    assert result["field_status"]["coverage.temporal"]["status"] == "mapped"
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        {"start_date": "2030-01-01"},
+        {"start_date": "2032-01-01", "end_date": "2030-01-01"},
+        {"start_date": "2030-02-30", "end_date": "2031-01-01"},
+    ],
+)
+def test_invalid_or_partial_catalogue_dates_do_not_become_revision_coverage(dates):
+    result = describe({**revision(), **dates})
+    assert result["coverage"] is None
+    assert result["field_status"]["coverage.temporal"]["status"] == "unmapped"
+
+
+def test_bad_revision_dates_are_not_silently_replaced_by_catalogue_dates():
+    metadata = revision(coverage_start_date="2032-01-01", coverage_end_date="2030-01-01")
+    metadata.update(start_date="2030-01-01", end_date="2031-12-31")
+    result = describe(metadata)
+    assert result["coverage"] is None
+    assert result["field_status"]["coverage.temporal"]["status"] == "unmapped"
+
+
+def test_archive_replacement_and_modification_are_distinct_from_publication_and_retrievability():
+    metadata = revision(updated_at="2030-03-01T08:00:00Z", publish_at="2030-03-02T09:00:00Z")
+    metadata.update(
+        archived_at="2031-04-01T09:00:00Z",
+        replaced_by={"dataset_id": "replacement", "dataset_title": "Invented replacement"},
+    )
+    result = describe(metadata)
+    assert result["release"]["updated"] == "2030-03-01T08:00:00Z"
+    assert result["release"]["publish_at"] == "2030-03-02T09:00:00Z"
+    assert result["release"]["lifecycle"] == {
+        "status": "archived",
+        "archived_at": "2031-04-01T09:00:00Z",
+        "source_path": "/archived_at",
+        "replacement": metadata["replaced_by"],
+        "replacement_source_path": "/replaced_by",
+    }
+    assert result["capabilities"]["retrieval"] is True
+    assert result["access"]["retrieval"]["supported"] is True
+    assert result["access"]["retrieval"]["status"] == "supported"
+    assert result["access"]["retrieval"]["constraints"] == {
+        "selection_method": "server_side_native_filters",
+        "published_revision_only": True,
+        "bounded_query": True,
+    }
+    assert result["access"]["data_access"] == "not_asserted"
+    del metadata["archived_at"]
+    assert describe(metadata)["release"]["lifecycle"]["status"] == "replaced"
+    del metadata["replaced_by"]
+    assert describe(metadata)["release"]["lifecycle"]["status"] == "not_asserted"
+
+
+def test_enriched_descriptor_replays_identically_from_cache_without_network(tmp_path, monkeypatch):
+    metadata = revision(
+        coverage_start_date="2030-01-01",
+        coverage_end_date="2031-12-31",
+        updated_at="2032-01-01T08:30:00Z",
+    )
+    native = [
+        native_dimension("Measure", "Data description", ("m1", "Invented repairs")),
+        native_dimension("AreaCode", "Area", ("a1", "Invented town")),
+    ]
+    calls = []
+
+    def handler(request):
+        calls.append(str(request.url))
+        return httpx.Response(
+            200, json=native if request.url.path.endswith("/filters") else metadata
+        )
+
+    with (
+        HttpClient(transport=httpx.MockTransport(handler), retries=0) as transport,
+        CachedClient(tmp_path, client=transport) as client,
+    ):
+        first = statswales.describe_dataset(DATASET, client)
+    assert len(calls) == 2
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Offline metadata replay attempted network access")
+
+    monkeypatch.setattr(socket, "getaddrinfo", forbidden)
+    monkeypatch.setattr(HttpClient, "get", forbidden)
+    with CachedClient(tmp_path, offline=True) as client:
+        assert statswales.describe_dataset(DATASET, client) == first
+    assert len(calls) == 2

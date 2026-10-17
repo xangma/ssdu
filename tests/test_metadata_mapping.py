@@ -11,6 +11,7 @@ from ssdu.metadata_mapping import (
     mapping_metadata,
     normalized_metadata_fields,
     plain_text,
+    provider_timestamp,
 )
 from ssdu.providers import get_provider
 
@@ -28,6 +29,83 @@ def test_provider_prose_is_readable_text_without_active_markup():
     assert (
         plain_text("Less than 5 < 10 and more than 2 > 1") == "Less than 5 < 10 and more than 2 > 1"
     )
+
+
+def test_incomplete_entities_and_provider_links_do_not_erase_prose():
+    assert plain_text("hello &world") == "hello &world"
+    assert plain_text("Invented notes &tab=charts).") == "Invented notes &tab=charts)."
+    assert plain_text("Research &amp") == "Research &"
+    assert plain_text("[url=https://example.invalid/notes?a=1&b=2][b]Methods[/b][/url]") == (
+        "Methods (https://example.invalid/notes?a=1&b=2)"
+    )
+    assert plain_text("[url]https://example.invalid/[/url]") == "https://example.invalid/"
+    assert plain_text("<script>hidden &unfinished") is None
+
+
+@pytest.mark.parametrize(
+    "raw,value,precision,timezone",
+    [
+        ("2026-03-11T9:30:00.000Z", "2026-03-11T09:30:00.000Z", "fractional_second", "explicit"),
+        ("2026-01-02 09:30:00", "2026-01-02T09:30:00", "second", "unspecified"),
+        ("2026-01-02T09:30+01:00", "2026-01-02T09:30+01:00", "minute", "explicit"),
+        ("2026-01-02", "2026-01-02", "day", "not_applicable"),
+        ("2026-01", "2026-01", "month", "not_applicable"),
+        ("2026", "2026", "year", "not_applicable"),
+    ],
+)
+def test_provider_clock_retains_raw_precision_and_timezone_uncertainty(
+    raw, value, precision, timezone
+):
+    assert provider_timestamp(raw) == {
+        "raw": raw,
+        "value": value,
+        "precision": precision,
+        "timezone_status": timezone,
+        "status": "normalized",
+    }
+
+
+@pytest.mark.parametrize("raw", ["unreleased", "2026-02-30", "2026-01-02T99:30:00Z"])
+def test_opaque_or_invalid_clock_is_retained_without_a_false_instant(raw):
+    assert provider_timestamp(raw)["raw"] == raw
+    assert provider_timestamp(raw)["value"] is None
+    assert provider_timestamp(raw)["status"] == "unparsed"
+
+
+def test_publication_date_does_not_claim_provider_modification():
+    from ssdu.metadata_sync import MetadataSync
+
+    assert MetadataSync._modified({"release": {"published": "2026-01-02"}}) is None
+    base = {"release": {"updated": "2026-03-11T9:30:00.000Z", "published": "2026-01-02"}}
+    assert MetadataSync._modified(base) == "2026-03-11T09:30:00.000Z"
+    assert [item["kind"] for item in MetadataSync._timestamps(base)] == ["modified", "published"]
+
+
+def test_retrieval_capability_is_separate_from_access_rights_and_never_inferred():
+    base = {
+        "access": {
+            "metadata_url": "https://example.invalid/metadata",
+            "data_access": "not_asserted",
+        },
+        "capabilities": {
+            "retrieval": False,
+            "retrieval_reason": "No supported distribution.",
+            "publisher_eligible": True,
+        },
+    }
+    result = normalized_metadata_fields(base)
+    assert result["access"]["data_access"] == "not_asserted"
+    assert result["access"]["retrieval"] == {
+        "supported": False,
+        "status": "unsupported",
+        "reason": "No supported distribution.",
+        "constraints": {},
+    }
+    assert "retrieval" not in base["access"]
+    unknown = normalized_metadata_fields({"capabilities": {"dimension_values": True}})
+    assert unknown["access"]["retrieval"]["supported"] is None
+    assert unknown["access"]["retrieval"]["status"] == "unknown"
+    assert "access" not in normalized_metadata_fields({})
 
 
 def test_field_evidence_is_deterministic_and_binds_verified_description_resources():

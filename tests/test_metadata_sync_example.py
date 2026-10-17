@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from ssdu.metadata_mapping import MAPPING_VERSION
 from ssdu.metadata_store import MetadataStore
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,7 +99,7 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
             assert replay[provider].get(field) == row.get(field)
         mapping = row["source_metadata"]["mapping"]
         assert replay[provider]["source_metadata"]["mapping"] == mapping
-        assert mapping["version"] == row["mapping_version"] == "1.2.0"
+        assert mapping["version"] == row["mapping_version"] == MAPPING_VERSION
         assert all(
             item["source_path"]
             and item["resource_paths"]
@@ -109,7 +110,7 @@ def test_metadata_sync_example_resumes_and_transfers_offline(tmp_path):
             assert row["provider_modified_at"] == "2026-01-01T00:00:00Z"
 
     assert records["nomis"]["measures"] == [
-        {"id": "OBS_VALUE", "label": "OBS_VALUE", "unit": "People"}
+        {"id": "OBS_VALUE", "label": "OBS_VALUE", "role": "value_column", "unit": "People"}
     ]
     assert records["nomis"]["coverage"] == {
         "temporal": {

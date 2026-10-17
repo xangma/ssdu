@@ -23,7 +23,12 @@ from ssdu.connector_cache import CachedClient
 from ssdu.contracts import SnapshotId
 from ssdu.http import HttpClient, ProviderRetry, Resource
 from ssdu.metadata_contract import CONTRACT_VERSION, safe_name, validate_record
-from ssdu.metadata_mapping import MAPPING_VERSION, bind_mapping, normalized_metadata_fields
+from ssdu.metadata_mapping import (
+    MAPPING_VERSION,
+    bind_mapping,
+    normalized_metadata_fields,
+    provider_timestamp,
+)
 from ssdu.metadata_store import MetadataStore
 from ssdu.metadata_sync_models import SyncInput, SyncPlan
 from ssdu.models import RetrievalError
@@ -650,6 +655,10 @@ class MetadataSync:
                     "catalogue": summary,
                     "descriptor": descriptor,
                     "code_pages": pages,
+                    "provider_timestamps": [
+                        {**item, "source": "descriptor" if descriptor else "catalogue"}
+                        for item in self._timestamps(base)
+                    ],
                     "mapping": bind_mapping(
                         descriptor,
                         ["raw/" + item["body_sha256"] + ".bin" for item in descriptor_resources],
@@ -767,12 +776,29 @@ class MetadataSync:
 
     @staticmethod
     def _modified(base):
+        for item in MetadataSync._timestamps(base):
+            if item["kind"] == "modified" and item["value"] is not None:
+                return item["value"]
+        return None
+
+    @staticmethod
+    def _timestamps(base):
+        """Keep provider publication and modification assertions distinct."""
         release = base.get("release") or {}
-        for key in ("updated", "modified", "publish_at", "published"):
-            value = release.get(key) if isinstance(release, dict) else None
-            if isinstance(value, str) and value:
-                return value
-        return base.get("updated") if isinstance(base.get("updated"), str) else None
+        result = []
+        for key, kind in (
+            ("updated", "modified"),
+            ("modified", "modified"),
+            ("publish_at", "published"),
+            ("published", "published"),
+        ):
+            assertion = provider_timestamp(release.get(key)) if isinstance(release, dict) else None
+            if assertion:
+                result.append({**assertion, "kind": kind, "source_path": "/release/" + key})
+        assertion = provider_timestamp(base.get("updated"))
+        if assertion:
+            result.append({**assertion, "kind": "modified", "source_path": "/updated"})
+        return result
 
     @staticmethod
     def _references(base, resources):

@@ -7,6 +7,7 @@ import pytest
 
 from ssdu.adapters import nisra
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import MAPPING_VERSION
 from ssdu.models import RetrievalError
 
 
@@ -104,8 +105,10 @@ def test_maps_prose_measure_roles_units_categories_and_copyright_with_one_reques
         },
     }
     assert result["licence"] == "https://example.org/terms"
-    assert result["access"] == {"metadata_url": result["source_url"], "data_access": "not_asserted"}
-    assert result["metadata_mapping"]["version"] == "1.2.0"
+    assert result["access"]["metadata_url"] == result["source_url"]
+    assert result["access"]["data_access"] == "not_asserted"
+    assert result["access"]["retrieval"]["supported"] is True
+    assert result["metadata_mapping"]["version"] == MAPPING_VERSION
     assert evidence(result, "description") == {
         "/note/0": "provider_assertion",
         "/note/1": "provider_assertion",
@@ -283,3 +286,60 @@ def test_unsafe_related_links_are_retained_only_in_native_metadata():
     result = describe(document)
     assert result["related"] == []
     assert result["source_metadata"]["link"] == document["link"]
+
+
+@pytest.mark.parametrize("notes", [[], [""], ["  ", "\n\t"], [None], None])
+def test_semantically_empty_notes_are_not_provided(notes):
+    document = cube()
+    document["note"] = notes
+    result = describe(document)
+    assert result["description"] is None
+    assert result["field_status"]["description"]["status"] == "not_provided"
+
+
+def test_known_native_lgd_classification_maps_categories_without_geo_role():
+    document = cube()
+    document["role"].pop("geo")
+    document["dimension"]["LGD2014"] = document["dimension"].pop("AREA")
+    document["dimension"]["LGD2014"]["category"] = {
+        "index": ["N09000003"],
+        "label": {"N09000003": "Invented district label"},
+    }
+    document["id"][-1] = "LGD2014"
+    result = describe(document)
+    spatial = result["coverage"]["spatial"]
+    assert spatial["areas"] == [{"id": "N09000003", "label": "Invented district label"}]
+    assert spatial["scope"] == "dimension_categories"
+    assert spatial["basis"] == "known_native_classification"
+    assert evidence(result, "coverage.spatial")["/dimension/LGD2014"] == "declared_dimension"
+    assert result["source_metadata"] == document
+
+
+@pytest.mark.parametrize("axis", ["UNKNOWN_CLASSIFICATION", "LGD2014"])
+def test_unknown_native_geography_candidates_do_not_become_asserted_extents(axis):
+    document = cube()
+    document["role"].pop("geo")
+    document["dimension"][axis] = document["dimension"].pop("AREA")
+    document["dimension"][axis]["category"] = {
+        "index": ["N99999999"],
+        "label": {"N99999999": "Invented possible area"},
+    }
+    document["id"][-1] = axis
+    result = describe(document)
+    assert result["coverage"]["spatial"] is None
+    assert result["field_status"]["coverage.spatial"]["status"] == "unmapped"
+
+
+@pytest.mark.parametrize("limit,supported", [(4, True), (3, False)])
+def test_retrieval_support_tracks_full_cube_limit_without_asserting_access_rights(
+    monkeypatch, limit, supported
+):
+    monkeypatch.setattr(nisra, "MAX_CUBE_CELLS", limit)
+    result = describe(cube())
+    capabilities = result["capabilities"]
+    assert capabilities["retrieval"] is supported
+    assert capabilities["retrieval_constraints"]["max_full_cube_cells"] == limit
+    assert capabilities["retrieval_constraints"]["full_cube_cells"] == 4
+    assert capabilities["retrieval_reason"]
+    assert result["access"]["retrieval"]["supported"] is supported
+    assert result["access"]["data_access"] == "not_asserted"

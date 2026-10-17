@@ -116,14 +116,27 @@ responses and references. It does not infer statistical meaning from titles.
 
 Field status separates a gap in SSDU's interpretation from a missing provider
 statement. Mapping evidence records the native locations and retained response
-hashes behind normalized values. Contract `1.1.0` and mapping `1.2.0` add the richer
-structure; older `1.0.0` snapshots remain readable.
+hashes behind normalized values. The current contract is `1.1.0`, with mapping
+`1.3.0`. Older snapshots remain readable; replaying their retained responses creates
+a new interpretation without changing the original snapshot.
 
 Read coverage with its `scope` and, where present, `basis`. A time dimension means
 periods can be selected; it does not establish the first and last available
 observations. MHCLG publication applicability is distinct from the geographic
 extent of its tables. Normalizing fields does not make measures or geographies
 comparable across providers.
+
+`access.retrieval` answers a separate question: **can this SSDU adapter acquire
+this record?** It reports `supported`, `status`, a reason and any constraints.
+It does not grant permission to reuse the data. MHCLG publication pages can be
+discoverable while containing no supported file; some NISRA cubes exceed SSDU's
+whole-cube size limit. Read `licence` and the stated access conditions separately.
+
+Provider dates keep their original spelling, precision and timezone information
+under `source_metadata.provider_timestamps`. Publication and modification dates
+have separate roles. A date with no timezone stays unspecified; SSDU does not
+turn it into a UTC instant. These provider assertions are separate from the
+time SSDU successfully checked a response.
 
 Scotland's current CKAN catalogue is metadata-only in SSDU. Resource links and
 formats are retained without claiming that SSDU can retrieve their observations.
@@ -169,3 +182,23 @@ and original check times. A new `plan_capture(spec, offline=True)` can replay th
 retained responses in the fresh store. Search results come from a rebuildable
 local index; searches do not trigger acquisition. REST and MCP expose the retained
 metadata and capture report, while Python, CLI and workers perform explicit capture.
+
+## Understand a search result
+
+The index searches readable descriptions, topics and category labels. It excludes
+internal evidence keys and raw provider documents from search terms.
+
+A recent catalogue check can confirm that an entry still exists without checking
+its full description again. SSDU can use a retained description to enrich that
+entry, while keeping its older check time visible in `metadata_projection`.
+The `catalogue` and `descriptor` sections identify their source snapshots and
+freshness separately; `field_sources` identifies which snapshot supplied each
+field. A known revision conflict prevents enrichment. Matching identity alone is
+labelled `identity_only` with an unverified revision.
+
+`metadata_profile.descriptor_available` tells you whether a usable descriptor
+was retained. `description_text_available` tells you whether prose is present.
+The older `description_available` flag still describes the current source
+snapshot. Request an explicit `snapshot_id` when you need that historical
+description rather than the combined current view. Index rebuilds preserve
+snapshots and their original clocks.

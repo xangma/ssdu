@@ -68,7 +68,10 @@ def evidence(result, field):
 
 def test_maps_prose_licence_and_explicit_publication_applicability_without_download():
     result = describe(publication())
-    assert result["description"] == "Provider summary & notes."
+    assert result["summary"] == "Provider summary & notes."
+    assert (
+        result["description"] == "Provider summary & notes.\n\nLonger provider publication prose."
+    )
     assert result["licence"] == "https://example.invalid/terms/invented"
     spatial = result["coverage"]["spatial"]
     assert spatial["areas"] == [{"id": "nearland", "label": "Nearland"}]
@@ -77,11 +80,16 @@ def test_maps_prose_licence_and_explicit_publication_applicability_without_downl
     assert "does not establish the geographic extent of observations" in spatial["note"]
     assert "temporal" not in result["coverage"]
     assert result["measures"] == result["dimensions"] == []
-    assert result["access"] == {
+    assert {key: result["access"][key] for key in ("metadata_url", "data_access")} == {
         "metadata_url": mhclg.BASE + "/api/content/government/statistics/invented-metadata-example",
         "data_access": "not_asserted",
     }
-    assert evidence(result, "description") == {("/description", "provider_assertion")}
+    assert result["access"]["retrieval"]["supported"] is True
+    assert isinstance(result["access"]["retrieval"]["constraints"], dict)
+    assert evidence(result, "description") == {
+        ("/description", "provider_assertion"),
+        ("/details/body", "provider_assertion"),
+    }
     assert evidence(result, "licence") == {("/details/licence", "provider_assertion")}
     assert evidence(result, "coverage.spatial") == {
         ("/details/national_applicability/nearland/applicable", "provider_assertion"),
@@ -126,9 +134,27 @@ def test_non_english_provider_description_is_preserved_without_translation_reque
     document = publication()
     document["locale"] = "cy"
     document["description"] = "<p>Disgrifiad dychmygol.</p>"
+    document["details"]["body"] = "<p>Manylion dychmygol.</p>"
     result = describe(document)
-    assert result["description"] == "Disgrifiad dychmygol."
+    assert result["summary"] == "Disgrifiad dychmygol."
+    assert result["description"] == "Disgrifiad dychmygol.\n\nManylion dychmygol."
+    assert evidence(result, "description") == {
+        ("/description", "provider_assertion"),
+        ("/details/body", "provider_assertion"),
+    }
+
+
+def test_body_enrichment_is_bounded_and_duplicate_prose_is_not_repeated():
+    document = publication()
+    document["details"]["body"] = "<p>Provider summary &amp; notes.</p>"
+    result = describe(document)
+    assert result["description"] == result["summary"] == "Provider summary & notes."
     assert evidence(result, "description") == {("/description", "provider_assertion")}
+    document["details"]["body"] = "<p>Distinct body-only concept. " + "x" * 100000 + "</p>"
+    result = describe(document)
+    assert len(result["description"]) == mhclg.MAX_DESCRIPTION_CHARACTERS
+    assert "Distinct body-only concept" in result["description"]
+    assert result["summary"] == "Provider summary & notes."
 
 
 @pytest.mark.parametrize("licence", [None, " ", [], {}, 1, "<script>hidden</script>"])

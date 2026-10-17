@@ -2,10 +2,11 @@
 
 import copy
 import re
+from datetime import date, datetime
 from html import unescape
 from html.parser import HTMLParser
 
-MAPPING_VERSION = "1.2.0"
+MAPPING_VERSION = "1.3.0"
 MAPPING_FIELDS = frozenset(
     {
         "description",
@@ -73,7 +74,32 @@ def normalized_metadata_fields(base):
                 "status": "unmapped",
                 "reason": "No evidence-backed normalized value has been recorded.",
             }
-    return {**fields, "field_status": status}
+    result = {**fields, "field_status": status}
+    capabilities = base.get("capabilities")
+    if isinstance(capabilities, dict):
+        access = copy.deepcopy(base.get("access"))
+        if access is None:
+            access = {}
+        if isinstance(access, dict):
+            supported = capabilities.get("retrieval")
+            if type(supported) is not bool:
+                supported = None
+            retrieval = {
+                "supported": supported,
+                "status": "unknown"
+                if supported is None
+                else ("supported" if supported else "unsupported"),
+                "reason": capabilities.get("retrieval_reason")
+                or (
+                    "The adapter can acquire this dataset subject to selection and job limits."
+                    if supported
+                    else "The adapter has not established acquisition support for this record."
+                ),
+                "constraints": copy.deepcopy(capabilities.get("retrieval_constraints", {})),
+            }
+            access["retrieval"] = retrieval
+            result["access"] = access
+    return result
 
 
 class _Text(HTMLParser):
@@ -105,10 +131,76 @@ def plain_text(value):
         return None
     parser = _Text()
     parser.feed(value[:2_000_000])
+    parser.close()
     text = unescape("".join(parser.parts))
     text = re.sub(r"\[/?(?:b|i|u|p|br)\]", "", text, flags=re.IGNORECASE)
+    # Keep both the readable label and destination of provider BBCode links.
+    # This is text interpretation only; URLs are never followed or rendered.
+    text = re.sub(
+        r"\[url=([^\]\r\n]+)\]([^\[]*)\[/url\]",
+        lambda match: f"{match[2]} ({match[1]})" if match[2] != match[1] else match[2],
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\[/?url\]", "", text, flags=re.IGNORECASE)
     text = "\n".join(re.sub(r"[\t\r\f\v ]+", " ", line).strip() for line in text.splitlines())
     return re.sub(r"\n{3,}", "\n\n", text).strip() or None
+
+
+def provider_timestamp(value):
+    """Interpret a provider clock without inventing precision or a timezone.
+
+    The raw assertion is always retained. Invalid/opaque assertions stay unparsed;
+    a calendar date and a timezone-naive time never become UTC instants.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return None
+    raw = value
+    value = value.strip()
+    result = {
+        "raw": raw,
+        "value": None,
+        "precision": None,
+        "timezone_status": "unknown",
+        "status": "unparsed",
+    }
+    try:
+        if re.fullmatch(r"\d{4}", value):
+            date(int(value), 1, 1)
+            precision = "year"
+        elif re.fullmatch(r"\d{4}-\d{2}", value):
+            date.fromisoformat(value + "-01")
+            precision = "month"
+        elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            date.fromisoformat(value)
+            precision = "day"
+        else:
+            # NISRA declares UTC but sometimes emits a single-digit hour.
+            value = re.sub(r"^(\d{4}-\d{2}-\d{2})[ T](\d)(:)", r"\1T0\2\3", value)
+            if not re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?"
+                r"(?:Z|[+-]\d{2}:\d{2})?",
+                value,
+            ):
+                return result
+            parsed = datetime.fromisoformat(value)
+            precision = (
+                "fractional_second"
+                if "." in value
+                else ("second" if re.search(r":\d{2}:\d{2}", value) else "minute")
+            )
+            # Retain declared fractional precision and offset rather than
+            # converting a local time or rounding its source assertion.
+            value = value.replace(" ", "T")
+            result.update(
+                timezone_status="explicit" if parsed.tzinfo is not None else "unspecified"
+            )
+        if precision in {"year", "month", "day"}:
+            result["timezone_status"] = "not_applicable"
+        result.update(value=value, precision=precision, status="normalized")
+    except ValueError:
+        pass
+    return result
 
 
 def mapping_metadata(evidence):

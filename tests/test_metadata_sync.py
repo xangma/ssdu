@@ -77,6 +77,20 @@ def test_each_provider_sync_keeps_raw_references_and_metadata_only(provider, tmp
     assert row["title"] == FIXTURE.TITLES[provider]
     assert row["references"] and row["raw_resources"]
     assert row["last_checked_at"]
+    retrieval = row["access"]["retrieval"]
+    assert retrieval["supported"] is (provider != "scotland")
+    assert retrieval["status"] == ("unsupported" if provider == "scotland" else "supported")
+    assert retrieval["reason"] and isinstance(retrieval["constraints"], dict)
+    assert row["access"]["data_access"] == "not_asserted"
+    for timestamp in row["source_metadata"]["provider_timestamps"]:
+        assert timestamp["source"] == "descriptor"
+        assert timestamp["raw"] and timestamp["source_path"]
+        assert timestamp["timezone_status"] in {
+            "explicit",
+            "unspecified",
+            "not_applicable",
+            "unknown",
+        }
     report = document["providers"][0]
     assert report["completeness"]["status"] == "complete"
     assert not report["completeness"]["inventory_authoritative"]

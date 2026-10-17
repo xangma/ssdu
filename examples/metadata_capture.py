@@ -430,6 +430,7 @@ def normalized_values(matches):
             **{field: row.get(field) for field in fields},
             "mapping": row["source_metadata"]["mapping"],
             "native": row["source_metadata"]["descriptor"],
+            "provider_timestamps": row["source_metadata"]["provider_timestamps"],
         }
         for row in matches["items"]
     }

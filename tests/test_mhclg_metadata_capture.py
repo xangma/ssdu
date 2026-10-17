@@ -191,6 +191,7 @@ def test_historical_catalogue_organisation_is_in_scope_without_widening_content_
 
 def test_cache_replays_full_metadata_without_network_or_attachment_download(tmp_path):
     document, calls = publication(), []
+    document["details"]["body"] = "<p>Invented body-only topic for discovery.</p>"
     original = copy.deepcopy(document)
     with client_for(document, tmp_path, calls) as transport:
         with CachedClient(tmp_path, client=transport) as cache:
@@ -204,6 +205,8 @@ def test_cache_replays_full_metadata_without_network_or_attachment_download(tmp_
     ):
         assert mhclg.describe_metadata("invented-associated-statistics", cache) == captured
     assert captured["source_metadata"]["document"] == original
+    assert "body-only topic" in captured["description"]
+    assert captured["summary"] == "Invented provider summary."
 
 
 def test_invalid_native_values_are_distinguished_from_missing_assertions(tmp_path):
@@ -218,3 +221,111 @@ def test_invalid_native_values_are_distinguished_from_missing_assertions(tmp_pat
     assert result["field_status"]["description"]["status"] == "not_provided"
     for field in ("subjects", "languages", "licence"):
         assert result["field_status"][field]["status"] == "unmapped"
+
+
+def test_publisher_eligibility_does_not_promise_retrieval_for_pdf_only_publication(tmp_path):
+    document = publication()
+    document["links"]["primary_publishing_organisation"] = [organisation(MHCLG, "Invented MHCLG")]
+    document["details"]["attachments"] = [document["details"]["attachments"][1]]
+    with client_for(document, tmp_path, []) as client:
+        result = mhclg.describe_metadata("invented-associated-statistics", client)
+    assert result["capabilities"]["publisher_eligible"] is True
+    assert result["capabilities"]["retrieval"] is False
+    assert result["capabilities"]["formats"] == []
+    assert result["capabilities"]["supported_distribution_count"] == 0
+    assert "No supported CSV or CSVW" in result["capabilities"]["retrieval_reason"]
+    with pytest.raises(RetrievalError, match="missing or ambiguous"):
+        mhclg.validate_selection(Request("mhclg", "invented-associated-statistics"), result)
+
+
+def test_supported_resource_flags_preserve_selection_and_trusted_host_requirements(tmp_path):
+    document = publication()
+    document["links"]["primary_publishing_organisation"] = [organisation(MHCLG, "Invented MHCLG")]
+    document["details"]["attachments"].append(
+        {"id": "untrusted", "url": "https://example.invalid/data.csv", "content_type": "text/csv"}
+    )
+    with client_for(document, tmp_path, []) as client:
+        result = mhclg.describe_metadata("invented-associated-statistics", client)
+    capabilities = result["capabilities"]
+    assert capabilities["publisher_eligible"] is True
+    assert capabilities["retrieval"] is True
+    assert capabilities["formats"] == ["csv"]
+    assert capabilities["supported_distribution_count"] == 1
+    assert "distribution" in capabilities["retrieval_constraints"]
+    assert (
+        mhclg.validate_selection(Request("mhclg", "invented-associated-statistics"), result)["id"]
+        == "invented-csv"
+    )
+    unsupported = {item["id"]: item for item in result["distributions"] if not item["supported"]}
+    assert "format" in unsupported["invented-pdf"]["unsupported_reason"]
+    assert "trusted" in unsupported["untrusted"]["unsupported_reason"]
+    with pytest.raises(RetrievalError, match="unsupported format or untrusted URL"):
+        mhclg.validate_selection(
+            Request(
+                "mhclg", "invented-associated-statistics", params={"distribution": "untrusted"}
+            ),
+            result,
+        )
+
+
+def test_native_html_and_external_links_do_not_become_path_formats(tmp_path):
+    document = publication()
+    document["details"]["attachments"] = [
+        {"id": "html", "attachment_type": "html", "url": "/government/statistics/invented/report"},
+        {
+            "id": "external",
+            "attachment_type": "external",
+            "url": "https://example.invalid/reports/current",
+        },
+        {"id": "unknown", "url": "https://assets.publishing.service.gov.uk/no-extension"},
+        {
+            "id": "external-suffix",
+            "attachment_type": "external",
+            "url": "https://assets.publishing.service.gov.uk/media/invented/file.csv",
+        },
+    ]
+    with client_for(document, tmp_path, []) as client:
+        result = mhclg.describe_metadata("invented-associated-statistics", client)
+    assert {item["id"]: item["format"] for item in result["distributions"]} == {
+        "html": "text/html",
+        "external": "unknown",
+        "unknown": "unknown",
+        "external-suffix": "unknown",
+    }
+    assert all(item["content_type"] is None for item in result["distributions"])
+    assert not any(item["supported"] for item in result["distributions"])
+
+
+def test_original_publisher_and_children_are_retained_without_following_links(tmp_path):
+    document, calls = publication(), []
+    document["links"]["original_primary_publishing_organisation"] = [
+        organisation(OTHER, "Invented original publisher")
+    ]
+    document["links"]["children"] = [
+        {
+            "content_id": "invented-child",
+            "title": "Invented child",
+            "base_path": "/government/statistics/invented-child",
+        }
+    ]
+    with client_for(document, tmp_path, calls) as client:
+        result = mhclg.describe_metadata("invented-associated-statistics", client)
+    assert len(calls) == 1
+    assert result["publication_type"] == "official_statistics"
+    assert any(item["role"] == "original" and item["id"] == OTHER for item in result["publishers"])
+    assert {
+        "relation": "has_part",
+        "target_id": "invented-child",
+        "title": "Invented child",
+        "url": mhclg.BASE + "/government/statistics/invented-child",
+    } in result["related"]
+    evidence = result["metadata_mapping"]["evidence"]
+    assert any(
+        item["source_path"] == "/links/children/0" and item["field"] == "related"
+        for item in evidence
+    )
+    assert any(
+        item["source_path"] == "/links/original_primary_publishing_organisation/0"
+        and item["field"] == "publishers"
+        for item in evidence
+    )

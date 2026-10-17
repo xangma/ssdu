@@ -7,6 +7,7 @@ import pytest
 
 from ssdu.adapters import nomis
 from ssdu.http import HttpClient
+from ssdu.metadata_mapping import MAPPING_VERSION
 
 DATASET = "NM_9876_9"
 
@@ -70,24 +71,27 @@ def test_nomis_declared_metadata_and_native_evidence(singleton):
         prefix += "/0"
     result = describe(document)
     assert result["description"] == "Invented visits & loans."
-    assert result["measures"] == [{"id": "OBS_VALUE", "label": "OBS_VALUE", "unit": "visits"}]
+    assert result["measures"] == [
+        {"id": "OBS_VALUE", "label": "OBS_VALUE", "role": "value_column", "unit": "visits"}
+    ]
     assert result["coverage"] == {
         "spatial": {
-            "dimensions": [{"id": "geography", "label": "GEOGRAPHY"}],
+            "dimensions": [
+                {"id": "geography", "label": "GEOGRAPHY", "codelist": "CL_INVENTED_AREA"}
+            ],
             "scope": "declared_dimension",
         },
         "temporal": {
-            "dimensions": [{"id": "time", "label": "TIME"}],
+            "dimensions": [{"id": "time", "label": "TIME", "codelist": "CL_INVENTED_TIME"}],
             "scope": "declared_dimension",
         },
     }
     assert result["licence"] is None
-    assert result["access"] == {
-        "metadata_url": f"{nomis.BASE}/{DATASET}/def.sdmx.json",
-        "data_access": "not_asserted",
-    }
+    assert result["access"]["metadata_url"] == f"{nomis.BASE}/{DATASET}/def.sdmx.json"
+    assert result["access"]["data_access"] == "not_asserted"
+    assert result["access"]["retrieval"]["supported"] is True
     mapping = result["metadata_mapping"]
-    assert mapping["version"] == "1.2.0"
+    assert mapping["version"] == MAPPING_VERSION
     assert {
         "field": "description",
         "source_path": prefix + "/description/value",
@@ -168,10 +172,17 @@ def test_nomis_conflicting_units_and_publication_dates_do_not_create_extents():
         {"annotationtitle": "LastUpdated", "annotationtext": "2088-12-31"},
     ]
     result = describe(document)
-    assert result["measures"] == [{"id": "OBS_VALUE", "label": "OBS_VALUE"}]
+    measure = result["measures"][0]
+    assert measure["role"] == "value_column"
+    assert "unit" not in measure
+    assert measure["dataset_unit_hints"] == [
+        {"label": "visits", "scope": "dataset_annotation", "applies_to_all_series": False},
+        {"label": "percent", "scope": "dataset_annotation", "applies_to_all_series": False},
+    ]
     assert all(set(value) == {"dimensions", "scope"} for value in result["coverage"].values())
     assert not any(
-        "annotationtext" in item["source_path"] for item in result["metadata_mapping"]["evidence"]
+        item["field"].startswith("coverage.") and "annotationtext" in item["source_path"]
+        for item in result["metadata_mapping"]["evidence"]
     )
 
 
@@ -189,9 +200,21 @@ def test_nomis_dataset_units_are_not_universal_for_varying_series(varying):
             {"conceptref": "UNIT_MULTIPLIER", "attachmentlevel": "Series"},
         ]
     result = describe(document)
-    assert result["measures"] == [{"id": "OBS_VALUE", "label": "OBS_VALUE"}]
-    assert not any(
-        "annotationtext" in item["source_path"] for item in result["metadata_mapping"]["evidence"]
+    assert result["measures"] == [
+        {
+            "id": "OBS_VALUE",
+            "label": "OBS_VALUE",
+            "role": "value_column",
+            "dataset_unit_hint": {
+                "label": "visits",
+                "scope": "dataset_annotation",
+                "applies_to_all_series": False,
+            },
+        }
+    ]
+    assert any(
+        item["field"] == "measures" and "annotationtext" in item["source_path"]
+        for item in result["metadata_mapping"]["evidence"]
     )
     assert result["source_metadata"] == document
 
@@ -250,6 +273,57 @@ def test_nomis_conflicting_description_has_explicit_status_without_inventing_tex
     assert result["field_status"]["description"]["status"] == "ambiguous"
     assert result["field_status"]["publishers"]["status"] == "not_provided"
     assert result["source_metadata"] == document
+
+
+def test_nomis_revision_marker_is_exposed_without_inventing_timezone_or_extent():
+    document = definition()
+    family = document["structure"]["keyfamilies"]["keyfamily"][0]
+    family["annotations"]["annotation"].append(
+        {"annotationtitle": "LastUpdated", "annotationtext": "2088-03-04 09:30:00"}
+    )
+    result = describe(document)
+    assert result["release"]["updated"] == "2088-03-04 09:30:00"
+    assert result["release"]["provider_revision"]["LastUpdated"] == "2088-03-04 09:30:00"
+    assert all("start" not in item for item in result["coverage"].values())
+    assert result["capabilities"]["retrieval"] is True
+    assert result["access"]["data_access"] == "not_asserted"
+
+
+def test_nomis_conflicting_updated_annotations_are_not_selected_arbitrarily():
+    document = definition()
+    family = document["structure"]["keyfamilies"]["keyfamily"][0]
+    family["annotations"]["annotation"] += [
+        {"annotationtitle": "LastUpdated", "annotationtext": "2088-03-04 09:30:00"},
+        {"annotationtitle": "LastUpdated", "annotationtext": "2088-03-05 09:30:00"},
+    ]
+    result = describe(document)
+    assert "updated" not in result["release"]
+    assert result["source_metadata"] == document
+
+
+def test_nomis_varying_measure_units_have_scoped_hints_and_codelist_references():
+    document = definition()
+    family = document["structure"]["keyfamilies"]["keyfamily"][0]
+    family["components"]["dimension"].append(
+        {"conceptref": "MEASURES", "codelist": "CL_INVENTED_MEASURES"}
+    )
+    result = describe(document)
+    assert result["measures"] == [
+        {
+            "id": "OBS_VALUE",
+            "label": "OBS_VALUE",
+            "role": "value_column",
+            "dataset_unit_hint": {
+                "label": "visits",
+                "scope": "dataset_annotation",
+                "applies_to_all_series": False,
+            },
+        }
+    ]
+    assert result["coverage"]["spatial"]["dimensions"][0]["codelist"] == "CL_INVENTED_AREA"
+    assert result["coverage"]["temporal"]["dimensions"][0]["codelist"] == "CL_INVENTED_TIME"
+    assert result["coverage"]["spatial"]["scope"] == "declared_dimension"
+    assert "not requested" in result["field_status"]["coverage.spatial"]["reason"]
 
 
 def test_nomis_unreadable_native_metadata_is_unmapped_rather_than_absent():
