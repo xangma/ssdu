@@ -55,9 +55,10 @@ local, synthetic data.
 ## Which data providers are covered?
 
 SSDU has partial coverage of **ONS** through Nomis, the **Welsh Government**
-through StatsWales, the **Scottish Government** through statistics.gov.scot,
-**NISRA** through its Data Portal, and selected **MHCLG** statistical
-publications. The
+through StatsWales, **NISRA** through its Data Portal, and selected **MHCLG**
+statistical publications. For the **Scottish Government**, the current
+`data.gov.scot` portal supports metadata discovery; data retrieval uses the
+separate legacy linked-data integration. The
 [provider coverage matrix](https://xangma.github.io/ssdu/reference/sources.html)
 lists the supported datasets, access routes, limits and planned integrations.
 Support for one dataset or service does not mean all of a provider's data are
@@ -71,16 +72,18 @@ currently [research work](https://xangma.github.io/ssdu/research/index.html).
 
 ## Go further
 
-- [Work with provider examples](https://xangma.github.io/ssdu/guides/dataset-examples.html)
-  using invented responses in the same formats as supported sources.
-- [Find and save a provider table](https://xangma.github.io/ssdu/guides/provider-workflow.html)
-  with a common catalogue-to-collection workflow and an offline teaching example.
-- [Build a local discovery catalogue](https://xangma.github.io/ssdu/guides/metadata-sync.html)
-  from provider descriptions and check its freshness and completeness.
-- [Inspect and query datasets](https://xangma.github.io/ssdu/guides/dataset-api.html)
-  through Python, the command line or an application.
+- [Choose a provider table and selection](https://xangma.github.io/ssdu/start/provider-selection.html):
+  browse a teaching catalogue, choose areas and years, then save the result.
+- [Search a metadata catalogue](https://xangma.github.io/ssdu/start/metadata-discovery.html):
+  find descriptions and check coverage, freshness and download support.
+- [Import a CSV or Parquet file](https://xangma.github.io/ssdu/start/local-files.html):
+  describe columns and missing values, select rows and reopen the saved copy.
 - [Understand sources and interpretation](https://xangma.github.io/ssdu/concepts/provenance.html)
   before citing or combining results.
+
+These lessons are executable and use synthetic inputs. The manual also covers
+[larger metadata captures](https://xangma.github.io/ssdu/guides/metadata-sync.html)
+and [the shared application interfaces](https://xangma.github.io/ssdu/guides/interfaces.html).
 
 The software and documentation use the [MIT licence](LICENSE). Real datasets
 retain their providers' terms. This repository publishes code and invented

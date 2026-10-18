@@ -92,6 +92,11 @@ def inventory(root=ROOT):
         checked_file(root, source)
         if manifest["downloads"].get(f"_downloads/{Path(source).name}") != source:
             raise ValueError("Notebook download must be independently allowlisted")
+    companions = manifest.get("notebook_companions", {})
+    if not isinstance(companions, dict) or set(companions) - set(notebooks.values()):
+        raise ValueError("Companions require approved notebook sources")
+    for source in notebooks.values():
+        docs_notebooks.companions(root, source)
     for key, expected, label in (
         ("four_nation_example", "examples/four_nations.py", "Four-nation"),
         ("dataset_api_example", "examples/dataset_api.py", "Dataset API"),
@@ -200,6 +205,29 @@ def code(value, language="json"):
     return f"\n````{language}\n{value.rstrip()}\n````\n"
 
 
+def python_reference(names):
+    """Render approved autodoc output as reStructuredText inside a MyST page."""
+    text = "# Python reference\n\nSelected public entry points, generated from installed signatures and docstrings.\n"
+    text += "\nSee the [quickstart](../start/quickstart.md) for a complete local example.\n"
+    for name in names:
+        if not re.fullmatch(r"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)+", name):
+            raise ValueError(f"Invalid Python reference symbol: {name}")
+        obj = symbol(name)
+        directive = (
+            "autoclass"
+            if inspect.isclass(obj)
+            else (
+                "automethod"
+                if name.rsplit(".", 1)[0].rsplit(".", 1)[-1][:1].isupper()
+                else "autofunction"
+            )
+        )
+        # Autodoc produces RST, which MyST otherwise treats as Markdown text.
+        # Only this generator can emit eval-rst; authored pages remain forbidden.
+        text += f"\n## `{name}`\n\n```{{eval-rst}}\n.. {directive}:: {name}\n```\n"
+    return text
+
+
 def references(manifest):
     from ssdu import __version__
     from ssdu.api import create_app
@@ -229,21 +257,7 @@ def references(manifest):
     for item in cli:
         text += f"\n## `{item['command']}`\n" + code(item["help"], "text")
     files["reference/cli.md"] = text
-    text = "# Python reference\n\nSelected public entry points, generated from installed signatures and docstrings.\n"
-    text += "\nSee the [quickstart](../start/quickstart.md) for a complete local example.\n"
-    for name in manifest["python_symbols"]:
-        obj = symbol(name)
-        directive = (
-            "autoclass"
-            if inspect.isclass(obj)
-            else (
-                "automethod"
-                if name.rsplit(".", 1)[0].rsplit(".", 1)[-1][:1].isupper()
-                else "autofunction"
-            )
-        )
-        text += f"\n## `{name}`\n\n```{{{directive}}} {name}\n```\n"
-    files["reference/python.md"] = text
+    files["reference/python.md"] = python_reference(manifest["python_symbols"])
     text = "# Schema reference\n\nGenerated Pydantic JSON Schemas retain bounds, defaults and required fields.\n"
     text += "\n{download}`Complete schema inventory <../_downloads/schemas.json>`\n"
     text += (

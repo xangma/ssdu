@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -19,15 +20,44 @@ class Page(HTMLParser):
         super().__init__()
         self.ids = set()
         self.links = []
+        self.text = []
+        self.python_signatures = {}
+        self._signature = None
         self.feed(path.read_text(encoding="utf-8"))
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if "id" in attrs:
             self.ids.add(attrs["id"])
+        if tag == "dt" and {"sig", "sig-object", "py"} <= set(attrs.get("class", "").split()):
+            self._signature = attrs["id"]
+            self.python_signatures[self._signature] = []
         for attr in ("href", "src"):
             if attr in attrs:
                 self.links.append((tag, attr, attrs[attr]))
+
+    def handle_data(self, data):
+        self.text.append(data)
+        if self._signature is not None:
+            self.python_signatures[self._signature].append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "dt":
+            self._signature = None
+
+
+def python_reference(html, symbols):
+    """Check actual API objects, not merely a warning-free Sphinx build."""
+    page = Page(html / "reference/python.html")
+    text = "".join(page.text)
+    assert not re.search(r"\.\. py:\w+::|:module:", text), "Unrendered Python reference markup"
+    missing = set(symbols) - set(page.python_signatures)
+    assert not missing, f"Missing rendered Python signatures: {sorted(missing)}"
+    if "ssdu.store.Store.fetch" in symbols:
+        signature = "".join(page.python_signatures["ssdu.store.Store.fetch"])
+        for default in ("refresh=False", "offline=False", "client=None"):
+            assert default in signature, f"Missing rendered API default: {default}"
+    return {"rendered_python_signatures": len(page.python_signatures)}
 
 
 def local_links(html):
@@ -75,6 +105,7 @@ def main():
     actual = {p.relative_to(html).as_posix() for p in html.rglob("*.html")}
     assert expected | {"search.html", "genindex.html"} <= actual
     assert actual <= expected | {"search.html", "genindex.html", "py-modindex.html"}
+    rendered_python = python_reference(html, manifest["python_symbols"])
     for path in [*html.rglob("*.html"), html / "searchindex.js", *html.rglob("*.json")]:
         text = path.read_text(encoding="utf-8")
         for private in ("/Users/", "documentation-review/", "NEXT_STEPS.md", "VALIDATION.md"):
@@ -351,6 +382,7 @@ def main():
         "notebooks": notebooks,
         "build_started_no_processes": True,
         "source_coverage_matches_core": True,
+        "python_reference": rendered_python,
         "conformance_registry_matches_core": True,
         "conformance_families": len(families["families"]),
         "four_nations": four_nations,

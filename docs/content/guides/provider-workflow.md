@@ -19,7 +19,50 @@ offline. See the [official transition notice](https://blogs.gov.scot/digital/202
 To collect descriptions for discovery before choosing a table, see
 [keeping a searchable metadata catalogue](metadata-sync.md).
 
-## Try the complete example
+## Start with a guided selection
+
+The [provider selection tutorial](../start/provider-selection.md) follows one
+invented Nomis table. You will see actual catalogue results, choose a dataset ID,
+browse area and year codes, review a plan and read the selected rows. It runs
+without contacting a provider and includes an offline reopening step.
+
+## Use the workflow with real data
+
+After practising, create a normal connector with one of the provider IDs above:
+
+```python
+from ssdu import Connector
+
+provider = Connector("nomis", root="my-data")
+page = provider.list_datasets("employment", limit=20)
+print(page)
+```
+
+This normal client can contact the provider when metadata is not already cached.
+Requests use SSDU's persistent cache and configured provider rate limits. Review
+catalogue pages with `limit` and `offset`, choose an ID returned by that provider,
+and call `describe_dataset` before constructing a request.
+
+For an API table, `list_dimension_values` returns codes for categories such as
+areas and years. Keep those codes rather than substituting display labels. The
+[tutorial](../start/provider-selection.md) demonstrates the complete sequence with
+concrete teaching codes; replace them with codes returned for your chosen table.
+Nomis, StatsWales, NISRA and supported legacy Scottish cubes preserve different
+selector syntax even though the connector methods are the same.
+
+For MHCLG publications, choose a supported attachment from the description.
+File-column selections happen locally after downloading that attachment. General
+MHCLG CSVs use the records profile; statistical cubes use observations. Inspect
+the descriptor before choosing a table. SSDU does not infer missing units or
+make measures comparable.
+
+Call `plan_fetch` to inspect the requested work before `fetch_dataset` saves the
+values. Planning can require metadata requests; it does not download the
+observation selection. After a successful acquisition, `fetch_dataset` with
+`offline=True` requires the retained inputs. Keep the snapshot ID to reopen the
+exact saved version.
+
+## Save and transfer two publication tables
 
 After [installation](../start/install.md), run from the project folder:
 
@@ -50,55 +93,6 @@ These are unrelated teaching tables, not comparable official indicators.
 The output folder contains `result.json` and
 `invented-publications.ssdu.zip`. The ZIP contains the files needed to reopen
 the collection. A lockfile alone identifies those files but does not carry them.
-
-## Use the same steps with a provider
-
-Create a connector using `"nomis"`, `"statswales"`, `"mhclg"`, `"nisra"` or
-`"scotland"`:
-
-```python
-from ssdu import Connector, Request
-
-provider = Connector("nomis", root="my-data")
-page = provider.list_datasets("employment", limit=20)
-print(page)
-```
-
-These calls can contact the provider when a response is not already cached.
-Catalogue results are paged: use `limit` and `offset` to request another page.
-Choose a dataset ID from the results, then inspect it:
-
-```python
-description = provider.describe_dataset(dataset_id)
-print(description)
-```
-
-For an API table, use `list_dimension_values(dataset_id, dimension)` to inspect
-selection codes such as areas or years. A dimension is a category that
-describes the figures, such as age group. For MHCLG file publications, choose
-an attachment from the description instead. File-column selections happen
-locally after the attachment is downloaded.
-
-Once you have chosen the source's codes or attachment, put them in a `Request`.
-The methods for saving and reopening the result are the same:
-
-```python
-request = Request(provider.provider, dataset_id, params=selection)
-plan = provider.plan_fetch(request)
-print(plan)
-dataset = provider.fetch_dataset(request)
-print(dataset.to_pandas())
-
-# Reopen that request's retained snapshot without contacting the provider.
-same_dataset = provider.fetch_dataset(request, offline=True)
-```
-
-`dataset_id` and `selection` above come from the metadata you inspected; the
-complete teaching scripts supply concrete examples. Nomis, StatsWales, NISRA
-and supported legacy Scottish cubes can return statistical observations with
-dimensions and measures.
-An ordinary MHCLG CSV is retained as records, preserving its column names and source text.
-SSDU does not guess units or make different tables comparable.
 
 ## Try Northern Ireland and Scotland
 

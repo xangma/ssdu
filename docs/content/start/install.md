@@ -58,6 +58,21 @@ can change a selection and rerun a cell to explore the example.
 The [guided tutorial](research-tutorial.md) also shows the steps and expected
 results here in the manual.
 
+## Open another lesson
+
+In JupyterLab's file list, open another notebook from `examples/notebooks`:
+
+| Notebook | Task |
+| --- | --- |
+| `provider_selection.ipynb` | Choose a provider table, area and year. |
+| `metadata_discovery.ipynb` | Search and assess a local metadata catalogue. |
+| `local_files.ipynb` | Import and query CSV or Parquet files. |
+
+Keep each notebook with any companion `.py` file in that folder. The provider
+and metadata lessons use these small helpers to supply invented responses.
+The manual offers downloads of both files beside each lesson. The local-file
+recipe and first tutorial work without a companion helper.
+
 ## Stop and return later
 
 Save the notebook with **Ctrl+S** (or **Cmd+S** on macOS). To stop JupyterLab,

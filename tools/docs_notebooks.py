@@ -31,9 +31,45 @@ def regular(root, name):
     return target
 
 
+def companions(root, source):
+    """Return only explicitly published, adjacent teaching helpers."""
+    manifest = json.loads(regular(root, "docs/publication.json").read_text())
+    mapping = manifest.get("notebook_companions", {})
+    if not isinstance(mapping, dict) or set(mapping) - set(manifest.get("notebooks", {}).values()):
+        raise ValueError("Companions must belong to approved notebook sources")
+    names = mapping.get(source, [])
+    if not isinstance(names, list) or any(not isinstance(name, str) for name in names):
+        raise ValueError("Notebook companions must be a list of paths")
+    if len(names) != len(set(names)):
+        raise ValueError("Duplicate notebook companions")
+    for name in names:
+        path = Path(name)
+        if path.parent != Path(source).parent or path.suffix != ".py":
+            raise ValueError("Notebook companion must be an adjacent Python helper")
+        regular(root, name)
+        if manifest["downloads"].get(f"_downloads/{path.name}") != name:
+            raise ValueError("Notebook companion download must be independently allowlisted")
+    return names
+
+
+def copy_companions(root, source, workdir):
+    for name in companions(root, source):
+        target = workdir / Path(name).name
+        if target.exists() or target.is_symlink():
+            raise ValueError("Notebook companion destination must be absent")
+        shutil.copyfile(regular(root, name), target)
+
+
 def inputs(root, source):
     """Conservative freshness binding to tutorials, fixtures, implementation and lock."""
-    names = {source, "examples/dataset_contract.py", "tools/docs_notebooks.py", "uv.lock"}
+    names = {
+        source,
+        "docs/publication.json",
+        "examples/dataset_contract.py",
+        "tools/docs_notebooks.py",
+        "uv.lock",
+        *companions(root, source),
+    }
     for directory, pattern in (
         ("src/ssdu", "*.py"),
         ("examples", "*.py"),
@@ -144,10 +180,13 @@ def render(root, page, source):
     download = os.path.relpath(f"_downloads/{Path(source).name}", Path(page).parent).replace(
         os.sep, "/"
     )
-    rendered.insert(
-        1,
-        f"\n{{download}}`Download this notebook <{download}>`\n",
-    )
+    downloads = f"\n{{download}}`Download this notebook <{download}>`\n"
+    for name in companions(root, source):
+        link = os.path.relpath(f"_downloads/{Path(name).name}", Path(page).parent).replace(
+            os.sep, "/"
+        )
+        downloads += f"\n{{download}}`Download companion {Path(name).name} <{link}>`\n"
+    rendered.insert(1, downloads)
     return "\n".join(rendered)
 
 
@@ -212,6 +251,7 @@ def execute(root=ROOT):
                 raise ValueError("Notebook cache cannot be a symlink")
             shutil.rmtree(folder)
         folder.mkdir(parents=True)
+        copy_companions(root, source, folder)
         binding = inputs(root, source)
         env = {**os.environ, "PYTHONPATH": os.pathsep.join((str(root), str(root / "src")))}
         result = subprocess.run(

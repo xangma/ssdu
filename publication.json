@@ -36,13 +36,13 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "4a0e7c1b0fd861d3d990defc60d6bfeffc066c3689863e61799bf362e8890b8c",
+      "sha256": "cbed65ee979738fcc116eb58183febea1560794fd26333356e30f701d7025267",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
       "path": "docs/README.md",
       "kind": "documentation",
-      "sha256": "b532cebfdd2aeba717bd2f578fc40a215a17cb90bf0fa2c66d9d588ec1a18672",
+      "sha256": "13a2afab798509166487a80932a8265315312eb2ecf34674ec47f0756670fd6b",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -54,19 +54,19 @@
     {
       "path": "docs/conf.py",
       "kind": "source",
-      "sha256": "2a3026bd74470ab86fbed83e141e1baf7f7cb29f1eaa5c75b4a4b8069f2399b7",
+      "sha256": "257303d40cf71e1529994e3025c1bc87a15adbdc0a9f06fd35e4458ebab9d775",
       "review": "Author-owned Sphinx configuration."
     },
     {
       "path": "docs/content/concepts/dataset-contract.md",
       "kind": "documentation",
-      "sha256": "885866e4860d398a47094205192c8113be1e829162f48a2691026fc9e78be853",
+      "sha256": "be8c4e0b3528aa62a9435044093753f7a7c0313bb79c7a551c0a027240f90537",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/concepts/offline.md",
       "kind": "documentation",
-      "sha256": "a3026fa91c0babf75fc7b28a2a5656c85f894855a437150e75995dfee000c902",
+      "sha256": "b33f2a5ff549411681442fe86856efd75eff643a4dd2030828a885a5e6b6c295",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -78,55 +78,55 @@
     {
       "path": "docs/content/guides/dataset-api.md",
       "kind": "documentation",
-      "sha256": "6b66bacfd575de2da3d781275944c7404a01de7b10d4138c22f2d9d1da57f4b0",
+      "sha256": "16503ab3648d8e1681b9ea74a800bad95a8a4cdbe86cdb63ae7afb7d588ee0a2",
       "review": "Curated user guide to the records and observations contracts, bounded shared APIs and invented offline transfer example; no captured data."
     },
     {
       "path": "docs/content/guides/dataset-examples.md",
       "kind": "documentation",
-      "sha256": "ef251c5b17824d7443520f6517365f52967a92d52b62e2765f6badfb536614ec",
+      "sha256": "debb05d0901fd9d18ccdc5aabf6b9d91b59c1acc76c1be8fdf627e0d33b16bd9",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/guides/four-nations.md",
       "kind": "documentation",
-      "sha256": "d5085ead5b2c274799e4398b2dad9d2f6ca47b9822b551ce212387a66430f583",
+      "sha256": "64e1ef0e5870c1ae8a7a6d77940cd9757bd105c4cd2ec877e0d55d466ee4e47b",
       "review": "Curated author-owned guide to invented four-nation fixtures, retained acquisition, recovery and offline transfer. No captured provider payload."
     },
     {
       "path": "docs/content/guides/interfaces.md",
       "kind": "documentation",
-      "sha256": "23208a94ed8bff9bcf030be480e59be0fa4327bd7e9b276519d1ffd33400d072",
+      "sha256": "45d095b5ad7eb9f16efb523facb0fbc8b1dd9166735e1a95911939f50ec50552",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/guides/metadata-sync.md",
       "kind": "documentation",
-      "sha256": "c9e03c70453234a1f1c5a25e0a173eaddf7229fffeb42321baabfe30c8ef477a",
+      "sha256": "f756fe0026fb964e7cf7632fdb7dc12369ad238f0d10ce0c1309e32a95691123",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
       "path": "docs/content/guides/provider-workflow.md",
       "kind": "documentation",
-      "sha256": "001373e32dbc2315c59abcd754e1adfdc6751a52fff8c10060f7ef8cde96dabb",
+      "sha256": "2da7dd13a3b773c03cf0498b7582e052255a46cfca329c44d3ab7ab083a34ff7",
       "review": "Author-owned connector implementation, guidance or independently invented synthetic protocol tests; no captured provider data or metadata."
     },
     {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "1cdb7c4cc9e8088f702651f8267b814447001540a3f1e6c5315e2ae361922207",
+      "sha256": "8e3fbb887060c8f38d0d43f1cb4f3be0ea4bcf0896bbbd0fdc28eb748fb6dd58",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/research/index.md",
       "kind": "documentation",
-      "sha256": "c73e6c4c441a084a8b894de6a4adc49bb6997357c8caa4cee5450758e6526ab8",
+      "sha256": "4a88db811be9f3b8a548d2a26e2bb3f572c909b1d6f3e0df6ab958a3f33abca9",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
       "path": "docs/content/start/install.md",
       "kind": "documentation",
-      "sha256": "4df84e59edde23da2e67d31380fea61e563ac94a5b672929ddd27a90bcbf3a80",
+      "sha256": "308a9a205105f660df35899286a012ec39149fe7d62fd46bf74b314c325c45cd",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -138,7 +138,7 @@
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "6835c354e8561c7e164348b0573d9b774c113629dcd17f72650ba4df0331bbe4",
+      "sha256": "0890889e721ffa9b36469a7a64b3b52dda2a338e16ff5c82682e77a92ba6f919",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -294,25 +294,55 @@
     {
       "path": "examples/notebooks/deprivation.ipynb",
       "kind": "notebook",
-      "sha256": "67a33c0b48abc4b5c1f5cf3c6ea2aa82ecfb818247c419a37941fc0cc7eee541",
+      "sha256": "fbc8947d2caf4d584ebfc3dea6401547dd8088274fb1b69819e65dfee918c3ff",
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
+    },
+    {
+      "path": "examples/notebooks/local_files.ipynb",
+      "kind": "notebook",
+      "sha256": "3924151de55e04a5069b6cd7ccb93ba213fa0a5bbd8b4d538c153e833b9f5dc3",
+      "review": "Author-owned executable lesson with independently invented teaching inputs; cleared outputs and no provider data."
+    },
+    {
+      "path": "examples/notebooks/metadata_discovery.ipynb",
+      "kind": "notebook",
+      "sha256": "e7d4a9ae22a9a419d66663ac95d3df41bc5cc1e3c009f85e4e184eb224cdfad8",
+      "review": "Author-owned executable lesson with independently invented teaching inputs; cleared outputs and no provider data."
+    },
+    {
+      "path": "examples/notebooks/metadata_discovery_fixture.py",
+      "kind": "source",
+      "sha256": "8db4b363a825fa1b8af9df5acb78eef5cbcd99690b4dc56763820677bb5e805c",
+      "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
     },
     {
       "path": "examples/notebooks/nomis.ipynb",
       "kind": "notebook",
-      "sha256": "cae6bcecf5f7155f14e8839b20341a5048249ef1eb1df7d5d3849f82a4241f6d",
+      "sha256": "0439fa820130be9a646bc8bfea0c753c5e87da3fc49c6558635b79ecad731977",
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
+    },
+    {
+      "path": "examples/notebooks/provider_selection.ipynb",
+      "kind": "notebook",
+      "sha256": "a457e39e6c8ca50c3b73a2db6ccf61bc027ed18c5ad2354d91fd0fb45ab8354f",
+      "review": "Author-owned executable lesson with independently invented teaching inputs; cleared outputs and no provider data."
+    },
+    {
+      "path": "examples/notebooks/provider_selection_fixture.py",
+      "kind": "source",
+      "sha256": "e25ed8f9f5297988b16dfd9c8f58f0c6c968a3a4554bbd0f483e819dd52bdf56",
+      "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
     },
     {
       "path": "examples/notebooks/research_tutorial.ipynb",
       "kind": "notebook",
-      "sha256": "bdc796478ac3216f27182920ad6451460a5c3987105c7e944ae7b2971e85ac44",
+      "sha256": "8809517f3ac0fa6d6fdac126743f8915162e11974d8bc810d76282f8b7f2ef0a",
       "review": "Author-owned guided researcher tutorial; six independently invented community-centre counts for fictional areas, explicit missing-value meanings and synthetic citation. No outputs, attachments or captured provider data."
     },
     {
       "path": "examples/notebooks/statswales.ipynb",
       "kind": "notebook",
-      "sha256": "e8d07eb9e884eca042f9fbbbbcc07aab3979ce9b161b31dc15af8386a1682480",
+      "sha256": "83dc32ad80e0d23a8830c5f8671208456b9ac44e58be2cbe571045e86b069e6a",
       "review": "Author-owned unexecuted notebook using invented provider-response fixtures; outputs and attachments prohibited."
     },
     {
@@ -1116,7 +1146,7 @@
     {
       "path": "tests/test_documentation.py",
       "kind": "source",
-      "sha256": "9036f52309d6d7e69e60b75d67564258a0144ac615f6ec48313b748269b7e30d",
+      "sha256": "0b505bf2fbac8f283670275117ccff0230bffbb31f074b1a198d7925e0adc633",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1214,6 +1244,12 @@
       "kind": "source",
       "sha256": "e3a5c82fa45ba5b7d1d1266221b8b7793961c7a9783f4f1047bd667e74cd09b4",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
+    },
+    {
+      "path": "tests/test_metadata_discovery_tutorial.py",
+      "kind": "source",
+      "sha256": "8fafaa46765277141a45b13ba024e7371486b0177f927796673b6e2d42be4f03",
+      "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
     },
     {
       "path": "tests/test_metadata_index.py",
@@ -1318,6 +1354,12 @@
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
+      "path": "tests/test_notebook_companions.py",
+      "kind": "source",
+      "sha256": "6f8e908367e0eb9eeb4798a7ffe8c08c4dc8708743110e188283012630c5cdc8",
+      "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
+    },
+    {
       "path": "tests/test_provider_harvest.py",
       "kind": "source",
       "sha256": "c2417b17162138d54d9fd76fd2c9ffe26cdf35d6502a399628bd513899fa189f",
@@ -1340,6 +1382,12 @@
       "kind": "source",
       "sha256": "e31a896d177442c635335385842f0819624925a035b6cf316d042535765a0df5",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
+    },
+    {
+      "path": "tests/test_provider_selection_tutorial.py",
+      "kind": "source",
+      "sha256": "de4ed509472a31fcdd1f2124bbe914ae18dccfd0f45bc1b6b8d6d0fd0732c038",
+      "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
     },
     {
       "path": "tests/test_provider_workflow_example.py",
@@ -1370,6 +1418,12 @@
       "kind": "source",
       "sha256": "2d49c6c1a57445a2d95514f9a621da9beb6abfed8b66e596afbe9d20f997cd83",
       "review": "Author-owned records contract, offline query interface or synthetic conformance code; reviewed and tested without live provider access."
+    },
+    {
+      "path": "tests/test_researcher_tutorials.py",
+      "kind": "source",
+      "sha256": "984de467d8f0166fc86b0d0c9904867dc9d12b5e5d02c1a5772349bea9dd1e03",
+      "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
     },
     {
       "path": "tests/test_retrieval_api.py",
@@ -1494,19 +1548,19 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "fee3b7f9e147cd3692710cc283a20fce7d43dfeb419dd37ac450fdcee19e59ea",
+      "sha256": "c9b9665eb2b1787f06fe43b33418af42be482b2b4702c80125318dddb539e21a",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
       "path": "tools/docs_acceptance.py",
       "kind": "source",
-      "sha256": "bc8ae5211d71d9591738c87a5d9671ee5c11ed74b3dc99f0baf893284714e2fa",
+      "sha256": "ceb1c7b921b8bbfbb6903469a1380608512ab949c3152b0bcbf21e590280a309",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
       "path": "tools/docs_notebooks.py",
       "kind": "source",
-      "sha256": "49055b85e9bcc7fb44b04a5497550bc0984938ff65457fb09ffe3b213b153804",
+      "sha256": "ec6b1bb134cb2ffee9738fa610ca0a65f8ba5acb71a6af1b460ea8320aa81070",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
@@ -1574,6 +1628,7 @@
       "tests/test_metadata_capture_example.py",
       "tests/test_metadata_capture_interfaces.py",
       "tests/test_metadata_contract.py",
+      "tests/test_metadata_discovery_tutorial.py",
       "tests/test_metadata_index.py",
       "tests/test_metadata_interfaces.py",
       "tests/test_metadata_mapping.py",
@@ -1591,15 +1646,18 @@
       "tests/test_national_connectors_example.py",
       "tests/test_nisra.py",
       "tests/test_nomis.py",
+      "tests/test_notebook_companions.py",
       "tests/test_provider_harvest.py",
       "tests/test_provider_migration.py",
       "tests/test_provider_normalization.py",
       "tests/test_provider_registration.py",
+      "tests/test_provider_selection_tutorial.py",
       "tests/test_provider_workflow_example.py",
       "tests/test_publication.py",
       "tests/test_rate_limit.py",
       "tests/test_records_contract.py",
       "tests/test_records_store.py",
+      "tests/test_researcher_tutorials.py",
       "tests/test_retrieval_api.py",
       "tests/test_retrieval_cli.py",
       "tests/test_retrieval_jobs.py",

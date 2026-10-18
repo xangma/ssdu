@@ -16,7 +16,17 @@ publication pages, potentially containing several files; the other catalogues
 mainly list datasets or tables. A full service catalogue is not every holding of
 the organisation that maintains it.
 
-## Try it without contacting a provider
+## Start by searching a small catalogue
+
+The [metadata discovery tutorial](../start/metadata-discovery.md) creates two
+invented entries, searches their descriptions and explains the returned fields.
+It shows both Python and command-line search, including a record that is useful
+to discover even though SSDU cannot download its observations.
+
+Use that lesson first if you want to understand search results. Continue below
+when you want to capture catalogues for your own application.
+
+## Capture and transfer a teaching catalogue
 
 After [installation](../start/install.md), run from the project folder:
 

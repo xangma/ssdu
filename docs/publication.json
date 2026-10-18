@@ -50,7 +50,12 @@
     "_downloads/provider_workflow.py": "examples/provider_workflow.py",
     "_downloads/national_connectors.py": "examples/national_connectors.py",
     "_downloads/metadata_sync.py": "examples/metadata_sync.py",
-    "_downloads/metadata_capture.py": "examples/metadata_capture.py"
+    "_downloads/metadata_capture.py": "examples/metadata_capture.py",
+    "_downloads/provider_selection.ipynb": "examples/notebooks/provider_selection.ipynb",
+    "_downloads/metadata_discovery.ipynb": "examples/notebooks/metadata_discovery.ipynb",
+    "_downloads/local_files.ipynb": "examples/notebooks/local_files.ipynb",
+    "_downloads/provider_selection_fixture.py": "examples/notebooks/provider_selection_fixture.py",
+    "_downloads/metadata_discovery_fixture.py": "examples/notebooks/metadata_discovery_fixture.py"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -130,9 +135,20 @@
     "examples/nomis.md": "examples/notebooks/nomis.ipynb",
     "examples/statswales.md": "examples/notebooks/statswales.ipynb",
     "examples/deprivation.md": "examples/notebooks/deprivation.ipynb",
-    "start/research-tutorial.md": "examples/notebooks/research_tutorial.ipynb"
+    "start/research-tutorial.md": "examples/notebooks/research_tutorial.ipynb",
+    "start/provider-selection.md": "examples/notebooks/provider_selection.ipynb",
+    "start/metadata-discovery.md": "examples/notebooks/metadata_discovery.ipynb",
+    "start/local-files.md": "examples/notebooks/local_files.ipynb"
   },
   "four_nation_example": "examples/four_nations.py",
   "dataset_api_example": "examples/dataset_api.py",
-  "metadata_capture_example": "examples/metadata_capture.py"
+  "metadata_capture_example": "examples/metadata_capture.py",
+  "notebook_companions": {
+    "examples/notebooks/provider_selection.ipynb": [
+      "examples/notebooks/provider_selection_fixture.py"
+    ],
+    "examples/notebooks/metadata_discovery.ipynb": [
+      "examples/notebooks/metadata_discovery_fixture.py"
+    ]
+  }
 }

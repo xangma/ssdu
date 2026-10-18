@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import sys
 from copy import deepcopy
 from pathlib import Path
 
@@ -142,6 +143,65 @@ def test_generated_references_include_real_connector_capabilities_without_openin
         docs.ReferenceService().describe_provider_dataset("mhclg", "synthetic")
 
 
+def acceptance_module(monkeypatch):
+    monkeypatch.setitem(sys.modules, "docs", docs)
+    spec = importlib.util.spec_from_file_location(
+        "docs_acceptance", Path(__file__).parents[1] / "tools/docs_acceptance.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_python_reference_renders_api_signatures(tmp_path, monkeypatch):
+    build_main = pytest.importorskip("sphinx.cmd.build").build_main
+    source = tmp_path / "source"
+    (source / "reference").mkdir(parents=True)
+    (source / "start").mkdir()
+    (source / "start/quickstart.md").write_text("# Quickstart\n")
+    (source / "index.md").write_text(
+        "# Reference check\n\n```{toctree}\nreference/python\nstart/quickstart\n```\n"
+    )
+    (source / "conf.py").write_text(
+        (Path(__file__).parents[1] / "docs/conf.py").read_text()
+        + "\nhtml_static_path=[]\nhtml_favicon=None\nhtml_theme='alabaster'\n"
+    )
+    names = [
+        "ssdu.store.Store",
+        "ssdu.store.Store.fetch",
+        "ssdu.store.Store.import_dataset",
+        "ssdu.models.Request",
+    ]
+    (source / "reference/python.md").write_text(docs.python_reference(names))
+    html = tmp_path / "html"
+    with docs.offline():
+        assert build_main(["-q", "-n", "-W", "-E", "-b", "html", str(source), str(html)]) == 0
+    assert acceptance_module(monkeypatch).python_reference(html, names) == {
+        "rendered_python_signatures": 4
+    }
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        ("<p>.. py:class:: Store :module: ssdu.store</p>", "Unrendered"),
+        ("<h2 id='ssdu-store-store'>Store</h2>", "Missing rendered"),
+    ],
+)
+def test_python_reference_acceptance_rejects_unrendered_objects(
+    tmp_path, monkeypatch, content, message
+):
+    (tmp_path / "reference").mkdir()
+    (tmp_path / "reference/python.html").write_text(content)
+    with pytest.raises(AssertionError, match=message):
+        acceptance_module(monkeypatch).python_reference(tmp_path, ["ssdu.store.Store"])
+
+
+def test_python_reference_symbol_cannot_inject_directive():
+    with pytest.raises(ValueError, match="Invalid Python reference symbol"):
+        docs.python_reference(["ssdu.store.Store\n\n.. include:: /private"])
+
+
 @pytest.fixture
 def notebook(publication, monkeypatch):
     helper = docs.docs_notebooks
@@ -268,6 +328,46 @@ def test_notebook_download_must_be_allowlisted(notebook):
     manifest["downloads"] = {}
     path.write_text(json.dumps(manifest))
     with pytest.raises(ValueError, match="independently allowlisted"):
+        docs.inventory(root)
+
+
+def test_notebook_companion_is_adjacent_and_independently_allowlisted(notebook):
+    root, _, source, _, _ = notebook
+    companion = "examples/notebooks/teaching_fixture.py"
+    (root / companion).write_text("# Invented teaching fixture\n")
+    path = root / "docs/publication.json"
+    manifest = json.loads(path.read_text())
+    manifest["notebook_companions"] = {source: [companion]}
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="companion download must be independently allowlisted"):
+        docs.inventory(root)
+    manifest["downloads"]["_downloads/teaching_fixture.py"] = companion
+    path.write_text(json.dumps(manifest))
+    assert docs.inventory(root) == manifest
+
+
+@pytest.mark.parametrize(
+    ("source", "companions", "message"),
+    [
+        ("examples/notebooks/other.ipynb", [], "approved notebook"),
+        ("examples/notebooks/fixture.ipynb", ["../private.py"], "adjacent"),
+        ("examples/notebooks/fixture.ipynb", ["examples/private.py"], "adjacent"),
+        ("examples/notebooks/fixture.ipynb", ["examples/notebooks/private.md"], "Python helper"),
+        (
+            "examples/notebooks/fixture.ipynb",
+            ["examples/notebooks/helper.py", "examples/notebooks/helper.py"],
+            "Duplicate notebook companions",
+        ),
+        ("examples/notebooks/fixture.ipynb", "examples/notebooks/helper.py", "must be a list"),
+    ],
+)
+def test_notebook_companion_cannot_expand_publication(notebook, source, companions, message):
+    root, _, _, _, _ = notebook
+    path = root / "docs/publication.json"
+    manifest = json.loads(path.read_text())
+    manifest["notebook_companions"] = {source: companions}
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match=message):
         docs.inventory(root)
 
 

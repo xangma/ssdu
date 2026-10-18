@@ -14,7 +14,12 @@ basic workflow first, follow the [guided tutorial](../start/research-tutorial.md
 |---|---|
 | [Nomis](../examples/nomis.md) | Keep area codes intact, and distinguish zero from a withheld or missing value. |
 | [StatsWales](../examples/statswales.md) | Select by area and year, and retain notes and missing-value meanings. |
-| [English deprivation](../examples/deprivation.md) | Read several measures from one source table without confusing a rank, score or count. |
+| [English deprivation (legacy format example)](../examples/deprivation.md) | Read several measures from one source table without confusing a rank, score or count. |
+
+For a new provider request, start with the [provider selection tutorial](../start/provider-selection.md).
+It explains how to choose an ID and selection codes. General MHCLG integration
+uses publication IDs and supported attachments; the deprivation notebook below
+retains the older dataset-specific adapter as a format and compatibility example.
 
 The same `Store`, `Request` and `Dataset` objects appear in each example. A
 `Request` describes the selection; the `Store` saves it; the `Dataset` gives

@@ -20,6 +20,7 @@ html_favicon = "_static/favicon.svg"
 myst_enable_extensions = ["colon_fence"]
 myst_heading_anchors = 3
 autodoc_typehints = "none"
+autodoc_docstring_signature = False
 autodoc_member_order = "bysource"
 nitpicky = True
 linkcheck_retries = 1

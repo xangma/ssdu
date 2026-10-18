@@ -3,6 +3,8 @@
 Use this guide when you want to inspect a saved dataset or select rows from it.
 The same operations are available in Python, the command line, REST and MCP.
 For a first Python lesson, follow the [guided tutorial](../start/research-tutorial.md).
+To bring your own file, start with the [CSV and Parquet recipe](../start/local-files.md):
+it creates a tiny table, explains the import settings and shows the result.
 
 Choose a saved snapshot, inspect its description, then select rows and columns. These operations read retained evidence without
 acquiring or migrating data. A historical snapshot without a contract requires
@@ -12,12 +14,13 @@ explicit [migration](../concepts/dataset-contract.md#open-historical-snapshots).
 
 The [dataset contract](../concepts/dataset-contract.md) describes the meaning of
 the retained tables. The `observations` profile remains compatible with contract
-`1.0.0`. Contract `1.1.0` adds a `records` profile for local CSV/Parquet imports:
-it preserves field types and describes declared keys, row grain (what one row
-represents), field meanings, units and null semantics.
+`1.0.0`. Contract `1.1.0` adds a `records` profile used by local CSV/Parquet imports
+and general MHCLG CSV publications. It preserves fields and describes declared
+keys, row grain (what one row represents), field meanings, units and null semantics
+where known.
 
 Inspect the descriptor to learn which tables are available. Use `observations`
-for normalized provider observations, `records` for typed local records, or
+for normalized statistical observations, `records` for record-shaped tables, or
 `source` for the retained source table. A common query interface does not make
 different measures, units or row grains comparable. The
 [provider examples](dataset-examples.md) show how raw values, suppression and
@@ -54,8 +57,9 @@ null; its default is the empty string. Parquet retains native scalar types and
 nulls. Column `missing_values` explains missing-value meanings; it does not
 convert tokens to null. Declared primary keys must be unique and non-null.
 
-Omitting the query table selects the profile: `records` here, or `observations`
-for a provider dataset. `Dataset.to_arrow()` and `to_pandas()` follow the same
+Omitting the query table uses the dataset's profile: `records` here, or
+`observations` for a statistical observation dataset. General MHCLG CSV datasets
+also default to `records`. `Dataset.to_arrow()` and `to_pandas()` follow the same
 default. The legacy `import_local()` function continues to return a manifest.
 
 ## Follow the same workflow across interfaces

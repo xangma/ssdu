@@ -20,21 +20,20 @@ through a small task one step at a time.
 The tutorial uses invented values, so you can learn without a provider account
 or downloading official data.
 
-## When you are ready
+## Choose your next task
 
-- **Try different sources:** the [provider examples](guides/dataset-examples.md)
-  explain how Nomis, StatsWales and English deprivation tables are represented.
-- **Find and save a provider table:** the [connector workflow](guides/provider-workflow.md)
-  follows catalogue browsing through to a collection that reopens offline.
-- **Build a local discovery catalogue:** [metadata synchronisation](guides/metadata-sync.md)
-  saves provider descriptions, reports their coverage and supports offline search.
-- **Work with your own table:** the [dataset API guide](guides/dataset-api.md)
-  covers local CSV and Parquet imports, inspection and selection.
-- **Move a saved analysis:** the [offline transfer example](start/quickstart.md)
-  demonstrates a complete collection transfer.
-- **Check what the figures mean:** read about
-  [sources and interpretation](concepts/provenance.md), including dates, units
-  and geographical boundaries.
+| I want to… | Start here |
+| --- | --- |
+| Find a provider table and choose areas or years | [Provider selection tutorial](start/provider-selection.md) |
+| Search dataset descriptions before downloading data | [Metadata discovery tutorial](start/metadata-discovery.md) |
+| Use my own CSV or Parquet file | [Local-file recipe](start/local-files.md) |
+| Save several datasets and move them to another computer | [Offline transfer example](start/quickstart.md) |
+
+Each lesson uses small, invented inputs and explains the output. The
+[provider workflow guide](guides/provider-workflow.md) covers real acquisition
+choices; [metadata synchronisation](guides/metadata-sync.md) covers larger,
+resumable catalogue captures. Read [sources and interpretation](concepts/provenance.md)
+before combining or citing real figures.
 
 For application developers, the [interface guide](guides/interfaces.md) links to
 Python, command-line, REST and MCP references. The
@@ -62,6 +61,9 @@ catalogue descriptions saved locally, which may be incomplete or out of date.
 
 start/install
 start/research-tutorial
+start/provider-selection
+start/metadata-discovery
+start/local-files
 start/quickstart
 ```
 

@@ -17,9 +17,10 @@ signatures are generated in the [Python reference](../reference/python.md).
 For the standardized [dataset contract](../concepts/dataset-contract.md), use
 `Store.fetch_dataset()` to acquire or reuse supported provider data and
 `Store.open_dataset()` to verify a retained dataset. `Store.import_dataset()`
-returns a dataset from a local CSV/Parquet file and `LocalImportSpec`. Provider
-datasets use the observation profile; local datasets use the records profile to
-preserve types and describe row grain, keys and field meanings. Follow the
+returns a dataset from a local CSV/Parquet file and `LocalImportSpec`. Statistical
+observations use the observation profile. Local imports and general MHCLG CSV
+publications use the records profile, which preserves fields and describes row
+grain, declared keys and field meanings where known. Follow the
 [dataset API guide](dataset-api.md) to describe, query and inspect dimensions
 across interfaces. The [provider examples](dataset-examples.md) explain
 observation semantics; check [source coverage](../reference/sources.md) before
@@ -32,6 +33,11 @@ the transferred quickstart store with:
 ```sh
 uv run --frozen --offline ssdu --store data/quickstart/fresh registry search
 ```
+
+`registry search` finds datasets already saved as data snapshots. To search
+provider descriptions captured before downloading data, use `metadata search`
+and the [metadata discovery tutorial](../start/metadata-discovery.md). These are
+separate catalogues; an empty result in one does not describe the other.
 
 See the [CLI reference](../reference/cli.md) for all groups and nested options.
 

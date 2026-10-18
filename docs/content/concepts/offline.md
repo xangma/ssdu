@@ -20,7 +20,8 @@ downloaded. `--offline` and `--refresh` cannot be combined.
 
 | Operation | Source of information |
 |---|---|
-| `registry search` | Retained local catalogue metadata; coverage may be partial or stale. |
+| `registry search` | Descriptions of saved dataset snapshots. |
+| `metadata search` | Cached provider descriptions; coverage may be partial or stale. |
 | `search` | Live provider search; deprivation search uses curated descriptions. |
 | `sync` | Retained snapshots indexed locally; no provider catalogue harvest. |
 | `harvest` | Explicit metadata acquisition under the selected source's policy. |

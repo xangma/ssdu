@@ -9,9 +9,11 @@ search based on words (**lexical search**), search based on learned text
 representations (**semantic search**) and combinations of the two (**hybrid
 search**).
 
-These experiments are separate from the current application. SSDU's registry
-search uses catalogue descriptions saved locally; it does not yet offer the
-experimental semantic or hybrid search as a production feature.
+These experiments are separate from the current application. SSDU's
+[metadata search](../start/metadata-discovery.md) uses keywords in provider
+descriptions saved locally. Its dataset registry searches retained dataset
+snapshots. Neither offers experimental semantic or hybrid search as a production
+feature.
 
 ## How results are assessed
 

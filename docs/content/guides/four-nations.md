@@ -10,6 +10,11 @@ collection for use offline. It does not produce a comparable indicator for the
 four nations. If this is your first example, start with the
 [guided tutorial](../start/research-tutorial.md).
 
+**Scotland in this example uses the legacy linked-data service.** The current
+`data.gov.scot` integration captures metadata; it does not yet download those
+portal resources. Use the [provider workflow](provider-workflow.md) for the
+current distinction and service transition details.
+
 ## What goes into the collection?
 
 | Area | Teaching example and support limit |

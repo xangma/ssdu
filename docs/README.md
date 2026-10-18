@@ -18,7 +18,11 @@ contacts linked websites and does not acquire provider datasets. Local link and
 anchor validation is part of acceptance.
 
 The manifest maps each approved notebook to a Markdown page and separately
-approves its source download. `tools/docs_notebooks.py execute` runs the synthetic
+approves its source download. `notebook_companions` declares adjacent Python
+teaching helpers: each must also be an approved download. Execution copies only
+those helpers into the fresh working directory, receipts bind their bytes, and
+the rendered lesson offers both downloads. Test portable kits without adding the
+checkout root to the import path. `tools/docs_notebooks.py execute` runs the synthetic
 tutorials with private kernels and fresh working directories. Receipts bind
 executed cells to source, fixture, implementation, helper and lock hashes. Cached
 outputs live in `data/documentation-notebooks/`; rebuild them after an input
@@ -31,7 +35,8 @@ Provider coverage Markdown, scope limits, capability flags and downloadable JSON
 are generated from `ssdu.source_coverage`; do not maintain a second support list.
 The `providers` bindings group organisation/service custodians separately from
 the `sources` adapter scopes. ONS includes Nomis and planned additional APIs;
-MHCLG's implemented scope is one deprivation release file. Local file import is
+MHCLG supports publication discovery and supported CSV attachments; the older
+deprivation adapter remains a separate compatibility scope. Local file import is
 an input method outside the provider matrix. Provider coverage is partial whenever
 any bound access scope is implemented; it never certifies a whole organisation.
 Keep existing adapter IDs and source-level capabilities intact when changing
@@ -94,8 +99,11 @@ here, not in the beginner journey.
 
 The beginner notebook uses invented community-centre counts for fictional wards
 in 2023 and 2024. It teaches import, inspection, selection and reopening a saved
-snapshot. The existing offline quickstart is the advanced collection-transfer
-example. Provider notebooks explain source-specific value meanings, while the
+snapshot. The provider-selection and metadata-discovery notebooks teach choosing dataset
+codes and interpreting search results. The local-files notebook is a self-contained
+CSV/Parquet adaptation recipe. Their regression tests exercise downloaded kits,
+new-process reopening, missing values, types, selection and validation errors.
+The existing offline quickstart is the advanced collection-transfer example. Provider notebooks explain source-specific value meanings, while the
 four-nation script demonstrates resumable jobs and transfer. Do not present
 synthetic results as official statistics or suggest the four national examples
 measure the same thing.

@@ -9,9 +9,10 @@ This page explains the technical structure. For a practical introduction, follow
 the [guided tutorial](../start/research-tutorial.md).
 
 `Dataset` gives retained tables a machine-readable description of their structure
-and meaning. Supported provider data uses the `observations` profile in contract
-version `1.0.0`. Local CSV/Parquet imports use the `records` profile in version
-`1.1.0`; their typed records do not have to become numeric observations.
+and meaning. Statistical tables can use the `observations` profile in contract
+version `1.0.0`. Local CSV/Parquet imports and general MHCLG CSV publications use
+the `records` profile in version `1.1.0`. The profile describes the table's
+structure, rather than whether it came from a provider or your computer.
 Contract versions are separate from the package version and immutable snapshot
 identifier. Existing observation contracts remain compatible.
 
