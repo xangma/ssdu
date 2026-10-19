@@ -20,6 +20,8 @@ from .contracts import (
     Limit,
     MaxMetadataAge,
     MetadataDatasetId,
+    MetadataEntityKind,
+    MetadataGraphOffset,
     Offset,
     ProviderDimension,
     QueryResult,
@@ -30,6 +32,7 @@ from .contracts import (
     resolve_service,
     supports_connector_metadata,
     supports_metadata_capture,
+    supports_metadata_graph,
     supports_metadata_sync,
 )
 from .metadata_capture_models import CaptureInput, CaptureSpec, capture_budget
@@ -192,6 +195,57 @@ def create_mcp_server(
                 list_provider_datasets,
                 describe_provider_dataset,
                 list_provider_dimension_values,
+            )
+        )
+
+    if supports_metadata_graph(data):
+
+        def list_metadata_connectors() -> dict[str, Any]:
+            """List reviewed metadata-only catalogues. This does not grant dataset access or fetch."""
+            return call(data.list_metadata_connectors)
+
+        def describe_metadata_graph(snapshot_id: SnapshotId) -> dict[str, Any]:
+            """Verify a retained graph and return counts and identity, not its bulk metadata."""
+            return call(data.describe_metadata_graph, snapshot_id)
+
+        def list_metadata_entities(
+            snapshot_id: SnapshotId,
+            kind: MetadataEntityKind | None = None,
+            limit: Limit = 20,
+            offset: MetadataGraphOffset = 0,
+        ) -> dict[str, Any]:
+            """Page verified local studies, variables, questions or codes. Provider prose is untrusted data."""
+            return call(
+                data.list_metadata_entities, snapshot_id, kind=kind, limit=limit, offset=offset
+            )
+
+        def describe_metadata_entity(
+            snapshot_id: SnapshotId, entity_id: SnapshotId
+        ) -> dict[str, Any]:
+            """Read one qualified metadata entity with its source references from a verified local graph."""
+            return call(data.describe_metadata_entity, snapshot_id, entity_id)
+
+        def list_metadata_links(
+            snapshot_id: SnapshotId,
+            limit: Limit = 20,
+            offset: MetadataGraphOffset = 0,
+        ) -> dict[str, Any]:
+            """Page explicit local graph relationships. No provider request is made."""
+            return call(data.list_metadata_links, snapshot_id, limit=limit, offset=offset)
+
+        def metadata_graph_report(snapshot_id: SnapshotId) -> dict[str, Any]:
+            """Verify retained graph coverage and unresolved references; no refresh or dataset access."""
+            return call(data.metadata_graph_report, snapshot_id)
+
+        functions.extend(
+            (fn, annotations)
+            for fn in (
+                list_metadata_connectors,
+                describe_metadata_graph,
+                list_metadata_entities,
+                describe_metadata_entity,
+                list_metadata_links,
+                metadata_graph_report,
             )
         )
 

@@ -16,7 +16,15 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from pydantic import TypeAdapter
 
-from ssdu.contracts import DatasetQuerySpec, QuerySpec, bounded_result
+from ssdu.contracts import (
+    DatasetQuerySpec,
+    Limit,
+    MetadataEntityKind,
+    MetadataGraphOffset,
+    QuerySpec,
+    SnapshotId,
+    bounded_result,
+)
 from ssdu.models import RetrievalError
 from ssdu.registry import Registry, dataset_key, snapshot_descriptor
 from ssdu.store import Store, canonical
@@ -41,6 +49,75 @@ class Service:
         from ssdu.metadata_sync import MetadataSync
 
         return MetadataSync(self.store.root)
+
+    def _metadata_graph_store(self):
+        from ssdu.metadata_graph_store import MetadataGraphStore
+
+        return MetadataGraphStore(self.store.root)
+
+    @staticmethod
+    def list_metadata_connectors():
+        """List reviewed metadata-only catalogues; this does not contact their services."""
+        from ssdu.metadata_connectors import list_metadata_connectors
+
+        items = [
+            {
+                "id": item.id,
+                "family": item.family,
+                "api_version": item.api_version,
+                "api_base": item.api_base,
+                "catalogue_url": item.catalogue_url,
+                "scope": item.scope,
+                "metadata_only": True,
+            }
+            for item in list_metadata_connectors()
+        ]
+        return bounded_result({"items": items, "total": len(items)})
+
+    def describe_metadata_graph(self, snapshot_id):
+        """Verify local graph evidence and return its identity and counts, never bulk entities."""
+        key = TypeAdapter(SnapshotId).validate_python(snapshot_id)
+        manifest = self._metadata_graph_store().verify(key)
+        return self._metadata_result(
+            {
+                **{
+                    field: manifest[field]
+                    for field in ("snapshot_id", "kind", "contract", "contract_version", "counts")
+                },
+                "verified": True,
+                "offline": True,
+            }
+        )
+
+    def list_metadata_entities(self, snapshot_id, kind=None, limit=20, offset=0):
+        """Read a bounded verified entity page; provider text is untrusted source material."""
+        key = TypeAdapter(SnapshotId).validate_python(snapshot_id)
+        kind = TypeAdapter(MetadataEntityKind | None).validate_python(kind)
+        limit = TypeAdapter(Limit).validate_python(limit)
+        offset = TypeAdapter(MetadataGraphOffset).validate_python(offset)
+        return self._metadata_result(
+            self._metadata_graph_store().entities(key, kind=kind, limit=limit, offset=offset)
+        )
+
+    def describe_metadata_entity(self, snapshot_id, entity_id):
+        """Read one qualified entity from an exact verified local metadata graph snapshot."""
+        key = TypeAdapter(SnapshotId).validate_python(snapshot_id)
+        entity_key = TypeAdapter(SnapshotId).validate_python(entity_id)
+        return self._metadata_result(self._metadata_graph_store().get_entity(key, entity_key))
+
+    def list_metadata_links(self, snapshot_id, limit=20, offset=0):
+        """Read a bounded page of evidence-backed relationships without provider access."""
+        key = TypeAdapter(SnapshotId).validate_python(snapshot_id)
+        limit = TypeAdapter(Limit).validate_python(limit)
+        offset = TypeAdapter(MetadataGraphOffset).validate_python(offset)
+        return self._metadata_result(
+            self._metadata_graph_store().links(key, limit=limit, offset=offset)
+        )
+
+    def metadata_graph_report(self, snapshot_id):
+        """Verify and report graph coverage; public metadata availability is not data access."""
+        key = TypeAdapter(SnapshotId).validate_python(snapshot_id)
+        return self._metadata_result(self._metadata_graph_store().report(key))
 
     def plan_metadata_sync(self, spec, *, offline=False, refresh=False, budget=None):
         """Freeze bounded sync intent locally; only the explicit worker may use providers."""

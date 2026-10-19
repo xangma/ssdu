@@ -26,6 +26,7 @@ or downloading official data.
 | --- | --- |
 | Find a provider table and choose areas or years | [Provider selection tutorial](start/provider-selection.md) |
 | Search dataset descriptions before downloading data | [Metadata discovery tutorial](start/metadata-discovery.md) |
+| Inspect variables, questions and response codes | [Deep metadata guide](guides/metadata-graph.md) |
 | Use my own CSV or Parquet file | [Local-file recipe](start/local-files.md) |
 | Save several datasets and move them to another computer | [Offline transfer example](start/quickstart.md) |
 
@@ -75,6 +76,7 @@ start/quickstart
 guides/dataset-examples
 guides/provider-workflow
 guides/metadata-sync
+guides/metadata-graph
 guides/dataset-api
 guides/four-nations
 guides/interfaces
@@ -101,6 +103,7 @@ reference/schemas
 reference/rest
 reference/mcp
 reference/sources
+reference/metadata-connectors
 reference/dataset-support
 reference/conformance
 ```

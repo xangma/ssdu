@@ -212,3 +212,12 @@ The older `description_available` flag still describes the current source
 snapshot. Request an explicit `snapshot_id` when you need that historical
 description rather than the combined current view. Index rebuilds preserve
 snapshots and their original clocks.
+
+## Variables, questions and response codes
+
+The workflows above retain dataset summaries for local catalogue search. For
+MetadataWorks services, the [deep metadata guide](metadata-graph.md) adds a
+separate metadata-only workflow for tables, variables, explicit questions and
+code lists, with verified snapshots and per-kind coverage reports. See the
+[metadata connector registry](../reference/metadata-connectors.md) for supported
+services. Metadata access does not imply access to the underlying data.

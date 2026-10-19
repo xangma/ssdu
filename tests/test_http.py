@@ -70,6 +70,29 @@ def test_limits_and_provider_allowlist(limiter):
             client.get("https://www.nomisweb.co.uk/test")
 
 
+def test_protocol_headers_survive_retry_and_conditional_request(limiter):
+    attempts = []
+
+    def handler(request):
+        attempts.append(dict(request.headers))
+        if len(attempts) == 1:
+            return httpx.Response(429, headers={"retry-after": "1"})
+        return httpx.Response(200, json={"ok": True})
+
+    with HttpClient(
+        transport=httpx.MockTransport(handler),
+        rate_limiter=limiter,
+        headers={"X-API-Version": "2.0"},
+    ) as client:
+        response = client.request(
+            "GET", "https://www.nomisweb.co.uk/test", headers={"If-None-Match": '"v1"'}
+        )
+    assert response.json() == {"ok": True}
+    assert len(attempts) == 2
+    assert all(item["x-api-version"] == "2.0" for item in attempts)
+    assert all(item["if-none-match"] == '"v1"' for item in attempts)
+
+
 def test_long_retry_after_is_not_capped_or_retried_early(limiter, timer, tmp_path):
     calls = []
 
@@ -338,3 +361,30 @@ def test_completion_does_not_extend_unattempted_requests(limiter, timer):
             client.get("https://api.stats.gov.wales/test")
         assert client.attempts == 0
     assert limiter.next_allowed("api.stats.gov.wales") == reserved
+
+
+@pytest.mark.parametrize("status", [400, 429, 503])
+def test_failed_response_bytes_are_charged(limiter, status):
+    charged = []
+    with HttpClient(
+        transport=httpx.MockTransport(lambda r: httpx.Response(status, content=b"busy")),
+        retries=0,
+        rate_limiter=limiter,
+        on_bytes=charged.append,
+    ) as client:
+        with pytest.raises(RetrievalError):
+            client.get("https://www.nomisweb.co.uk/test")
+        assert client.total_bytes == sum(charged) == 4
+        assert client.resources == []
+
+
+def test_retry_response_body_cannot_bypass_byte_budget(limiter):
+    with HttpClient(
+        transport=httpx.MockTransport(lambda r: httpx.Response(429, content=b"busy")),
+        rate_limiter=limiter,
+        max_total_bytes=3,
+    ) as client:
+        with pytest.raises(RetrievalError, match="download budget"):
+            client.get("https://www.nomisweb.co.uk/test")
+        assert client.attempts == 1
+        assert client.resources == []

@@ -8,18 +8,43 @@ __all__ = [
     "DatasetQuerySpec",
     "LocalImportSpec",
     "MetadataCapture",
+    "MetadataConnectorRegistration",
+    "MetadataConnectorRegistry",
+    "MetadataGraphCapture",
+    "MetadataGraphStore",
     "MetadataIndex",
     "MetadataStore",
     "MetadataSync",
     "Request",
     "Service",
     "Store",
+    "get_metadata_connector",
     "get_source_coverage",
+    "list_metadata_connectors",
+    "register_metadata_connector",
 ]
 
 
 def __getattr__(name):
     """Keep the public SDK convenient without importing storage during package setup."""
+    if name in {
+        "get_metadata_connector",
+        "list_metadata_connectors",
+        "register_metadata_connector",
+        "MetadataConnectorRegistration",
+        "MetadataConnectorRegistry",
+    }:
+        from ssdu import metadata_connectors
+
+        return getattr(metadata_connectors, name)
+    if name == "MetadataGraphCapture":
+        from ssdu.metadata_graph_capture import MetadataGraphCapture
+
+        return MetadataGraphCapture
+    if name == "MetadataGraphStore":
+        from ssdu.metadata_graph_store import MetadataGraphStore
+
+        return MetadataGraphStore
     if name == "MetadataCapture":
         from ssdu.metadata_capture import MetadataCapture
 

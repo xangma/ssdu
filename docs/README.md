@@ -146,3 +146,17 @@ pending. Keep these process records in the private research workspace. The publi
 research page should explain experimental status and interpretation limits
 without exposing private corpora, working notes or misleading claims of
 human-validated evaluation.
+
+## Deep metadata connectors
+
+The metadata-only table and JSON are generated from the independent
+`ssdu.metadata_connectors` registry. They describe public service scopes and
+must not imply observation-download support or complete partner coverage. The
+additive graph schema is exported from `ssdu.metadata_graph.contract_schema()`;
+keep the existing dataset-summary schema distinct.
+
+`examples/metadata_graph.py` is an independently invented, standalone download.
+Documentation acceptance and the three-version conformance workflow run its
+interruption, cached repeat, bundle transfer and fresh-process offline replay
+checks. Its capture report may remain partial even when the teaching checks
+pass. Retain that distinction in the reader guide and generated coverage table.

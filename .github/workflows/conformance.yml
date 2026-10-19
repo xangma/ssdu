@@ -64,6 +64,8 @@ jobs:
         run: .venv/bin/python examples/metadata_sync.py --output-dir "$RUNNER_TEMP/metadata-sync"
       - name: Capture complete synthetic catalogues and replay a transferred capture offline
         run: .venv/bin/python examples/metadata_capture.py --output-dir "$RUNNER_TEMP/metadata-capture"
+      - name: Resume synthetic deep metadata and replay a transferred graph offline
+        run: .venv/bin/python examples/metadata_graph.py --output-dir "$RUNNER_TEMP/metadata-graph"
       - name: Retain acceptance receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -77,4 +79,5 @@ jobs:
             ${{ runner.temp }}/national-connectors/result.json
             ${{ runner.temp }}/metadata-sync/result.json
             ${{ runner.temp }}/metadata-capture/result.json
+            ${{ runner.temp }}/metadata-graph/result.json
           if-no-files-found: ignore

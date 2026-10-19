@@ -5,6 +5,12 @@ from pathlib import Path
 
 def add_arguments(parser):
     commands = parser.add_subparsers(dest="metadata_command", required=True)
+    graph = commands.add_parser(
+        "graph", help="Capture variables, questions and code lists from metadata-only catalogues"
+    )
+    from ssdu.metadata_graph_cli import add_arguments as add_graph_arguments
+
+    add_graph_arguments(graph)
     capture = commands.add_parser(
         "capture", help="Capture complete provider catalogues in resumable bounded batches"
     )
@@ -68,6 +74,10 @@ def _read_json(path, model):
 
 
 def execute(args):
+    if args.metadata_command == "graph":
+        from ssdu.metadata_graph_cli import execute as execute_graph
+
+        return execute_graph(args)
     if args.metadata_command == "capture":
         from ssdu.metadata_capture_cli import execute as execute_capture
 

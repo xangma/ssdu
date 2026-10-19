@@ -20,6 +20,8 @@ analysis so you can reproduce it later.
   machine for use offline.
 - Search descriptions already held in your local catalogue. SSDU also provides
   interfaces for applications and AI tools through REST and MCP.
+- Retain available variables, explicit questions and response codes from supported
+  MetadataWorks services, with source references and offline transfer.
 - Build that catalogue from provider metadata, with resumable refresh jobs,
   coverage reports and saved versions you can search offline.
 
@@ -82,7 +84,8 @@ currently [research work](https://xangma.github.io/ssdu/research/index.html).
   before citing or combining results.
 
 These lessons are executable and use synthetic inputs. The manual also covers
-[larger metadata captures](https://xangma.github.io/ssdu/guides/metadata-sync.html)
+[larger metadata captures](https://xangma.github.io/ssdu/guides/metadata-sync.html),
+[deep metadata and code lists](https://xangma.github.io/ssdu/guides/metadata-graph.html),
 and [the shared application interfaces](https://xangma.github.io/ssdu/guides/interfaces.html).
 
 The software and documentation use the [MIT licence](LICENSE). Real datasets

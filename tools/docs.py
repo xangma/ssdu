@@ -101,6 +101,7 @@ def inventory(root=ROOT):
         ("four_nation_example", "examples/four_nations.py", "Four-nation"),
         ("dataset_api_example", "examples/dataset_api.py", "Dataset API"),
         ("metadata_capture_example", "examples/metadata_capture.py", "Metadata capture"),
+        ("metadata_graph_example", "examples/metadata_graph.py", "Metadata graph"),
     ):
         example = manifest.get(key)
         if example is not None:
@@ -233,6 +234,8 @@ def references(manifest):
     from ssdu.api import create_app
     from ssdu.conformance import conformance_coverage
     from ssdu.metadata_contract import contract_schema
+    from ssdu.metadata_graph import contract_schema as graph_contract_schema
+    from ssdu.service import Service
     from ssdu.source_coverage import get_source_coverage, provider_coverage_markdown
 
     cli = cli_inventory()
@@ -243,6 +246,7 @@ def references(manifest):
     mcps = [asyncio.run(mcp_inventory(enabled)) for enabled in (False, True)]
     schemas = {name: symbol(name).model_json_schema() for name in manifest["schema_models"]}
     metadata_schema = contract_schema()
+    connectors = Service.list_metadata_connectors()
     files = {
         "_downloads/cli.json": json_text(cli),
         "_downloads/openapi.json": json_text(apis[0]),
@@ -251,6 +255,8 @@ def references(manifest):
         "_downloads/mcp-jobs.json": json_text(mcps[1]),
         "_downloads/schemas.json": json_text(schemas),
         "_downloads/metadata-contract.json": json_text(metadata_schema),
+        "_downloads/metadata-graph-contract.json": json_text(graph_contract_schema()),
+        "_downloads/metadata-connectors.json": json_text(connectors),
     }
     text = "# CLI reference\n\nGenerated from the installed CLI parser. Global `--store` precedes the command.\n"
     text += "\n{download}`Parser help inventory <../_downloads/cli.json>`\n"
@@ -264,6 +270,12 @@ def references(manifest):
         "\nThe versioned provider metadata contract describes discovery records and "
         "their retained evidence. It is separate from the downloaded dataset contract.\n\n"
         "{download}`Metadata contract JSON Schema <../_downloads/metadata-contract.json>`\n"
+    )
+    text += (
+        "\nThe additive `ssdu.metadata.graph` contract describes catalogues, datasets, "
+        "tables, variables, explicit questions and response codes. It preserves "
+        "source-qualified identity and retained source evidence.\n\n"
+        "{download}`Deep metadata graph JSON Schema <../_downloads/metadata-graph-contract.json>`\n"
     )
     for name, schema in schemas.items():
         text += f"\n## `{name}`\n" + code(json_text(schema))
@@ -329,6 +341,11 @@ def references(manifest):
         "publication. Portals can include data from other publishers, so check each "
         "dataset's recorded source and terms.\n\n"
     )
+    text += (
+        "Metadata-only integrations are listed separately in the "
+        "[metadata connector registry](metadata-connectors.md). They do not "
+        "provide observation-data downloads.\n\n"
+    )
     text += provider_coverage_markdown()
     text += (
         "\nStart with the [guided tutorial](../start/research-tutorial.md) to learn the "
@@ -345,6 +362,37 @@ def references(manifest):
         "dates, units and geographical boundaries with any data you use.\n"
     )
     files["reference/sources.md"] = text
+    text = (
+        "# Metadata-only connector coverage\n\n"
+        "These connectors capture public catalogue metadata independently of data "
+        "retrieval adapters. They do not grant access to the described datasets. "
+        "An entry identifies a service endpoint; federated origin identifiers remain "
+        "part of every entity's identity.\n\n"
+        "| Connector | Service scope | API | Catalogue |\n"
+        "| --- | --- | --- | --- |\n"
+    )
+    for item in connectors["items"]:
+        text += (
+            f"| `{item['id']}` | {item['scope']} | "
+            f"[MetadataWorks {item['api_version']}]({item['api_base']}) | "
+            f"[Browse]({item['catalogue_url']}) |\n"
+        )
+    text += (
+        "\nSupported depth: dataset descriptions, current table and variable metadata, "
+        "explicit question fields and enumerated code lists when exposed. Release "
+        "history is retained as descriptors; historical dictionaries and attachment-only "
+        "dictionaries are not traversed. Repeated pagination is detected and reported "
+        "as partial coverage. Missing metadata and unknown denominators remain explicit.\n\n"
+        "NISRA's secure metadata service is separate from its statistical Data Portal. "
+        "Research Data Scotland is separate from the Scottish Government data portal. "
+        "These registrations do not establish complete coverage of the organisations' "
+        "holdings or every ADR partner.\n\n"
+        "Follow the [deep metadata guide](../guides/metadata-graph.md) and inspect "
+        "each capture report before assessing completeness. The registry is "
+        "[available as JSON](../_downloads/metadata-connectors.json). Custom tenants "
+        "require an explicit registration and host allowlist.\n"
+    )
+    files["reference/metadata-connectors.md"] = text
     text = (
         "# Dataset and adapter support\n\n"
         "This technical reference records the exact selections, formats and limits "

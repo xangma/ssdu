@@ -30,6 +30,19 @@ MaxMetadataAge = Annotated[StrictInt, Field(ge=0, le=315_360_000)]
 SearchText = Annotated[str, StringConstraints(max_length=512)]
 Limit = Annotated[StrictInt, Field(ge=1, le=100)]
 Offset = Annotated[StrictInt, Field(ge=0, le=100_000)]
+MetadataGraphOffset = Annotated[StrictInt, Field(ge=0, le=8_000_000)]
+MetadataEntityKind = Literal[
+    "catalogue",
+    "study",
+    "dataset",
+    "release",
+    "table",
+    "instrument",
+    "variable",
+    "question",
+    "code_list",
+    "code",
+]
 Scalar = (
     Annotated[str, StringConstraints(max_length=512)] | StrictInt | StrictFloat | StrictBool | None
 )
@@ -95,6 +108,18 @@ class MetadataStatusParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
     provider: Identifier | None = None
     max_age_seconds: Annotated[int, Field(ge=0, le=315_360_000)] = 86400
+
+
+class MetadataGraphPageParams(BaseModel):
+    """Bound graph reads without limiting a large variable catalogue to 100,000 rows."""
+
+    model_config = ConfigDict(extra="forbid")
+    limit: Annotated[int, Field(ge=1, le=100)] = 20
+    offset: Annotated[int, Field(ge=0, le=8_000_000)] = 0
+
+
+class MetadataGraphEntityParams(MetadataGraphPageParams):
+    kind: MetadataEntityKind | None = None
 
 
 class DimensionParams(BaseModel):
@@ -218,6 +243,21 @@ def supports_metadata_capture(service, *, controls=False) -> bool:
         else ("metadata_capture_report",)
     )
     return all(callable(getattr(service, name, None)) for name in names)
+
+
+def supports_metadata_graph(service) -> bool:
+    """Advertise deep metadata reads only when the injected service supports every read."""
+    return all(
+        callable(getattr(service, name, None))
+        for name in (
+            "list_metadata_connectors",
+            "describe_metadata_graph",
+            "list_metadata_entities",
+            "describe_metadata_entity",
+            "list_metadata_links",
+            "metadata_graph_report",
+        )
+    )
 
 
 def resolve_service(store="data", service: DataService | None = None) -> DataService:

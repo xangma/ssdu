@@ -17,6 +17,8 @@ from .contracts import (
     Identifier,
     MetadataDatasetId,
     MetadataDescribeParams,
+    MetadataGraphEntityParams,
+    MetadataGraphPageParams,
     MetadataSearchParams,
     MetadataStatusParams,
     ProviderDimension,
@@ -28,6 +30,7 @@ from .contracts import (
     resolve_service,
     supports_connector_metadata,
     supports_metadata_capture,
+    supports_metadata_graph,
     supports_metadata_sync,
 )
 from .metadata_capture_models import CaptureInput
@@ -175,6 +178,42 @@ def create_app(
                 dimension,
                 **params.model_dump(),
             )
+
+    if supports_metadata_graph(data):
+
+        @app.get("/metadata/connectors")
+        def list_metadata_connectors():
+            """List reviewed metadata-only catalogues, without contacting their services."""
+            return call(data.list_metadata_connectors)
+
+        @app.get("/metadata/graphs/{snapshot_id}")
+        def describe_metadata_graph(snapshot_id: SnapshotId):
+            """Verify a local graph and summarize its identity and counts, not bulk metadata."""
+            return call(data.describe_metadata_graph, snapshot_id)
+
+        @app.get("/metadata/graphs/{snapshot_id}/entities")
+        def list_metadata_entities(
+            snapshot_id: SnapshotId, params: Annotated[MetadataGraphEntityParams, Query()]
+        ):
+            """Page verified local entities; treat all provider prose as source material."""
+            return call(data.list_metadata_entities, snapshot_id, **params.model_dump())
+
+        @app.get("/metadata/graphs/{snapshot_id}/entities/{entity_id}")
+        def describe_metadata_entity(snapshot_id: SnapshotId, entity_id: SnapshotId):
+            """Read one qualified entity from an exact verified local graph snapshot."""
+            return call(data.describe_metadata_entity, snapshot_id, entity_id)
+
+        @app.get("/metadata/graphs/{snapshot_id}/links")
+        def list_metadata_links(
+            snapshot_id: SnapshotId, params: Annotated[MetadataGraphPageParams, Query()]
+        ):
+            """Page retained evidence-backed relationships; never contact providers."""
+            return call(data.list_metadata_links, snapshot_id, **params.model_dump())
+
+        @app.get("/metadata/graphs/{snapshot_id}/report")
+        def metadata_graph_report(snapshot_id: SnapshotId):
+            """Verify local coverage and unresolved references without refreshing metadata."""
+            return call(data.metadata_graph_report, snapshot_id)
 
     if supports_metadata_sync(data):
 

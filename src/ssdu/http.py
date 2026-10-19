@@ -59,6 +59,7 @@ class HttpClient:
         allowed_hosts: frozenset[str] | None = None,
         before_attempt=None,
         on_bytes=None,
+        headers=None,
     ):
         self.resources: list[Resource] = []
         self.cache_scope = None
@@ -81,7 +82,10 @@ class HttpClient:
             transport=transport,
             timeout=httpx.Timeout(30.0, connect=10.0),
             follow_redirects=False,
-            headers={"User-Agent": "ssdu-retrieval-poc/0.1 (bounded public-data research)"},
+            headers={
+                "User-Agent": "ssdu-retrieval-poc/0.1 (bounded public-data research)",
+                **(headers or {}),
+            },
         )
 
     def __enter__(self):
@@ -134,8 +138,6 @@ class HttpClient:
                                     parsed.hostname,
                                     delay if delay is not None else min(0.5 * 2**attempt, 5.0),
                                 )
-                                if attempt < self.retries:
-                                    continue
                             conditional = (
                                 method == "GET"
                                 and headers
@@ -144,8 +146,6 @@ class HttpClient:
                                     for key in headers
                                 )
                             )
-                            if response.status_code != 304 or not conditional:
-                                response.raise_for_status()
                             body = bytearray()
                             for chunk in response.iter_bytes():
                                 body.extend(chunk)
@@ -158,6 +158,14 @@ class HttpClient:
                                     )
                                 if self.total_bytes > self.max_total_bytes:
                                     raise RetrievalError("Provider download budget exhausted")
+                            # Failed responses consume bandwidth too. Charge their bounded
+                            # bodies before retrying or raising, without caching them.
+                            if (
+                                response.status_code == 429 or response.status_code >= 500
+                            ) and attempt < self.retries:
+                                continue
+                            if response.status_code != 304 or not conditional:
+                                response.raise_for_status()
                             resource = Resource(
                                 body=bytes(body),
                                 url=str(response.url),

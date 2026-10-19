@@ -418,3 +418,13 @@ def test_notebook_receipt_rejects_changed_extra_helper_or_fixture(
     (root / changed_input).write_text("changed input\n")
     with pytest.raises(ValueError, match="Stale"):
         helper.render(root, page, source)
+
+
+@pytest.mark.parametrize("source", ["examples/other.py", "../private.py"])
+def test_metadata_graph_acceptance_rejects_unapproved_executable(publication, source):
+    manifest = publication / "docs/publication.json"
+    value = json.loads(manifest.read_text())
+    value["metadata_graph_example"] = source
+    manifest.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="Metadata graph.*independently allowlisted"):
+        docs.inventory(publication)

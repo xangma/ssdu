@@ -6,7 +6,7 @@
     {
       "path": ".github/workflows/conformance.yml",
       "kind": "configuration",
-      "sha256": "bfa8eb7f68b91b404eca31bcf3165e3f8767ee7eb7b68f8ea897f2c06991ca13",
+      "sha256": "fc92c0df888b490f7b152b644d453a9dd542ff7cb46452ffcce635ae8a2b1079",
       "review": "Author-owned deterministic CI configuration; no captured data or secrets."
     },
     {
@@ -36,13 +36,13 @@
     {
       "path": "README.md",
       "kind": "documentation",
-      "sha256": "cbed65ee979738fcc116eb58183febea1560794fd26333356e30f701d7025267",
+      "sha256": "7267ef15df97bd9026a259e3b99a2d186262a703b6af3ab96235a7fe6dcea2d9",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
       "path": "docs/README.md",
       "kind": "documentation",
-      "sha256": "13a2afab798509166487a80932a8265315312eb2ecf34674ec47f0756670fd6b",
+      "sha256": "0312c569432df0a988e94c62b760ce54a69d4a7627cb48f0de5059cf866b2e3a",
       "review": "Curated author-owned documentation or project artwork; no captured data payload."
     },
     {
@@ -96,13 +96,19 @@
     {
       "path": "docs/content/guides/interfaces.md",
       "kind": "documentation",
-      "sha256": "45d095b5ad7eb9f16efb523facb0fbc8b1dd9166735e1a95911939f50ec50552",
+      "sha256": "f92983de262f69058a217668e7cb820fd0185cdcf03dba9cf3fa9904a5b3636c",
       "review": "Curated user documentation; source captures and private development records are excluded."
+    },
+    {
+      "path": "docs/content/guides/metadata-graph.md",
+      "kind": "documentation",
+      "sha256": "a869d85e06bbf84c0cf1ef927e571e7d0cdf4fb28ba6814a57f9826067368a32",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
     },
     {
       "path": "docs/content/guides/metadata-sync.md",
       "kind": "documentation",
-      "sha256": "f756fe0026fb964e7cf7632fdb7dc12369ad238f0d10ce0c1309e32a95691123",
+      "sha256": "00c6af5b4007bb302e8645d7240ce556e08e6152381f343360b8cd82d446f1ff",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
     },
     {
@@ -114,7 +120,7 @@
     {
       "path": "docs/content/index.md",
       "kind": "documentation",
-      "sha256": "8e3fbb887060c8f38d0d43f1cb4f3be0ea4bcf0896bbbd0fdc28eb748fb6dd58",
+      "sha256": "f89f5d58cb2de95e4d43f980cab3cba63e3431cbc115c46e8894ed26b63a80d5",
       "review": "Curated user documentation; source captures and private development records are excluded."
     },
     {
@@ -138,7 +144,7 @@
     {
       "path": "docs/publication.json",
       "kind": "configuration",
-      "sha256": "0890889e721ffa9b36469a7a64b3b52dda2a338e16ff5c82682e77a92ba6f919",
+      "sha256": "b4853c92cb24ed2e9c29cb9da757722544b016035227d5cc9c818bd18221026a",
       "review": "Package/build configuration and dependency references only; no installed dependency payloads."
     },
     {
@@ -274,6 +280,12 @@
       "review": "Author-owned metadata capture implementation and independently invented protocol tests/example; no captured provider payloads."
     },
     {
+      "path": "examples/metadata_graph.py",
+      "kind": "source",
+      "sha256": "cdb53437a413b56590329edd933928cc6ce99920b2b622cc0884768129b8697a",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
       "path": "examples/metadata_sync.py",
       "kind": "source",
       "sha256": "22ad0cac95c435ccf2ce353678be327fa0d6f3438bb44ec8e5413bb4a2ee38e2",
@@ -378,7 +390,7 @@
     {
       "path": "src/ssdu/__init__.py",
       "kind": "source",
-      "sha256": "e4345e3711f727b41dbd670ce0dcde8b2b1e4b1f4ff4a0445d10996802907c76",
+      "sha256": "ee0c699fb026e263c14147aa251a4fc852657ee0fdaabfda0723b626dc659e93",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -392,6 +404,12 @@
       "kind": "source",
       "sha256": "aba63ce3cc2e6bba676ae2b43aba3f13b971fadeb844c3c00c15da28d0953155",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
+    },
+    {
+      "path": "src/ssdu/adapters/metadataworks.py",
+      "kind": "source",
+      "sha256": "72d1a1543609e6287868d71685ddee95a911065b59ea54e87f5a9c9f1a0ac5ab",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
     },
     {
       "path": "src/ssdu/adapters/mhclg.py",
@@ -432,7 +450,7 @@
     {
       "path": "src/ssdu/api.py",
       "kind": "source",
-      "sha256": "3f533fbdef79b186f8554f32c717c60fb48cdd7bc3c7b98944a266bc0b84c521",
+      "sha256": "0876ec70e4202ed73f2bc57029ef49ec25e37279b094dbe6f4659a6652d1a1c3",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -486,7 +504,7 @@
     {
       "path": "src/ssdu/contracts.py",
       "kind": "source",
-      "sha256": "5f73dc8788c9fbbb9fd8ac0506e8b6fc9f3795380126254ededa027e61968cdf",
+      "sha256": "f77af8aed2210fc30fce0d8ecb125eed39a26a101f0df81f2472f76a43cadd20",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -558,7 +576,7 @@
     {
       "path": "src/ssdu/http.py",
       "kind": "source",
-      "sha256": "e868b7ce1e70b720c79bd76998ca1f4d507c5fbe68a8a115aad009e1684243b3",
+      "sha256": "280db433d6994c2d0912675fd69f4d259c8b75e08f5c7a0ae8e50a4d7fb56a33",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -606,7 +624,7 @@
     {
       "path": "src/ssdu/mcp_server.py",
       "kind": "source",
-      "sha256": "ab38ff76dd02c46c5c4a3861a471c507ee195bf9f06e2a44d6ff1caa7961e751",
+      "sha256": "0f4e0b2c33cd99a6676566d38c84b0046009c97cd03e75527134d7cfd68ff986",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -630,14 +648,44 @@
     {
       "path": "src/ssdu/metadata_cli.py",
       "kind": "source",
-      "sha256": "3dd42e79974f7bba4a9a1dfc183aca6dfed0d214474f5c07f0975062a94e5757",
+      "sha256": "c8b73e1a159b67c7fc3e456afa9b9568079a7ba2480359f1a58ed7a8194db271",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
+    },
+    {
+      "path": "src/ssdu/metadata_connectors.py",
+      "kind": "source",
+      "sha256": "8af54691c3ca9ee5a47eee44499d2d6621cd97885cdbe9e5db3a528aab1ce252",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
     },
     {
       "path": "src/ssdu/metadata_contract.py",
       "kind": "source",
       "sha256": "6e80a23b135c4d343e31c5dde528746edc70323ef52b8dd147c3f77142d67164",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
+    },
+    {
+      "path": "src/ssdu/metadata_graph.py",
+      "kind": "source",
+      "sha256": "1920b31751bd2a88174beadda0642bac72f13482024ebe63aa553d40bfb4897b",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "src/ssdu/metadata_graph_capture.py",
+      "kind": "source",
+      "sha256": "d45c726f51cfb19b6d9e1d312794dc93c7e662afd2c3394e6e830e77349821c5",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "src/ssdu/metadata_graph_cli.py",
+      "kind": "source",
+      "sha256": "b87046805c22097717fcdda55520eb6f6214a7a9057070ebc0ec198f4e48c16f",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "src/ssdu/metadata_graph_store.py",
+      "kind": "source",
+      "sha256": "836ddb2fd9479d7fb19d45cc95778741f95ddd12f8af55c3a4f9dcee969aba32",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
     },
     {
       "path": "src/ssdu/metadata_index.py",
@@ -756,7 +804,7 @@
     {
       "path": "src/ssdu/service.py",
       "kind": "source",
-      "sha256": "bbb52e3ed3e12891dddc623da6a9868b51f7baa727e1c4ade4fffee7c0abb413",
+      "sha256": "81876842a99f6bf89d831757b6785e6e38ba66f165794ce1d0c2f58537a3df80",
       "review": "Author-owned implementation; no vendored source or captured dataset payload identified in bounded source review."
     },
     {
@@ -1146,7 +1194,7 @@
     {
       "path": "tests/test_documentation.py",
       "kind": "source",
-      "sha256": "0b505bf2fbac8f283670275117ccff0230bffbb31f074b1a198d7925e0adc633",
+      "sha256": "d710f6574ac085f9a590589a125e2781f1eddaf3791ba02cdac392c8c86d0fc2",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1164,7 +1212,7 @@
     {
       "path": "tests/test_http.py",
       "kind": "source",
-      "sha256": "30c623c3df7256fc6dc215b59db00f9a776905f26af2dc228f9cc187b26f30ea",
+      "sha256": "caf4532a299689ad8f693525cf1ff0e2737b789ad8848e37c2d6a853d63aad49",
       "review": "Author-owned tests using independently invented in-memory or allowlisted fixture inputs. Captured local-only inputs are explicitly skipped when absent."
     },
     {
@@ -1252,6 +1300,42 @@
       "review": "Author-owned synthetic teaching helper or regression test; no captured provider payloads or secrets."
     },
     {
+      "path": "tests/test_metadata_graph.py",
+      "kind": "source",
+      "sha256": "b6ce22d9259980b2dca7144e0b08322bd3060614a008f1a3c302ecfc35fcccc6",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "tests/test_metadata_graph_capture.py",
+      "kind": "source",
+      "sha256": "50aff2e6d8175bf0604e8cc5628f5bcf5185c8d2f5cda2213fd1a3a7e2164ceb",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "tests/test_metadata_graph_cli.py",
+      "kind": "source",
+      "sha256": "5e7116e7d057fe291fab338d15f64393d36100f2bc3d1673f8ded234564adbf9",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "tests/test_metadata_graph_example.py",
+      "kind": "source",
+      "sha256": "c03b639b7ff405c3461c3d94a6f65c393869df9e5df4de3c0ddd5842a1ef098e",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "tests/test_metadata_graph_interfaces.py",
+      "kind": "source",
+      "sha256": "f37c37c2909f854624b0b82fe0169329fbd3a61ea1a3bfb409df45196089878e",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
+      "path": "tests/test_metadata_graph_store.py",
+      "kind": "source",
+      "sha256": "4d49b44b4a84f0af822d5f7d5a0661d32bc69b5f1497681a60c4013dd3f57154",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
+    },
+    {
       "path": "tests/test_metadata_index.py",
       "kind": "source",
       "sha256": "77082304c79dbd907662124e92968732fdc0b413bc92a73ac0965a7a0ab6a74d",
@@ -1322,6 +1406,12 @@
       "kind": "source",
       "sha256": "e321e3a90ed7dd125984a58e4c049a1bde9d3bd40abd11a3587d8210a12ada32",
       "review": "Author-owned metadata synchronisation implementation or independently invented synthetic teaching/test responses; no captured provider metadata, observations or secrets."
+    },
+    {
+      "path": "tests/test_metadataworks.py",
+      "kind": "source",
+      "sha256": "46fcbe53faa6c1c0823035ede84a51d995419cfec787f0667e8a6601e7bfdad4",
+      "review": "Author-owned deep metadata contract, connector, worker, examples and independent synthetic regressions; no captured provider payloads."
     },
     {
       "path": "tests/test_mhclg.py",
@@ -1548,13 +1638,13 @@
     {
       "path": "tools/docs.py",
       "kind": "source",
-      "sha256": "c9b9665eb2b1787f06fe43b33418af42be482b2b4702c80125318dddb539e21a",
+      "sha256": "9b0cdcd52f5339ae0c8c7cb55da3aeac203aa76e448a12d64e67b16cf50e6e82",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
       "path": "tools/docs_acceptance.py",
       "kind": "source",
-      "sha256": "ceb1c7b921b8bbfbb6903469a1380608512ab949c3152b0bcbf21e590280a309",
+      "sha256": "23d5740c09dc9ae9ff1b0850dd235556fc6f85119bf4cac1ab7323371042d9aa",
       "review": "Author-owned publication/documentation tooling; no external code vendored."
     },
     {
@@ -1629,6 +1719,12 @@
       "tests/test_metadata_capture_interfaces.py",
       "tests/test_metadata_contract.py",
       "tests/test_metadata_discovery_tutorial.py",
+      "tests/test_metadata_graph.py",
+      "tests/test_metadata_graph_capture.py",
+      "tests/test_metadata_graph_cli.py",
+      "tests/test_metadata_graph_example.py",
+      "tests/test_metadata_graph_interfaces.py",
+      "tests/test_metadata_graph_store.py",
       "tests/test_metadata_index.py",
       "tests/test_metadata_interfaces.py",
       "tests/test_metadata_mapping.py",
@@ -1641,6 +1737,7 @@
       "tests/test_metadata_store.py",
       "tests/test_metadata_sync.py",
       "tests/test_metadata_sync_example.py",
+      "tests/test_metadataworks.py",
       "tests/test_mhclg.py",
       "tests/test_mhclg_metadata_capture.py",
       "tests/test_national_connectors_example.py",

@@ -86,3 +86,13 @@ Queries use validated columns, filters, sorting and pagination rather than
 arbitrary SQL. The [schema reference](../reference/schemas.md) describes typed
 limits; the transport references document additional request/response bounds.
 Missing or unverifiable snapshots produce errors.
+
+## Read deep metadata
+
+MetadataWorks captures expose variables, explicit questions and code lists
+through `Service.list_metadata_entities()`, `describe_metadata_entity()` and
+`list_metadata_links()`. REST provides the same reads below
+`/metadata/graphs/{snapshot_id}`; MCP exposes tools with the Python method names.
+`/metadata/connectors` lists the independent metadata-only connector registry.
+These operations verify local snapshots and do not harvest a service. Follow
+the [deep metadata guide](metadata-graph.md) to capture, resume and transfer one.

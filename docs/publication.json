@@ -13,7 +13,8 @@
     "guides/four-nations.md",
     "guides/dataset-api.md",
     "guides/provider-workflow.md",
-    "guides/metadata-sync.md"
+    "guides/metadata-sync.md",
+    "guides/metadata-graph.md"
   ],
   "generated_pages": [
     "reference/cli.md",
@@ -23,7 +24,8 @@
     "reference/mcp.md",
     "reference/sources.md",
     "reference/dataset-support.md",
-    "reference/conformance.md"
+    "reference/conformance.md",
+    "reference/metadata-connectors.md"
   ],
   "generated_assets": [
     "_downloads/cli.json",
@@ -34,7 +36,9 @@
     "_downloads/schemas.json",
     "_downloads/source-coverage.json",
     "_downloads/conformance.json",
-    "_downloads/metadata-contract.json"
+    "_downloads/metadata-contract.json",
+    "_downloads/metadata-graph-contract.json",
+    "_downloads/metadata-connectors.json"
   ],
   "downloads": {
     "_downloads/quickstart.py": "examples/documentation_quickstart.py",
@@ -55,7 +59,8 @@
     "_downloads/metadata_discovery.ipynb": "examples/notebooks/metadata_discovery.ipynb",
     "_downloads/local_files.ipynb": "examples/notebooks/local_files.ipynb",
     "_downloads/provider_selection_fixture.py": "examples/notebooks/provider_selection_fixture.py",
-    "_downloads/metadata_discovery_fixture.py": "examples/notebooks/metadata_discovery_fixture.py"
+    "_downloads/metadata_discovery_fixture.py": "examples/notebooks/metadata_discovery_fixture.py",
+    "_downloads/metadata_graph.py": "examples/metadata_graph.py"
   },
   "python_symbols": [
     "ssdu.store.Store",
@@ -110,7 +115,20 @@
     "ssdu.metadata_capture.MetadataCapture.run_job",
     "ssdu.metadata_capture.MetadataCapture.report",
     "ssdu.metadata_capture.MetadataCapture.export_capture",
-    "ssdu.metadata_capture.MetadataCapture.import_capture"
+    "ssdu.metadata_capture.MetadataCapture.import_capture",
+    "ssdu.metadata_connectors.MetadataConnectorRegistration",
+    "ssdu.metadata_connectors.MetadataConnectorRegistry",
+    "ssdu.metadata_connectors.list_metadata_connectors",
+    "ssdu.metadata_connectors.register_metadata_connector",
+    "ssdu.metadata_graph_capture.MetadataGraphCapture",
+    "ssdu.metadata_graph_capture.MetadataGraphCapture.plan_capture",
+    "ssdu.metadata_graph_capture.MetadataGraphCapture.run_job",
+    "ssdu.metadata_graph_store.MetadataGraphStore",
+    "ssdu.metadata_graph_store.MetadataGraphStore.entities",
+    "ssdu.metadata_graph_store.MetadataGraphStore.get_entity",
+    "ssdu.metadata_graph_store.MetadataGraphStore.links",
+    "ssdu.metadata_graph_store.MetadataGraphStore.export",
+    "ssdu.metadata_graph_store.MetadataGraphStore.import_bundle"
   ],
   "schema_models": [
     "ssdu.contracts.QuerySpec",
@@ -129,7 +147,9 @@
     "ssdu.metadata_sync_models.SyncInput",
     "ssdu.metadata_sync_models.SyncPlan",
     "ssdu.metadata_capture_models.CaptureInput",
-    "ssdu.metadata_capture_models.CapturePlan"
+    "ssdu.metadata_capture_models.CapturePlan",
+    "ssdu.contracts.MetadataGraphPageParams",
+    "ssdu.contracts.MetadataGraphEntityParams"
   ],
   "notebooks": {
     "examples/nomis.md": "examples/notebooks/nomis.ipynb",
@@ -150,5 +170,6 @@
     "examples/notebooks/metadata_discovery.ipynb": [
       "examples/notebooks/metadata_discovery_fixture.py"
     ]
-  }
+  },
+  "metadata_graph_example": "examples/metadata_graph.py"
 }

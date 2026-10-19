@@ -307,12 +307,46 @@ def main():
         assert metadata_capture["normalized_fields_and_evidence_equal"]
         assert metadata_capture["index_rebuilt_offline"]
         assert metadata_capture["original_store_path_unavailable"]
+    metadata_graph = None
+    if example := manifest.get("metadata_graph_example"):
+        run = validation / "metadata-graph"
+        if run.exists():
+            shutil.rmtree(run)
+        result = subprocess.run(
+            [sys.executable, str(docs.ROOT / example), "--output-dir", str(run)],
+            cwd=docs.ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+            timeout=150,
+        )
+        metadata_graph = json.loads(result.stdout)
+        assert metadata_graph == json.loads((run / "result.json").read_text())
+        assert metadata_graph["status"] == "passed"
+        assert metadata_graph["interruption_resumed"] and metadata_graph["cached_capture_zero_http"]
+        assert metadata_graph["fresh_store_verified"] and metadata_graph["offline_replay_equal"]
+        assert metadata_graph["source_timestamps_preserved"]
+        assert metadata_graph["original_store_path_unavailable"]
+        assert metadata_graph["network_attempts"] == metadata_graph["observation_requests"] == 0
+        assert metadata_graph["fixture_kind"] == "independently_invented_teaching_metadata"
+        assert {"variable", "question", "code_list", "code"} <= set(metadata_graph["entity_counts"])
+    from ssdu.metadata_graph import contract_schema as graph_contract_schema
+    from ssdu.service import Service
+
+    assert (
+        json.loads((source / "_downloads/metadata-graph-contract.json").read_text())
+        == graph_contract_schema()
+    )
+    assert (
+        json.loads((source / "_downloads/metadata-connectors.json").read_text())
+        == Service.list_metadata_connectors()
+    )
     default_rest = json.loads((source / "_downloads/openapi.json").read_text())
     jobs_rest = json.loads((source / "_downloads/openapi-jobs.json").read_text())
     default_mcp = json.loads((source / "_downloads/mcp.json").read_text())
     jobs_mcp = json.loads((source / "_downloads/mcp-jobs.json").read_text())
-    assert len(default_rest["paths"]) == 19 and len(jobs_rest["paths"]) == 37
-    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 40
+    assert len(default_rest["paths"]) == 25 and len(jobs_rest["paths"]) == 43
+    assert sum(len(methods) for methods in jobs_rest["paths"].values()) == 46
     assert {
         "/snapshots/{snapshot_id}/dataset": "get",
         "/snapshots/{snapshot_id}/dataset/query": "post",
@@ -327,7 +361,7 @@ def main():
     }.items() <= {
         (path, method) for path, methods in default_rest["paths"].items() for method in methods
     }
-    assert len(default_mcp["tools"]) == 18 and len(jobs_mcp["tools"]) == 39
+    assert len(default_mcp["tools"]) == 24 and len(jobs_mcp["tools"]) == 45
     dataset_tools = {
         "describe_snapshot",
         "query_dataset",
@@ -341,6 +375,12 @@ def main():
         "list_metadata_snapshots",
         "describe_metadata_snapshot",
         "metadata_capture_report",
+        "list_metadata_connectors",
+        "describe_metadata_graph",
+        "list_metadata_entities",
+        "describe_metadata_entity",
+        "list_metadata_links",
+        "metadata_graph_report",
     }
     assert dataset_tools <= {tool["name"] for tool in default_mcp["tools"]}
     assert all(
@@ -388,6 +428,7 @@ def main():
         "four_nations": four_nations,
         "dataset_api": dataset_api,
         "metadata_capture": metadata_capture,
+        "metadata_graph": metadata_graph,
         "links": local_links(html),
         "generated_sha256": {
             name: hashlib.sha256(content.encode()).hexdigest() for name, content in repeated.items()
